@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import type { Workout } from "../types";
 
@@ -18,6 +18,7 @@ export function ProfileView({
   onImportWorkout,
   onPasswordChange,
   importInputRef,
+  authHeaderEnabled,
 }: {
   profileTab: ProfileTab;
   onProfileTabChange: (tab: ProfileTab) => void;
@@ -33,8 +34,14 @@ export function ProfileView({
     newPassword: string,
   ) => void | Promise<void>;
   importInputRef: RefObject<HTMLInputElement>;
+  authHeaderEnabled: boolean;
 }) {
   const canExport = Boolean(exportWorkoutId);
+  useEffect(() => {
+    if (authHeaderEnabled && profileTab === "password") {
+      onProfileTabChange("settings");
+    }
+  }, [authHeaderEnabled, profileTab, onProfileTabChange]);
   return (
     <section className="panel">
       <div className="panel-header">
@@ -60,7 +67,7 @@ export function ProfileView({
               </div>
             </div>
           )}
-          {profileTab === "password" && (
+          {profileTab === "password" && !authHeaderEnabled && (
             <PasswordForm onSubmit={onPasswordChange} />
           )}
           {profileTab === "transfer" && (
@@ -107,12 +114,14 @@ export function ProfileView({
           >
             Settings
           </button>
-          <button
-            className={profileTab === "password" ? "tab active" : "tab"}
-            onClick={() => onProfileTabChange("password")}
-          >
-            Password
-          </button>
+          {!authHeaderEnabled && (
+            <button
+              className={profileTab === "password" ? "tab active" : "tab"}
+              onClick={() => onProfileTabChange("password")}
+            >
+              Password
+            </button>
+          )}
           <button
             className={profileTab === "transfer" ? "tab active" : "tab"}
             onClick={() => onProfileTabChange("transfer")}

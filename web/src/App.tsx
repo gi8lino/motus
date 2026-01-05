@@ -622,9 +622,7 @@ export default function App() {
                 "profile",
                 "admin",
               ] as View[]
-            )
-              .filter((v) => (v === "admin" ? currentUser?.isAdmin : true))
-              .filter((v) => (v === "profile" ? !authHeaderEnabled : true))}
+            ).filter((v) => (v === "admin" ? currentUser?.isAdmin : true))}
             onSelect={setView}
           />
         </header>
@@ -726,7 +724,7 @@ export default function App() {
             />
           )}
 
-          {view === "profile" && !authHeaderEnabled && (
+          {view === "profile" && (
             <ProfileView
               profileTab={profileTab}
               onProfileTabChange={setProfileTab}
@@ -739,6 +737,7 @@ export default function App() {
               onImportWorkout={handleImportSelected}
               onPasswordChange={handlePasswordSubmit}
               importInputRef={importInputRef}
+              authHeaderEnabled={authHeaderEnabled}
             />
           )}
 
