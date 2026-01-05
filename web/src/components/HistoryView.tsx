@@ -6,7 +6,7 @@ import type {
   SessionStepLog,
   Workout,
 } from "../types";
-import { formatMillis } from "../utils/format";
+import { formatExerciseLine, formatMillis } from "../utils/format";
 import { buildSummary } from "../utils/summary";
 import { AISummary, HistoryList } from "./HistoryCard";
 
@@ -165,17 +165,13 @@ export function HistoryView({
                                     : "";
                                 })()}
                               </div>
-                              {step.exercises?.length ? (
-                                <div className="muted small">
-                                  {step.exercises
-                                    .map((ex) =>
-                                      [ex.name, ex.amount, ex.weight]
-                                        .filter(Boolean)
-                                        .join(" • "),
-                                    )
-                                    .filter(Boolean)
-                                    .join(" | ")}
-                                </div>
+                            {step.exercises?.length ? (
+                              <div className="muted small">
+                                {step.exercises
+                                  .map((ex) => formatExerciseLine(ex))
+                                  .filter(Boolean)
+                                  .join(" | ")}
+                              </div>
                               ) : null}
                             </div>
                           </div>

@@ -1,5 +1,5 @@
 import type { Exercise } from "../types";
-import { formatMillis } from "./format";
+import { formatExerciseLine, formatMillis } from "./format";
 import { normalizeTimestamp } from "./time";
 
 // SummaryStep describes a step entry for AI summaries.
@@ -34,11 +34,7 @@ export function buildSummary(source: SummarySource): string {
       const exercises =
         s.exercises && s.exercises.length
           ? ` — ${s.exercises
-              .map((ex: Exercise) =>
-                [ex.name, ex.amount, ex.weight === "__auto__" ? "" : ex.weight]
-                  .filter(Boolean)
-                  .join(" • "),
-              )
+              .map((ex: Exercise) => formatExerciseLine(ex))
               .filter(Boolean)
               .join(" | ")}`
           : "";

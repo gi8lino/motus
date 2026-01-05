@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatExercises, formatMillis } from "../utils/format";
+import {
+  formatExerciseLine,
+  formatExercises,
+  formatMillis,
+} from "../utils/format";
 import type { Exercise, SessionState, WorkoutStep } from "../types";
 
 // SessionCard shows the live session with controls and steps.
@@ -142,13 +146,7 @@ export function SessionCard({
           {currentExercises.length > 0 && (
             <div className="exercise-pills">
               {currentExercises.map((ex: Exercise, idx: number) => {
-                const text = [
-                  ex.name,
-                  ex.amount,
-                  ex.weight === "__auto__" ? "" : ex.weight,
-                ]
-                  .filter(Boolean)
-                  .join(" • ");
+                const text = formatExerciseLine(ex);
                 if (!text) return null;
                 return (
                   <span key={idx} className="pill">
