@@ -16,7 +16,7 @@ builds:
       - -X main.Version={{ .Tag }}
       - -X main.Commit={{ .FullCommit }}
 dockers_v2:
-  - dockerfile: Dockerfile
+  - dockerfile: Dockerfile.goreleaser
     platforms: [linux/amd64, linux/arm64]
     images:
       - ghcr.io/gi8lino/motus
