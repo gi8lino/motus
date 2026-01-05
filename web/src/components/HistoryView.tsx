@@ -141,46 +141,48 @@ export function HistoryView({
                   <div className="muted small">Loading steps…</div>
                 )}
                 {!previewLoading && previewWorkout && (
-                  {/* Step list */}
-                  <ul className="list compact">
-                    {previewWorkout.steps.map((step, idx) => (
-                      <li key={step.id || idx} className="list-item">
-                        <div className="list-row">
-                          <div>
-                            <strong>
-                              {idx + 1}. {step.name}
-                            </strong>
-                            <div className="muted small">
-                              {step.type} •{" "}
-                              {step.estimatedSeconds
-                                ? `target ${step.estimatedSeconds}s`
-                                : step.duration || "open"}
-                              {(() => {
-                                const durMs =
-                                  previewDurations[`order-${idx}`] ??
-                                  previewDurations[step.id || `step-${idx}`];
-                                return durMs
-                                  ? ` • actual ${formatMillis(durMs)}`
-                                  : "";
-                              })()}
-                            </div>
-                            {step.exercises?.length ? (
+                  <>
+                    {/* Step list */}
+                    <ul className="list compact">
+                      {previewWorkout.steps.map((step, idx) => (
+                        <li key={step.id || idx} className="list-item">
+                          <div className="list-row">
+                            <div>
+                              <strong>
+                                {idx + 1}. {step.name}
+                              </strong>
                               <div className="muted small">
-                                {step.exercises
-                                  .map((ex) =>
-                                    [ex.name, ex.amount, ex.weight]
-                                      .filter(Boolean)
-                                      .join(" • "),
-                                  )
-                                  .filter(Boolean)
-                                  .join(" | ")}
+                                {step.type} •{" "}
+                                {step.estimatedSeconds
+                                  ? `target ${step.estimatedSeconds}s`
+                                  : step.duration || "open"}
+                                {(() => {
+                                  const durMs =
+                                    previewDurations[`order-${idx}`] ??
+                                    previewDurations[step.id || `step-${idx}`];
+                                  return durMs
+                                    ? ` • actual ${formatMillis(durMs)}`
+                                    : "";
+                                })()}
                               </div>
-                            ) : null}
+                              {step.exercises?.length ? (
+                                <div className="muted small">
+                                  {step.exercises
+                                    .map((ex) =>
+                                      [ex.name, ex.amount, ex.weight]
+                                        .filter(Boolean)
+                                        .join(" • "),
+                                    )
+                                    .filter(Boolean)
+                                    .join(" | ")}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
                 {!previewLoading && !previewWorkout && (
                   <div className="muted small">No step data available.</div>
