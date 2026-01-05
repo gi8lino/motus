@@ -12,7 +12,7 @@ services:
     volumes:
       - motus-db-data:/var/lib/postgresql/data
   motus-pgadmin:
-    image: dpage/pgadmin4:8
+    image: dpage/pgadmin4:9
     container_name: motus-pgadmin
     restart: unless-stopped
     environment:
