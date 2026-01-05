@@ -22,6 +22,7 @@ export function useAdminActions({
   const toggleAdmin = useCallback(
     async (user: User) => {
       try {
+        // Persist role change before updating local cache.
         await updateUserAdmin(user.id, !user.isAdmin);
         setUsers(
           (prev) =>

@@ -18,6 +18,7 @@ export function LoginView({
     <section className="grid two">
       <div className="panel">
         <h3>Log in</h3>
+        {/* Local login form */}
         <LoginForm
           onLogin={onLogin}
           error={loginError}

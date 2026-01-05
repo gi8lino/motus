@@ -83,6 +83,7 @@ export function HistoryView({
           onSelect={handleSelect}
         />
       </section>
+      {/* Preview modal */}
       {preview && (
         <div
           className="modal-overlay"
@@ -140,6 +141,7 @@ export function HistoryView({
                   <div className="muted small">Loading steps…</div>
                 )}
                 {!previewLoading && previewWorkout && (
+                  {/* Step list */}
                   <ul className="list compact">
                     {previewWorkout.steps.map((step, idx) => (
                       <li key={step.id || idx} className="list-item">

@@ -47,6 +47,7 @@ export function AdminView({
       </div>
       <div className="profile-layout">
         <div className="profile-content">
+          {/* Tab content */}
           {tab === "users" && (
             <div className="stack">
               <div className="panel">
@@ -57,6 +58,7 @@ export function AdminView({
                   </div>
                 </div>
                 {loading && <p>Loading users…</p>}
+                {/* User list */}
                 <ul className="list">
                   {users.map((u) => (
                     <li

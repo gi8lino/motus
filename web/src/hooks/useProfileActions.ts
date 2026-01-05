@@ -25,6 +25,7 @@ export function useProfileActions({
   // exportSelectedWorkout downloads the selected workout JSON.
   const exportSelectedWorkout = useCallback(async () => {
     if (!exportWorkoutId) {
+      // Guard: require a selection before exporting.
       await notify("Select a workout to export.");
       return;
     }
@@ -51,6 +52,7 @@ export function useProfileActions({
       try {
         const raw = await file.text();
         const parsed = JSON.parse(raw);
+        // Accept either { workout: {...} } or a raw workout export.
         const workoutPayload = parsed.workout ? parsed.workout : parsed;
         if (!workoutPayload?.name || !workoutPayload?.steps) {
           await notify("Invalid workout JSON.");

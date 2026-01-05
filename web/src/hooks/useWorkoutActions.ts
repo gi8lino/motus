@@ -68,6 +68,7 @@ export function useWorkoutActions({
       const ok = await askConfirm(`Delete ${name}? This cannot be undone.`);
       if (!ok) return;
       try {
+        // Delete on the server before updating local state.
         await deleteWorkout(workoutId);
         setWorkouts((prev) =>
           prev ? prev.filter((w) => w.id !== workoutId) : prev,
@@ -102,6 +103,7 @@ export function useWorkoutActions({
       const name = await askPrompt("Template name (optional)");
       if (name === null) return;
       try {
+        // Share then refresh template list for immediate visibility.
         await shareTemplate(workoutId, name.trim() || undefined);
         templatesReload();
         await notify("Template shared.");

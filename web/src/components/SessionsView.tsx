@@ -324,6 +324,7 @@ export function SessionsView({
         <div className="panel-header">
           <div>
             <p className="label">Workout</p>
+            {/* Workout picker */}
             <select
               value={selectedWorkoutId || ""}
               onChange={(e) => onSelectWorkout(e.target.value)}
@@ -345,6 +346,7 @@ export function SessionsView({
             Start Session
           </button>
         </div>
+        {/* Live session card */}
         <SessionCard
           session={session}
           currentStep={currentStep}
@@ -356,6 +358,7 @@ export function SessionsView({
           onFinish={handleFinish}
         />
       </section>
+      {/* Finish summary modal */}
       {finishSummary && (
         <div className="modal-overlay" onClick={() => setFinishSummary(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -390,6 +393,7 @@ export function SessionsView({
           </div>
         </div>
       )}
+      {/* Overrun modal */}
       {overrunModal?.show && (
         <div className="modal-overlay" onClick={handleOverrunPause}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

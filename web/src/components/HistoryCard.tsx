@@ -17,6 +17,7 @@ export function HistoryList({
     return <p className="muted">No history yet.</p>;
   return (
     <ul className="list">
+      {/* Active session banner */}
       {hasActive && (
         <li className="list-item">
           <div className="list-row">

@@ -28,9 +28,11 @@ export function useTemplateActions({
   const applyTemplateToUser = useCallback(
     async (templateId: string) => {
       if (!currentUserId) {
+        // Guard: templates must be applied to a specific user.
         await notify("Select a user first.");
         return;
       }
+      // Allow optional rename during template application.
       const name = await askPrompt("Workout name (optional)");
       if (name === null) return;
       try {

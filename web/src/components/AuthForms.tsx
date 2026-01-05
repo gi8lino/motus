@@ -17,6 +17,7 @@ export function UserForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        // Guard: require valid credentials before submit.
         if (!email.trim() || !password.trim()) return;
         if (!isValidEmail(email.trim())) return;
         onCreate(email.trim(), password.trim());
@@ -67,6 +68,7 @@ export function LoginForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        // Guard: require valid credentials before submit.
         if (!email.trim() || !password.trim()) return;
         if (!isValidEmail(email.trim())) return;
         onLogin(email.trim(), password.trim());

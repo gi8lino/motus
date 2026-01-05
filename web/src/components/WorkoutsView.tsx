@@ -38,6 +38,7 @@ export function WorkoutsView({
         </button>
       </div>
       {loading && <p>Loading workouts…</p>}
+      {/* Workout list */}
       <ul className="list">
         {workouts.map((w) => (
           <li key={w.id} className="list-item">

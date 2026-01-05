@@ -20,6 +20,7 @@ export function useAuthActions({
   const login = useCallback(
     async (email: string, password: string) => {
       try {
+        // Clear prior error state before attempting login.
         setLoginError(null);
         const user = await loginUser(email, password);
         onLoginSuccess(user);
@@ -34,6 +35,7 @@ export function useAuthActions({
   // register creates a new user and forwards the result.
   const register = useCallback(
     async (email: string, password: string) => {
+      // Delegate to the API and let callers update local state.
       const user = await createUser(email, password);
       onRegisterSuccess(user);
     },

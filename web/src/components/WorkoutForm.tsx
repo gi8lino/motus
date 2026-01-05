@@ -592,6 +592,7 @@ export function WorkoutForm({
           required
         />
       </div>
+      {/* Workout steps list */}
       <div className="steps">
         {steps.map((step, idx) => (
           <div

@@ -35,6 +35,7 @@ export function TemplatesView({
         </div>
       </div>
       {loading && <p>Loading templates…</p>}
+      {/* Template list */}
       <div className="list">
         {templates.map((tmpl) => (
           <div key={tmpl.id} className="list-item">

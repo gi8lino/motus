@@ -34,6 +34,7 @@ export function ExercisesView({
           )}
         </div>
       </div>
+      {/* Exercise list */}
       <ul className="list">
         {exercises.map((ex) => (
           <li key={ex.id} className="list-item">

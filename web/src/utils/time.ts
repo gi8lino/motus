@@ -3,6 +3,7 @@ export function parseDurationSeconds(value?: string | number | null): number {
   if (typeof value === "number") return value;
   if (!value) return 0;
   const trimmed = String(value).trim();
+  // Support simple numeric values like "30" or "30s".
   if (!trimmed) return 0;
   const simple = trimmed.match(/^(\d+)(s)?$/i);
   if (simple) {

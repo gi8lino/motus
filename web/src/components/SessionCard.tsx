@@ -169,6 +169,7 @@ export function SessionCard({
                 : (nextStep as any).duration || ""
               : ""}
           </div>
+          {/* Primary session controls */}
           <div className="actions vertical session-actions">
             <button
               className="btn primary"
@@ -194,6 +195,7 @@ export function SessionCard({
         </div>
       </div>
       <div className="session-steps">
+        {/* Active + upcoming steps */}
         {session?.steps
           .filter((step: any) => step.current || !step.completed)
           .map((step: any, idx: number) => {

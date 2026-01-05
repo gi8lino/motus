@@ -197,8 +197,8 @@ export default function App() {
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
   const appVersion = config?.version || "dev";
 
-  const users = useDataLoader<User[]>(listUsers, []);
-  const sounds = useDataLoader<SoundOption[]>(listSounds, []);
+const users = useDataLoader<User[]>(listUsers, []);
+const sounds = useDataLoader<SoundOption[]>(listSounds, []);
   const workouts = useDataLoader<Workout[]>(
     () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
     [currentUserId],
@@ -212,7 +212,8 @@ export default function App() {
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);
 
-  useEffect(() => {
+useEffect(() => {
+    // Load config and resolve proxy-auth user early.
     getConfig()
       .then((cfg) => {
         setConfig(cfg);
@@ -237,7 +238,8 @@ export default function App() {
       });
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
+    // Apply theme selection and react to system preference changes.
     const root = document.documentElement;
     const applyTheme = () => {
       if (themeMode === "auto") {
@@ -260,7 +262,8 @@ export default function App() {
     };
   }, [themeMode]);
 
-  useEffect(() => {
+useEffect(() => {
+    // Validate stored user id once local users are known.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (currentUserId && users.data.find((u) => u.id === currentUserId)) {
@@ -272,7 +275,8 @@ export default function App() {
     }
   }, [authHeaderEnabled, users.data, currentUserId]);
 
-  useEffect(() => {
+useEffect(() => {
+    // Persist the current view in the URL for refresh/bookmark.
     const params = new URLSearchParams(window.location.search);
     if (view === "sessions") {
       if (!params.has(VIEW_PARAM)) return;
@@ -291,14 +295,16 @@ export default function App() {
     if (view === "login") setLoginError(null);
   }, [view]);
 
-  useEffect(() => {
+useEffect(() => {
+    // Auto-redirect to sessions when a local user logs in.
     if (authHeaderEnabled) return;
     if (currentUserId && view === "login") {
       setView("sessions");
     }
   }, [authHeaderEnabled, currentUserId, view]);
 
-  useEffect(() => {
+useEffect(() => {
+    // Keep the exercise catalog in sync with auth state.
     if (!authHeaderEnabled && !currentUserId) {
       setExerciseCatalog([]);
       return;
@@ -308,7 +314,8 @@ export default function App() {
       .catch(() => {});
   }, [authHeaderEnabled, currentUserId]);
 
-  useEffect(() => {
+useEffect(() => {
+    // Force login screen when local auth has no user.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (!currentUserId && view !== "login") {

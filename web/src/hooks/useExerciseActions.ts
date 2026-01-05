@@ -26,9 +26,11 @@ export function useExerciseActions({
   // createCatalogEntry adds a new exercise and stores it in state.
   const createCatalogEntry = useCallback(
     async (name: string, isCore: boolean) => {
+      // Guard: require a non-empty name.
       if (!name.trim()) throw new Error("Exercise name required");
       const created = await createExercise(name.trim(), isCore);
       setExerciseCatalog((prev) => {
+        // Avoid duplicates when optimistic UI already has the entry.
         const exists = prev.find((e) => e.id === created.id);
         if (exists) return prev;
         return [...prev, created];
@@ -73,6 +75,7 @@ export function useExerciseActions({
       try {
         const updated = await updateExercise(ex.id, name.trim());
         setExerciseCatalog((prev) => {
+          // Copy-on-write for core exercises when needed.
           const existing = prev.find((entry) => entry.id === updated.id);
           if (updated.id !== ex.id && !existing) {
             return [...prev, updated];

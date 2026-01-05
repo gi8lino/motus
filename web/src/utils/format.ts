@@ -14,6 +14,7 @@ export function formatExercises(
     | WorkoutStep
     | (WorkoutStep & { elapsedMillis?: number; exercises?: any }),
 ) {
+  // Pause steps never show exercise details.
   if (step.type === "pause") return "";
   const list =
     step.exercises && step.exercises.length
@@ -26,6 +27,7 @@ export function formatExercises(
           },
         ];
   const parts = list
+    // Filter empty entries so the UI doesn't show blank pills.
     .filter((ex: Exercise) => ex && (ex.name || ex.amount || ex.weight))
     .map((ex: Exercise) => {
       const weight = ex.weight === "__auto__" ? "" : ex.weight;

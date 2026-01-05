@@ -42,6 +42,7 @@ export function useWorkoutFormActions({
       name: payload.name,
       steps: payload.steps,
     });
+    // Prepend the new workout to local state.
     setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
     setSelectedWorkoutId(created.id);
     setEditingWorkout(null);

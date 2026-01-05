@@ -25,6 +25,7 @@ export type SummarySource = {
 export function buildSummary(source: SummarySource): string {
   const lines = source.steps
     .map((s, idx) => {
+      // Build target/actual labels per step.
       const actual = s.elapsedMillis
         ? `actual ${formatMillis(s.elapsedMillis)}`
         : "";

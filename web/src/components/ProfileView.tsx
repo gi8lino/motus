@@ -52,6 +52,7 @@ export function ProfileView({
       </div>
       <div className="profile-layout">
         <div className="profile-content">
+          {/* Tab content */}
           {profileTab === "settings" && (
             <div className="stack">
               <div className="field">
@@ -130,6 +131,7 @@ export function ProfileView({
           </button>
         </div>
       </div>
+      {/* Hidden file input for import */}
       <input
         ref={importInputRef}
         type="file"
@@ -160,6 +162,7 @@ function PasswordForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        // Guard: require matching passwords before submit.
         if (!currentPassword.trim() || !newPassword.trim() || mismatch) return;
         onSubmit(currentPassword.trim(), newPassword.trim());
         setCurrentPassword("");
