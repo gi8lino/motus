@@ -19,6 +19,7 @@ type Options struct {
 	RoutePrefix       string            // Route prefix
 	AuthHeader        string            // Authentication header
 	AllowRegistration bool              // Allow user self-registration
+	AutoCreateUsers   bool              // Auto-create users in auth-header mode
 	DatabaseURL       string            // Database URL
 	OverriddenValues  map[string]any    // Overridden values from environment
 	AdminEmail        string            // AdminEmail is the email address of the site admin
@@ -56,6 +57,9 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	tf.BoolVar(&opts.AllowRegistration, "allow-registration", false, "Allow user self-registration").
+		Value()
+
+	tf.BoolVar(&opts.AutoCreateUsers, "auto-create-users", false, "Auto-create users when auth-header is enabled").
 		Value()
 
 	tf.StringVar(&opts.SiteRoot, "site-root", "http://localhost:8080", "Site root URL").

@@ -75,12 +75,13 @@ Motus supports a handful of runtime flags (or environment variables with the `MO
 - `--site-root` (default `http://localhost:8080`): base URL used in links.
 - `--auth-header` (default empty): header name to trust for proxy auth.
 - `--allow-registration` (default false): allow local user sign-up.
+- `--auto-create-users` (default false): auto-create users when auth-header is enabled.
 - `--debug` (default false): enable debug logging.
 - `--log-format` (default `json`): `json` or `text`.
 
 ## Auth header mode
 
-When `--auth-header` is set, Motus trusts the specified header as the authenticated user ID (email). The UI switches to proxy-auth mode, disables local login, and expects the reverse proxy to inject a valid email address. When the header is not set, Motus runs in local-auth mode and requires email + password.
+When `--auth-header` is set, Motus trusts the specified header as the authenticated user ID (email). The UI switches to proxy-auth mode, disables local login, and expects the reverse proxy to inject a valid email address. If you also set `--auto-create-users`, Motus will create missing users on first access. When the header is not set, Motus runs in local-auth mode and requires email + password.
 
 ## Local admin bootstrap
 

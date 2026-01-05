@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/gi8lino/motus/internal/db"
 )
@@ -19,6 +23,7 @@ type API struct {
 	Logger            *slog.Logger // Logger reports server activity.
 	AuthHeader        string       // AuthHeader specifies the proxy auth header.
 	AllowRegistration bool         // AllowRegistration toggles self-serve user creation.
+	AutoCreateUsers   bool         // AutoCreateUsers toggles proxy-driven user creation.
 }
 
 // apiError is a generic error response.
@@ -30,7 +35,7 @@ type apiError struct {
 const localAuthHeader = "X-User-ID"
 
 // NewAPI builds a handler container with shared dependencies.
-func NewAPI(store *db.Store, logger *slog.Logger, authHeader, origin, version, commit string, allowRegistration bool) *API {
+func NewAPI(store *db.Store, logger *slog.Logger, authHeader, origin, version, commit string, allowRegistration, autoCreateUsers bool) *API {
 	return &API{
 		Origin:            origin,
 		Version:           version,
@@ -39,6 +44,7 @@ func NewAPI(store *db.Store, logger *slog.Logger, authHeader, origin, version, c
 		Logger:            logger,
 		AuthHeader:        authHeader,
 		AllowRegistration: allowRegistration,
+		AutoCreateUsers:   autoCreateUsers,
 	}
 }
 
@@ -52,6 +58,11 @@ func (a *API) resolveUserID(r *http.Request, fallback string) (string, error) {
 		email, err := normalizeEmail(id)
 		if err != nil {
 			return "", err
+		}
+		if a.AutoCreateUsers {
+			if err := a.ensureUser(r.Context(), email); err != nil {
+				return "", err
+			}
 		}
 		return email, nil
 	}
@@ -71,6 +82,25 @@ func (a *API) resolveUserID(r *http.Request, fallback string) (string, error) {
 		return "", err
 	}
 	return email, nil
+}
+
+// ensureUser creates a user if it does not already exist.
+func (a *API) ensureUser(ctx context.Context, email string) error {
+	user, err := a.Store.GetUser(ctx, email)
+	if err == nil && user != nil {
+		return nil
+	}
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if _, err := a.Store.CreateUser(ctx, email, "", ""); err != nil {
+		// Guard against race conditions if another request created the user.
+		if _, getErr := a.Store.GetUser(ctx, email); getErr == nil {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // WithCORS adds CORS headers to the handler.

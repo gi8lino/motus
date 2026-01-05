@@ -54,7 +54,16 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 		return fmt.Errorf("ensure admin user: %w", err)
 	}
 
-	api := handler.NewAPI(store, logger, opts.AuthHeader, opts.SiteRoot, version, commit, opts.AllowRegistration)
+	api := handler.NewAPI(
+		store,
+		logger,
+		opts.AuthHeader,
+		opts.SiteRoot,
+		version,
+		commit,
+		opts.AllowRegistration,
+		opts.AutoCreateUsers,
+	)
 	router, err := server.NewRouter(assets, opts.RoutePrefix, api, opts.Debug)
 	if err != nil {
 		return fmt.Errorf("configure router: %w", err)
