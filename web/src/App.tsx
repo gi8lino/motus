@@ -42,6 +42,34 @@ import "./styles.css";
 
 type ThemeMode = "auto" | "dark" | "light";
 
+const VIEW_PARAM = "view";
+
+const viewOptions: View[] = [
+  "sessions",
+  "login",
+  "workouts",
+  "profile",
+  "history",
+  "exercises",
+  "templates",
+  "admin",
+];
+
+// isValidView checks if a string is a known view identifier.
+function isValidView(value: string): value is View {
+  return viewOptions.includes(value as View);
+}
+
+// initialViewFromURL picks the initial view from the URL query parameter.
+function initialViewFromURL(): View {
+  const params = new URLSearchParams(window.location.search);
+  const rawView = params.get(VIEW_PARAM);
+  if (rawView && isValidView(rawView)) {
+    return rawView;
+  }
+  return "sessions";
+}
+
 // isValidEmail checks a basic email pattern for client validation.
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -116,8 +144,14 @@ function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
 
 // App orchestrates the SPA data and views.
 export default function App() {
-  const [view, setView] = useState<View>("sessions");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [view, setView] = useState<View>(() => initialViewFromURL());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    const stored = localStorage.getItem("motus:userId");
+    if (stored && isValidEmail(stored)) {
+      return stored;
+    }
+    return null;
+  });
   const [config, setConfig] = useState<{
     authHeaderEnabled: boolean;
     allowRegistration: boolean;
@@ -158,6 +192,10 @@ export default function App() {
   const [profileTab, setProfileTab] = useState<
     "settings" | "password" | "transfer"
   >("settings");
+
+  const allowRegistration = config?.allowRegistration ?? true;
+  const authHeaderEnabled = config?.authHeaderEnabled ?? false;
+  const appVersion = config?.version || "dev";
 
   const users = useDataLoader<User[]>(listUsers, []);
   const sounds = useDataLoader<SoundOption[]>(listSounds, []);
@@ -223,23 +261,31 @@ export default function App() {
   }, [themeMode]);
 
   useEffect(() => {
-    if (config?.authHeaderEnabled) return;
-    const stored = localStorage.getItem("motus:userId");
-    if (stored && !isValidEmail(stored)) {
-      localStorage.removeItem("motus:userId");
-      setCurrentUserId(null);
+    if (authHeaderEnabled) return;
+    if (!users.data) return;
+    if (currentUserId && users.data.find((u) => u.id === currentUserId)) {
       return;
     }
-    if (stored && users.data?.find((u) => u.id === stored)) {
-      setCurrentUserId(stored);
-    } else if (users.data && users.data.length && !currentUserId) {
-      // stay logged out until user chooses; no auto-select
+    if (currentUserId) {
+      localStorage.removeItem("motus:userId");
+      setCurrentUserId(null);
     }
-  }, [users.data, currentUserId]);
+  }, [authHeaderEnabled, users.data, currentUserId]);
 
-  const allowRegistration = config?.allowRegistration ?? true;
-  const authHeaderEnabled = config?.authHeaderEnabled ?? false;
-  const appVersion = config?.version || "dev";
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (view === "sessions") {
+      if (!params.has(VIEW_PARAM)) return;
+      params.delete(VIEW_PARAM);
+    } else {
+      params.set(VIEW_PARAM, view);
+    }
+    const next = params.toString();
+    const url = next
+      ? `${window.location.pathname}?${next}${window.location.hash}`
+      : `${window.location.pathname}${window.location.hash}`;
+    window.history.replaceState({}, "", url);
+  }, [view]);
 
   useEffect(() => {
     if (view === "login") setLoginError(null);
@@ -263,10 +309,12 @@ export default function App() {
   }, [authHeaderEnabled, currentUserId]);
 
   useEffect(() => {
-    if (!authHeaderEnabled && !currentUserId && view !== "login") {
+    if (authHeaderEnabled) return;
+    if (!users.data) return;
+    if (!currentUserId && view !== "login") {
       setView("login");
     }
-  }, [authHeaderEnabled, currentUserId, view]);
+  }, [authHeaderEnabled, currentUserId, users.data, view]);
 
   // notify shows a basic alert dialog.
   const notify = useCallback(
