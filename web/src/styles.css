@@ -72,6 +72,12 @@ body {
   letter-spacing: 0.5px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 nav {
   display: flex;
   gap: 8px;

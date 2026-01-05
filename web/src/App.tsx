@@ -375,6 +375,14 @@ export default function App() {
     setTimeout(() => setToast((t) => (t === message ? null : t)), 1800);
   }, []);
 
+  // handleLogout clears local auth state and returns to login.
+  const handleLogout = () => {
+    localStorage.removeItem("motus:userId");
+    setCurrentUserId(null);
+    setView("login");
+    clear();
+  };
+
   const activeWorkouts = workouts.data || [];
   const currentUser = useMemo(
     // Resolve the selected user object from the list.
@@ -658,21 +666,30 @@ export default function App() {
         )}
         <header className="topbar">
           <h1>Motus</h1>
-          <NavTabs
-            view={view}
-            views={(
-              [
-                "sessions",
-                "workouts",
-                "templates",
-                "exercises",
-                "history",
-                "profile",
-                "admin",
-              ] as View[]
-            ).filter((v) => (v === "admin" ? currentUser?.isAdmin : true))}
-            onSelect={setView}
-          />
+          {(authHeaderEnabled || currentUserId) && (
+            <div className="topbar-actions">
+              <NavTabs
+                view={view}
+                views={(
+                  [
+                    "sessions",
+                    "workouts",
+                    "templates",
+                    "exercises",
+                    "history",
+                    "profile",
+                    "admin",
+                  ] as View[]
+                ).filter((v) => (v === "admin" ? currentUser?.isAdmin : true))}
+                onSelect={setView}
+              />
+              {!authHeaderEnabled && currentUserId && (
+                <button className="btn subtle" onClick={handleLogout}>
+                  Logout
+                </button>
+              )}
+            </div>
+          )}
         </header>
 
         <main>
@@ -698,6 +715,7 @@ export default function App() {
               users={users.data || []}
               loading={users.loading}
               currentUserId={currentUserId}
+              currentUserName={currentUser?.name || "Unknown user"}
               allowRegistration={allowRegistration}
               onToggleAdmin={handleToggleAdmin}
               onCreateUser={async (email, password) => {
