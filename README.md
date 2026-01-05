@@ -1,5 +1,7 @@
 # Motus
 
+![motus.png](./web/public/apple-touch-icon.png)
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/motus?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/motus)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/motus)
 [![Release](https://img.shields.io/github/release/gi8lino/motus.svg?style=flat-square)](https://github.com/gi8lino/motus/releases/latest)

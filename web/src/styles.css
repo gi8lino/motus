@@ -72,6 +72,17 @@ body {
   letter-spacing: 0.5px;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  height: 36px;
+  width: auto;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;

@@ -33,7 +33,7 @@ export function ProfileView({
     currentPassword: string,
     newPassword: string,
   ) => void | Promise<void>;
-  importInputRef: RefObject<HTMLInputElement>;
+  importInputRef: RefObject<HTMLInputElement | null>;
   authHeaderEnabled: boolean;
 }) {
   const canExport = Boolean(exportWorkoutId);

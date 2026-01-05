@@ -82,6 +82,34 @@ lint: golangci-lint ## Run golangci-lint linter.
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 	$(GOLANGCI_LINT) run --fix
 
+##@ Icons
+
+SVG       := web/motus.svg
+ICON_DIR  := web/public
+ICON_SIZES := 16x16 32x32 48x48 64x64
+
+.PHONY: favicon
+favicon: ## Create favicons
+	@mkdir -p $(ICON_DIR)
+	@for size in $(ICON_SIZES); do \
+	  outfile=favicon-$$size.png; \
+	  echo "create $$outfile"; \
+	  convert $(SVG) \
+	    -fuzz 5% -transparent white \
+	    -background none \
+	    -resize $$size \
+	    $(ICON_DIR)/$$outfile \
+	    >/dev/null 2>&1; \
+	done
+	@echo "create apple-touch-icon.png"
+	@convert $(SVG) \
+	  -fuzz 5% -transparent white \
+	  -background none \
+	  -resize 180x180 \
+	  $(ICON_DIR)/apple-touch-icon.png \
+	  >/dev/null 2>&1
+
+
 ##@ Admin
 
 .PHONY: create-user

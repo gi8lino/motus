@@ -4,16 +4,12 @@ import type { Template } from "../types";
 export function TemplatesView({
   templates,
   loading,
-  currentUserName,
-  authHeaderEnabled,
   hasUser,
   onRefresh,
   onApplyTemplate,
 }: {
   templates: Template[];
   loading: boolean;
-  currentUserName: string;
-  authHeaderEnabled: boolean;
   hasUser: boolean;
   onRefresh: () => void;
   onApplyTemplate: (templateId: string) => void;
@@ -26,9 +22,6 @@ export function TemplatesView({
           <p className="muted small">Create workouts from shared templates.</p>
         </div>
         <div className="actions">
-          {authHeaderEnabled && (
-            <div className="muted small">{currentUserName}</div>
-          )}
           <button className="btn subtle" onClick={onRefresh}>
             Refresh
           </button>

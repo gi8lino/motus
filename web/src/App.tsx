@@ -21,6 +21,8 @@ import { TemplatesView } from "./components/TemplatesView";
 import { HistoryView } from "./components/HistoryView";
 import { ProfileView } from "./components/ProfileView";
 import { ExercisesView } from "./components/ExercisesView";
+import { BrandHeader } from "./components/BrandHeader";
+import { isValidEmail } from "./utils/validation";
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
 import { useExerciseActions } from "./hooks/useExerciseActions";
@@ -70,11 +72,6 @@ function initialViewFromURL(): View {
   return "sessions";
 }
 
-// isValidEmail checks a basic email pattern for client validation.
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 // NavTabs renders the main navigation tabs.
 function NavTabs({
   view,
@@ -85,6 +82,7 @@ function NavTabs({
   views: View[];
   onSelect: (next: View) => void;
 }) {
+  // Render the main shell with resume prompt, navigation, and active view.
   return (
     <nav>
       {views.map((v) => (
@@ -197,8 +195,8 @@ export default function App() {
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
   const appVersion = config?.version || "dev";
 
-const users = useDataLoader<User[]>(listUsers, []);
-const sounds = useDataLoader<SoundOption[]>(listSounds, []);
+  const users = useDataLoader<User[]>(listUsers, []);
+  const sounds = useDataLoader<SoundOption[]>(listSounds, []);
   const workouts = useDataLoader<Workout[]>(
     () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
     [currentUserId],
@@ -212,7 +210,7 @@ const sounds = useDataLoader<SoundOption[]>(listSounds, []);
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);
 
-useEffect(() => {
+  useEffect(() => {
     // Load config and resolve proxy-auth user early.
     getConfig()
       .then((cfg) => {
@@ -238,7 +236,7 @@ useEffect(() => {
       });
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     // Apply theme selection and react to system preference changes.
     const root = document.documentElement;
     const applyTheme = () => {
@@ -262,7 +260,7 @@ useEffect(() => {
     };
   }, [themeMode]);
 
-useEffect(() => {
+  useEffect(() => {
     // Validate stored user id once local users are known.
     if (authHeaderEnabled) return;
     if (!users.data) return;
@@ -275,7 +273,7 @@ useEffect(() => {
     }
   }, [authHeaderEnabled, users.data, currentUserId]);
 
-useEffect(() => {
+  useEffect(() => {
     // Persist the current view in the URL for refresh/bookmark.
     const params = new URLSearchParams(window.location.search);
     if (view === "sessions") {
@@ -295,7 +293,7 @@ useEffect(() => {
     if (view === "login") setLoginError(null);
   }, [view]);
 
-useEffect(() => {
+  useEffect(() => {
     // Auto-redirect to sessions when a local user logs in.
     if (authHeaderEnabled) return;
     if (currentUserId && view === "login") {
@@ -303,7 +301,7 @@ useEffect(() => {
     }
   }, [authHeaderEnabled, currentUserId, view]);
 
-useEffect(() => {
+  useEffect(() => {
     // Keep the exercise catalog in sync with auth state.
     if (!authHeaderEnabled && !currentUserId) {
       setExerciseCatalog([]);
@@ -314,7 +312,7 @@ useEffect(() => {
       .catch(() => {});
   }, [authHeaderEnabled, currentUserId]);
 
-useEffect(() => {
+  useEffect(() => {
     // Force login screen when local auth has no user.
     if (authHeaderEnabled) return;
     if (!users.data) return;
@@ -600,12 +598,11 @@ useEffect(() => {
     }
   }, [session?.logged, session?.sessionId, history]);
 
+  // Guard: wait for config to avoid rendering with missing auth/base settings.
   if (!config) {
     return (
       <div className="shell">
-        <header className="topbar">
-          <h1>Motus</h1>
-        </header>
+        <BrandHeader />
         <main>
           <section className="panel">
             <p className="muted">Loading configuration…</p>
@@ -615,12 +612,11 @@ useEffect(() => {
     );
   }
 
+  // Guard: show an explicit error page when auth proxy headers are missing.
   if (authHeaderEnabled && authError) {
     return (
       <div className="shell">
-        <header className="topbar">
-          <h1>Motus</h1>
-        </header>
+        <BrandHeader />
         <main>
           <section className="panel">
             <h3>Access denied</h3>
@@ -672,7 +668,7 @@ useEffect(() => {
           </div>
         )}
         <header className="topbar">
-          <h1>Motus</h1>
+          <BrandHeader />
           {(authHeaderEnabled || currentUserId) && (
             <div className="topbar-actions">
               <NavTabs
@@ -777,8 +773,6 @@ useEffect(() => {
             <TemplatesView
               templates={templates.data || []}
               loading={templates.loading}
-              currentUserName={currentUser?.name || "Unknown user"}
-              authHeaderEnabled={authHeaderEnabled}
               hasUser={Boolean(currentUserId)}
               onRefresh={() => templates.reload()}
               onApplyTemplate={handleApplyTemplate}

@@ -27,7 +27,13 @@ func NewRouter(
 	mux.Handle("GET /fonts/", spaFiles)
 	mux.Handle("GET /sounds/", spaFiles)
 	mux.Handle("GET /index.html", spaFiles)
-	mux.Handle("GET /favicon.ico", spaFiles)
+	mux.Handle("GET /motus.svg", spaFiles)
+	mux.Handle("GET /brand.svg", spaFiles)
+	mux.Handle("GET /favicon-16x16.png", spaFiles)
+	mux.Handle("GET /favicon-32x32.png", spaFiles)
+	mux.Handle("GET /favicon-48x48.png", spaFiles)
+	mux.Handle("GET /favicon-64x64.png", spaFiles)
+	mux.Handle("GET /apple-touch-icon.png", spaFiles)
 
 	// Healthz
 	mux.Handle("GET /healthz", api.Healthz())
