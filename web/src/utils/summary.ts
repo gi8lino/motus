@@ -1,5 +1,6 @@
 import type { Exercise } from "../types";
 import { formatMillis } from "./format";
+import { normalizeTimestamp } from "./time";
 
 // SummaryStep describes a step entry for AI summaries.
 export type SummaryStep = {
@@ -43,10 +44,12 @@ export function buildSummary(source: SummarySource): string {
       return `${idx + 1}. ${s.name}${label ? ` (${label})` : ""}${exercises}`;
     })
     .join("\n");
+  const startedAt = normalizeTimestamp(source.startedAt) || "n/a";
+  const completedAt = normalizeTimestamp(source.completedAt) || "n/a";
   return `Workout: ${source.workoutName || source.workoutId || "n/a"}
 User: ${source.userId || "n/a"}
-Started: ${source.startedAt || "n/a"}
-Finished: ${source.completedAt || "n/a"}
+Started: ${startedAt}
+Finished: ${completedAt}
 Steps:
 ${lines || "No steps available."}`;
 }

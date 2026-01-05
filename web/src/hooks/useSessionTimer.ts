@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logSessionCompletion } from "../api";
 import type { SessionState, SessionStepState } from "../types";
-import { parseDurationSeconds } from "../utils/time";
+import { normalizeTimestamp, parseDurationSeconds } from "../utils/time";
 
 // STORAGE_KEY stores the persisted session payload.
 const STORAGE_KEY = "motus:session";
@@ -27,8 +27,8 @@ function normalizeSession(raw: SessionState): NormalizedState {
     running: Boolean(raw.running && !raw.done),
     runningSince: raw.runningSince || null,
     done: Boolean(raw.done),
-    startedAt: raw.startedAt || null,
-    completedAt: raw.completedAt || null,
+    startedAt: normalizeTimestamp(raw.startedAt),
+    completedAt: normalizeTimestamp(raw.completedAt),
     logged: Boolean(raw.logged),
     lastUpdatedAt: now(),
     steps: [],

@@ -16,6 +16,15 @@ export function parseDurationSeconds(value?: string | number | null): number {
   }
 }
 
+// normalizeTimestamp clears zero or invalid timestamps.
+export function normalizeTimestamp(value?: string | null): string | null {
+  if (!value) return null;
+  if (value.startsWith("0001-01-01")) return null;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return null;
+  return value;
+}
+
 // Minimal duration parser supporting h/m/s/ms.
 function ms(str: string): number {
   const regex = /(\d+\.?\d*)\s*(ms|s|m|h)?/gi;
