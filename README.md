@@ -1,5 +1,15 @@
 # Motus
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/motus?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/motus)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/motus)
+[![Release](https://img.shields.io/github/release/gi8lino/motus.svg?style=flat-square)](https://github.com/gi8lino/motus/releases/latest)
+[![GitHub tag](https://img.shields.io/github/tag/gi8lino/motus.svg?style=flat-square)](https://github.com/gi8lino/motus/releases/latest)
+![Tests](https://github.com/gi8lino/motus/actions/workflows/tests.yml/badge.svg)
+[![Build](https://github.com/gi8lino/motus/actions/workflows/release.yml/badge.svg)](https://github.com/gi8lino/motus/actions/workflows/release.yml)
+[![license](https://img.shields.io/github/license/gi8lino/motus.svg?style=flat-square)](LICENSE)
+
+---
+
 Motus is a lightweight training tracker with a React SPA front end and a Go JSON API backend. Timers run in the browser, while sessions, workouts, templates, and history are stored in PostgreSQL.
 
 ## Features
@@ -117,3 +127,7 @@ Bundled audio files live in `web/assets/sounds`. The UI exposes them in each ste
 ## Templates
 
 Use the Workouts tab to design sessions. When you’re ready to share one, select it and hit “Share”. The Templates tab lists all shared workouts and lets you instantiate a new workout in one click.
+
+## License
+
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
