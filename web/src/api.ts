@@ -178,6 +178,11 @@ export async function listExercises(): Promise<CatalogExercise[]> {
   return request("/api/exercises");
 }
 
+// backfillExercises promotes workout exercises into the core catalog.
+export async function backfillExercises(): Promise<void> {
+  return request("/api/exercises/backfill", { method: "POST" });
+}
+
 // createExercise adds a new exercise.
 export async function createExercise(
   name: string,

@@ -356,7 +356,7 @@ export default function App() {
     onRegisterSuccess,
   });
 
-  const { toggleAdmin: handleToggleAdmin } = useAdminActions({
+  const { toggleAdmin: handleToggleAdmin, backfillCatalog } = useAdminActions({
     currentUserId,
     setUsers: (updater) => users.setData?.(updater),
     setView,
@@ -650,10 +650,7 @@ export default function App() {
               users={users.data || []}
               loading={users.loading}
               currentUserId={currentUserId}
-              currentUserName={currentUser?.name || "Unknown user"}
-              authHeaderEnabled={authHeaderEnabled}
               allowRegistration={allowRegistration}
-              onSelectUser={(id) => setCurrentUserId(id)}
               onToggleAdmin={handleToggleAdmin}
               onCreateUser={async (email, password) => {
                 try {
@@ -662,6 +659,7 @@ export default function App() {
                   await notify(err.message || "Unable to create user");
                 }
               }}
+              onBackfill={backfillCatalog}
             />
           )}
 

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { updateUserAdmin } from "../api";
+import { backfillExercises, updateUserAdmin } from "../api";
 import type { User, View } from "../types";
 
 // UseAdminActionsArgs wires user management actions.
@@ -39,5 +39,15 @@ export function useAdminActions({
     [currentUserId, setUsers, setView, notify],
   );
 
-  return { toggleAdmin };
+  // backfillCatalog triggers the exercise catalog backfill.
+  const backfillCatalog = useCallback(async () => {
+    try {
+      await backfillExercises();
+      await notify("Exercise catalog backfill complete.");
+    } catch (err: any) {
+      await notify(err.message || "Unable to backfill exercises");
+    }
+  }, [notify]);
+
+  return { toggleAdmin, backfillCatalog };
 }
