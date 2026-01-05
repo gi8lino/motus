@@ -1,0 +1,111 @@
+import { useState } from "react";
+
+// isValidEmail checks a basic email pattern for client validation.
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+// UserForm creates a new user.
+export function UserForm({
+  onCreate,
+}: {
+  onCreate: (email: string, password: string) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!email.trim() || !password.trim()) return;
+        if (!isValidEmail(email.trim())) return;
+        onCreate(email.trim(), password.trim());
+        setEmail("");
+        setPassword("");
+      }}
+      className="stack"
+    >
+      <div className="field">
+        <label>Email</label>
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          required
+        />
+      </div>
+      <div className="field">
+        <label>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter a password"
+          required
+        />
+      </div>
+      <button className="btn primary" type="submit">
+        Create user
+      </button>
+    </form>
+  );
+}
+
+// LoginForm validates credentials for local auth.
+export function LoginForm({
+  onLogin,
+  error,
+  onClearError,
+}: {
+  onLogin: (email: string, password: string) => void | Promise<void>;
+  error?: string | null;
+  onClearError?: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!email.trim() || !password.trim()) return;
+        if (!isValidEmail(email.trim())) return;
+        onLogin(email.trim(), password.trim());
+      }}
+      className="stack"
+    >
+      {error && <p className="muted small">{error}</p>}
+      <div className="field">
+        <label>Email</label>
+        <input
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            onClearError?.();
+          }}
+          placeholder="you@example.com"
+          required
+        />
+      </div>
+      <div className="field">
+        <label>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            onClearError?.();
+          }}
+          placeholder="Your password"
+          required
+        />
+      </div>
+      <button
+        className="btn primary"
+        type="submit"
+        disabled={!email.trim() || !password.trim()}
+      >
+        Log in
+      </button>
+    </form>
+  );
+}

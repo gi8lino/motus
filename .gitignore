@@ -1,0 +1,8 @@
+.DS_Store
+.envrc
+web/node_modules/
+# Build outputs
+web/dist/*
+
+# Noe deps in web
+web/node_modules/
