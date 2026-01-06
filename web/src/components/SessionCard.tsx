@@ -245,7 +245,7 @@ export function SessionCard({
                       ? `${step.estimatedSeconds}s target`
                       : step.duration || "open"}{" "}
                     {step.loopTotal
-                      ? `• loop ${step.loopIndex}/${step.loopTotal} `
+                      ? `• round ${step.loopIndex}/${step.loopTotal} `
                       : ""}
                   </div>
                   {expanded && formatExercises(step) && (
