@@ -10,6 +10,7 @@ import { formatMillis } from "../utils/format";
 import { resolveMediaUrl } from "../utils/basePath";
 import { parseDurationSeconds } from "../utils/time";
 import { SessionCard } from "./SessionCard";
+import { WorkoutSelect } from "./WorkoutSelect";
 
 // SessionsView runs the active workout session.
 export function SessionsView({
@@ -118,7 +119,7 @@ export function SessionsView({
         if (session?.running) {
           onPause();
           if (!hiddenPauseNotifiedRef.current) {
-            onToast("Session paused while tab was hidden");
+            onToast("Training paused while tab was hidden");
             hiddenPauseNotifiedRef.current = true;
           }
         }
@@ -325,17 +326,12 @@ export function SessionsView({
           <div>
             <p className="label">Workout</p>
             {/* Workout picker */}
-            <select
-              value={selectedWorkoutId || ""}
-              onChange={(e) => onSelectWorkout(e.target.value)}
-            >
-              <option value="">Select</option>
-              {workouts.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name} ({w.steps.length})
-                </option>
-              ))}
-            </select>
+            <WorkoutSelect
+              workouts={workouts}
+              value={selectedWorkoutId}
+              onSelect={onSelectWorkout}
+              onClear={() => onSelectWorkout("")}
+            />
           </div>
           <button
             className="btn primary"
@@ -343,7 +339,7 @@ export function SessionsView({
             disabled={startDisabled}
             title={startTitle}
           >
-            Start Session
+            Start training
           </button>
         </div>
         {/* Live session card */}
@@ -363,7 +359,7 @@ export function SessionsView({
         <div className="modal-overlay" onClick={() => setFinishSummary(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Great job!</h3>
-            <p className="muted">Session finished. Copy the summary for AI.</p>
+            <p className="muted">Training finished. Copy the summary for AI.</p>
             <textarea
               readOnly
               value={finishSummary}

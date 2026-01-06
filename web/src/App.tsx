@@ -47,7 +47,7 @@ type ThemeMode = "auto" | "dark" | "light";
 const VIEW_PARAM = "view";
 
 const viewOptions: View[] = [
-  "sessions",
+  "train",
   "login",
   "workouts",
   "profile",
@@ -69,7 +69,7 @@ function initialViewFromURL(): View {
   if (rawView && isValidView(rawView)) {
     return rawView;
   }
-  return "sessions";
+  return "train";
 }
 
 // NavTabs renders the main navigation tabs.
@@ -82,6 +82,15 @@ function NavTabs({
   views: View[];
   onSelect: (next: View) => void;
 }) {
+  const labels: Record<View, string> = {
+    train: "Train",
+    workouts: "Workouts",
+    templates: "Templates",
+    exercises: "Exercises",
+    history: "History",
+    profile: "Profile",
+    admin: "Admin",
+  };
   // Render the main shell with resume prompt, navigation, and active view.
   return (
     <nav>
@@ -91,7 +100,7 @@ function NavTabs({
           className={view === v ? "tab active" : "tab"}
           onClick={() => onSelect(v)}
         >
-          {v.toUpperCase()}
+          {labels[v]}
         </button>
       ))}
     </nav>
@@ -224,7 +233,7 @@ export default function App() {
               setCurrentUserId(user.id);
               setAuthError(null);
               if (view === "login") {
-                setView("sessions");
+                setView("train");
               }
             })
             .catch((err: Error) => {
@@ -299,7 +308,7 @@ export default function App() {
   useEffect(() => {
     // Persist the current view in the URL for refresh/bookmark.
     const params = new URLSearchParams(window.location.search);
-    if (view === "sessions") {
+    if (view === "train") {
       if (!params.has(VIEW_PARAM)) return;
       params.delete(VIEW_PARAM);
     } else {
@@ -320,7 +329,7 @@ export default function App() {
     // Auto-redirect to sessions when a local user logs in.
     if (authHeaderEnabled) return;
     if (currentUserId && view === "login") {
-      setView("sessions");
+      setView("train");
     }
   }, [authHeaderEnabled, currentUserId, view]);
 
@@ -422,7 +431,7 @@ export default function App() {
   const onLoginSuccess = (user: User) => {
     setCurrentUserId(user.id);
     localStorage.setItem("motus:userId", user.id);
-    setView("sessions");
+    setView("train");
   };
 
   // onRegisterSuccess stores the newly created local user.
@@ -548,7 +557,7 @@ export default function App() {
     selectedWorkoutId,
     session,
     currentWorkoutName,
-    setSessionsView: () => setView("sessions"),
+    setSessionsView: () => setView("train"),
     setPromptedResume,
     setResumeSuppressed,
     startFromState,
@@ -659,7 +668,7 @@ export default function App() {
         {promptedResume && session && !session.done && (
           <div className="toast">
             <div>
-              <strong>Resume session?</strong>
+              <strong>Resume training?</strong>
               <div className="muted small">{resumeMessage(session)}</div>
             </div>
             <div className="btn-group">
@@ -667,7 +676,7 @@ export default function App() {
                 className="btn primary"
                 onClick={() => {
                   setPromptedResume(false);
-                  setView("sessions");
+                  setView("train");
                   if (!session.running) {
                     startCurrentStep();
                   }
@@ -698,7 +707,7 @@ export default function App() {
                 view={view}
                 views={(
                   [
-                    "sessions",
+                    "train",
                     "workouts",
                     "templates",
                     "exercises",
@@ -727,7 +736,7 @@ export default function App() {
               onCreateUser={async (email, password) => {
                 try {
                   await handleRegister(email, password);
-                  setView("sessions");
+                  setView("train");
                 } catch (err: any) {
                   await notify(err.message || "Unable to create user");
                 }
@@ -766,7 +775,7 @@ export default function App() {
             />
           )}
 
-          {view === "sessions" && (
+          {view === "train" && (
             <SessionsView
               workouts={activeWorkouts}
               selectedWorkoutId={selectedWorkoutId}
@@ -803,7 +812,7 @@ export default function App() {
             <HistoryView
               items={history.data || []}
               activeSession={session}
-              onResume={() => setView("sessions")}
+              onResume={() => setView("train")}
               loadWorkout={getWorkout}
               onCopySummary={() => showToast("Copied summary")}
             />

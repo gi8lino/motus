@@ -22,7 +22,7 @@ export function HistoryList({
         <li className="list-item">
           <div className="list-row">
             <div>
-              <strong>Active session</strong>
+              <strong>Active training</strong>
               <div className="muted small">
                 {activeSession?.workoutName || activeSession?.workoutId} • in
                 progress

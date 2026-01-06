@@ -147,7 +147,7 @@ export function SessionCard({
             </div>
           </div>
           <div className="current-step">
-            {currentStep ? currentStep.name : "No session"}
+            {currentStep ? currentStep.name : "No training"}
           </div>
           {currentExercises.length > 0 && (
             <div className="exercise-pills">
@@ -255,7 +255,7 @@ export function SessionCard({
               </div>
             );
           })}
-        {!session && <p className="muted">Start a session to see steps.</p>}
+        {!session && <p className="muted">Start training to see steps.</p>}
       </div>
     </div>
   );

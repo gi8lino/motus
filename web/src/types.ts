@@ -52,7 +52,7 @@ export type WorkoutStep = {
 
 // View represents the active app section.
 export type View =
-  | "sessions"
+  | "train"
   | "login"
   | "workouts"
   | "profile"

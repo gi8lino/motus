@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import type { CatalogExercise } from "../types";
+import { SelectDropdown } from "./SelectDropdown";
 
 // ExerciseSelect renders a custom exercise picker with Core tags.
 export function ExerciseSelect({
@@ -15,8 +15,6 @@ export function ExerciseSelect({
   onClear: () => void;
   onAddNew: () => void | Promise<void>;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = value.exerciseId
     ? catalog.find((item) => item.id === value.exerciseId)
     : undefined;
@@ -29,77 +27,34 @@ export function ExerciseSelect({
       ? "unlinked"
       : "";
 
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (!rootRef.current) return;
-      if (rootRef.current.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClick);
-    }
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
   return (
-    <div className="exercise-select" ref={rootRef}>
-      <button
-        className="exercise-select-trigger"
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <span className={label ? "" : "muted"}>
-          {label || "Select exercise"}
-        </span>
-        {tag && (
+    <SelectDropdown
+      items={catalog.map((item) => ({ id: item.id, label: item.name }))}
+      value={value.exerciseId || null}
+      placeholder="Select exercise"
+      onSelect={(item) => {
+        const match = catalog.find((entry) => entry.id === item.id);
+        if (match) onSelect(match);
+      }}
+      onClear={label ? onClear : undefined}
+      renderRight={(item) => {
+        const match = catalog.find((entry) => entry.id === item.id);
+        if (!match) return null;
+        return (
+          <span className={`exercise-tag ${match.isCore ? "core" : "user"}`}>
+            {match.isCore ? "Core" : "Personal"}
+          </span>
+        );
+      }}
+      renderSelectedRight={() =>
+        tag ? (
           <span className={`exercise-tag ${tag}`}>
             {tag === "core" ? "Core" : tag === "user" ? "Personal" : "Unlinked"}
           </span>
-        )}
-        <span className="chevron">{open ? "▼" : "▶"}</span>
-      </button>
-      {open && (
-        <div className="exercise-select-menu">
-          {label && (
-            <button
-              className="exercise-select-option muted"
-              type="button"
-              onClick={() => {
-                onClear();
-                setOpen(false);
-              }}
-            >
-              Clear selection
-            </button>
-          )}
-          {catalog.map((item) => (
-            <button
-              key={item.id}
-              className="exercise-select-option"
-              type="button"
-              onClick={() => {
-                onSelect(item);
-                setOpen(false);
-              }}
-            >
-              <span>{item.name}</span>
-              <span className={`exercise-tag ${item.isCore ? "core" : "user"}`}>
-                {item.isCore ? "Core" : "Personal"}
-              </span>
-            </button>
-          ))}
-          <button
-            className="exercise-select-option add"
-            type="button"
-            onClick={async () => {
-              await onAddNew();
-              setOpen(false);
-            }}
-          >
-            + Add new exercise
-          </button>
-        </div>
-      )}
-    </div>
+        ) : null
+      }
+      addLabel="+ Add new exercise"
+      onAddNew={onAddNew}
+    />
   );
 }

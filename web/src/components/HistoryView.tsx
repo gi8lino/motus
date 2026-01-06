@@ -73,9 +73,9 @@ export function HistoryView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3>Session history</h3>
+            <h3>Training history</h3>
             <p className="muted small">
-              Completed sessions for the selected user.
+              Completed trainings for the selected user.
             </p>
           </div>
         </div>
@@ -96,9 +96,9 @@ export function HistoryView({
           }}
         >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Session Overview</h3>
+            <h3>Training overview</h3>
             <p className="muted small">
-              Session ID: {preview.sessionId || preview.id}
+              Training ID: {preview.sessionId || preview.id}
             </p>
             <div className="stack">
               <div>
