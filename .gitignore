@@ -1,5 +1,6 @@
 .DS_Store
 .envrc
+cover.out
 web/node_modules/
 cover.out
 # Build outputs
