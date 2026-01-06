@@ -1,6 +1,6 @@
 # Motus
 
-![motus.png](./web/public/apple-touch-icon.png)
+![motus.png](./web/public/brand.svg)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/motus?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/motus)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/motus)
@@ -12,7 +12,7 @@
 
 ---
 
-Motus is a lightweight training tracker with a React SPA front end and a Go JSON API backend. Timers run in the browser, while sessions, workouts, templates, and history are stored in PostgreSQL.
+Motus is a training companion for circuit and round-based workouts. It keeps track of which exercise comes next, how many reps you need, and when to take a break. Timers run in the browser, while sessions, workouts, templates, and history are stored in PostgreSQL.
 
 ## Features
 
@@ -46,11 +46,11 @@ Motus separates session timing from data storage:
 
 ## Workout steps
 
-- **Set**: a standard exercise block; target is informational.
-- **Pause**: optional auto-advance countdown; great for rest.
-- **Timed set**: countdown or stopwatch with optional transition time.
+- **Set**: a regular exercise block that you complete, then move on.
+- **Pause**: a rest block; can auto-advance on a countdown.
+- **Timed set**: time-based work like warmups (e.g. 20s per exercise), then advance.
 
-Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown.
+Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Session summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
 
 ## Running locally
 
