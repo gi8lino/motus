@@ -6,6 +6,7 @@ import type {
   Workout,
   WorkoutStep,
 } from "../types";
+import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
 import { parseDurationSeconds } from "../utils/time";
 
@@ -60,10 +61,6 @@ export function WorkoutForm({
   const [repeatRestInputs, setRepeatRestInputs] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const catalog = exerciseCatalog || [];
-  const catalogById = useMemo(
-    () => new Map(catalog.map((entry) => [entry.id, entry])),
-    [catalog],
-  );
   const catalogByName = useMemo(
     () => new Map(catalog.map((entry) => [entry.name.toLowerCase(), entry])),
     [catalog],
@@ -422,66 +419,36 @@ export function WorkoutForm({
           >
             <div className="field">
               <label>Exercise</label>
-              <select
-                value={ex.exerciseId || (ex.name ? `name:${ex.name}` : "")}
-                onChange={async (e) => {
-                  const val = e.target.value;
-                  if (val === "__add_new") {
-                    const newName = await promptUser("Exercise name");
-                    if (!newName || !newName.trim()) return;
-                    try {
-                      const created = await onCreateExercise(newName.trim());
-                      updateExercise(idx, exIdx, {
-                        name: created.name,
-                        exerciseId: created.id,
-                      });
-                    } catch (err: any) {
-                      await notifyUser(
-                        err.message || "Unable to create exercise",
-                      );
-                    }
-                    return;
-                  }
-                  if (!val) {
-                    updateExercise(idx, exIdx, {
-                      name: "",
-                      exerciseId: "",
-                    });
-                    return;
-                  }
-                  if (val.startsWith("name:")) return;
-                  const selected = catalogById.get(val);
-                  if (!selected) return;
+              <ExerciseSelect
+                catalog={catalog}
+                value={{ exerciseId: ex.exerciseId, name: ex.name }}
+                onSelect={(selected) =>
                   updateExercise(idx, exIdx, {
                     name: selected.name,
                     exerciseId: selected.id,
-                  });
+                  })
+                }
+                onClear={() =>
+                  updateExercise(idx, exIdx, { name: "", exerciseId: "" })
+                }
+                onAddNew={async () => {
+                  const newName = await promptUser("Exercise name");
+                  if (!newName || !newName.trim()) return;
+                  try {
+                    const created = await onCreateExercise(newName.trim());
+                    updateExercise(idx, exIdx, {
+                      name: created.name,
+                      exerciseId: created.id,
+                    });
+                  } catch (err: any) {
+                    await notifyUser(
+                      err.message || "Unable to create exercise",
+                    );
+                  }
                 }}
-              >
-                <option value="">Select exercise</option>
-                {ex.exerciseId && !catalogById.has(ex.exerciseId) && (
-                  <option value={ex.exerciseId} disabled>
-                    {ex.name || "Unknown exercise"}
-                  </option>
-                )}
-                {!ex.exerciseId && ex.name && (
-                  <option value={`name:${ex.name}`} disabled>
-                    {ex.name} (unlinked)
-                  </option>
-                )}
-                {catalog.map((c) => (
-                  <option
-                    key={c.id}
-                    value={c.id}
-                    className={`exercise-option ${c.isCore ? "core" : "user"}`}
-                  >
-                    {c.isCore ? `${c.name} ★` : c.name}
-                  </option>
-                ))}
-                <option value="__add_new">+ Add new exercise</option>
-              </select>
+              />
             </div>
-            <div className="field narrow">
+            <div className="field">
               <label>Amount / Reps</label>
               <input
                 value={ex.amount || ""}
@@ -491,7 +458,7 @@ export function WorkoutForm({
                 placeholder="12 reps"
               />
             </div>
-            <div className="field narrow">
+            <div className="field">
               <label>Weight</label>
               <input
                 value={ex.weight || ""}
@@ -501,14 +468,17 @@ export function WorkoutForm({
                 placeholder="50kg"
               />
             </div>
-            <button
-              className="btn icon"
-              type="button"
-              onClick={() => removeExercise(idx, exIdx)}
-              title="Remove exercise"
-            >
-              ×
-            </button>
+            <div className="field action">
+              <label>Action</label>
+              <button
+                className="btn icon"
+                type="button"
+                onClick={() => removeExercise(idx, exIdx)}
+                title="Remove exercise"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
         <div className="btn-group">
@@ -555,66 +525,36 @@ export function WorkoutForm({
           >
             <div className="field">
               <label>Exercise</label>
-              <select
-                value={ex.exerciseId || (ex.name ? `name:${ex.name}` : "")}
-                onChange={async (e) => {
-                  const val = e.target.value;
-                  if (val === "__add_new") {
-                    const newName = await promptUser("Exercise name");
-                    if (!newName || !newName.trim()) return;
-                    try {
-                      const created = await onCreateExercise(newName.trim());
-                      updateExercise(idx, exIdx, {
-                        name: created.name,
-                        exerciseId: created.id,
-                      });
-                    } catch (err: any) {
-                      await notifyUser(
-                        err.message || "Unable to create exercise",
-                      );
-                    }
-                    return;
-                  }
-                  if (!val) {
-                    updateExercise(idx, exIdx, {
-                      name: "",
-                      exerciseId: "",
-                    });
-                    return;
-                  }
-                  if (val.startsWith("name:")) return;
-                  const selected = catalogById.get(val);
-                  if (!selected) return;
+              <ExerciseSelect
+                catalog={catalog}
+                value={{ exerciseId: ex.exerciseId, name: ex.name }}
+                onSelect={(selected) =>
                   updateExercise(idx, exIdx, {
                     name: selected.name,
                     exerciseId: selected.id,
-                  });
+                  })
+                }
+                onClear={() =>
+                  updateExercise(idx, exIdx, { name: "", exerciseId: "" })
+                }
+                onAddNew={async () => {
+                  const newName = await promptUser("Exercise name");
+                  if (!newName || !newName.trim()) return;
+                  try {
+                    const created = await onCreateExercise(newName.trim());
+                    updateExercise(idx, exIdx, {
+                      name: created.name,
+                      exerciseId: created.id,
+                    });
+                  } catch (err: any) {
+                    await notifyUser(
+                      err.message || "Unable to create exercise",
+                    );
+                  }
                 }}
-              >
-                <option value="">Select exercise</option>
-                {ex.exerciseId && !catalogById.has(ex.exerciseId) && (
-                  <option value={ex.exerciseId} disabled>
-                    {ex.name || "Unknown exercise"}
-                  </option>
-                )}
-                {!ex.exerciseId && ex.name && (
-                  <option value={`name:${ex.name}`} disabled>
-                    {ex.name} (unlinked)
-                  </option>
-                )}
-                {catalog.map((c) => (
-                  <option
-                    key={c.id}
-                    value={c.id}
-                    className={`exercise-option ${c.isCore ? "core" : "user"}`}
-                  >
-                    {c.isCore ? `${c.name} ★` : c.name}
-                  </option>
-                ))}
-                <option value="__add_new">+ Add new exercise</option>
-              </select>
+              />
             </div>
-            <div className="field narrow">
+            <div className="field">
               <label>Duration</label>
               <input
                 value={ex.amount || ""}
@@ -624,7 +564,7 @@ export function WorkoutForm({
                 placeholder="e.g. 60s"
               />
             </div>
-            <div className="field narrow">
+            <div className="field">
               <label>Transition</label>
               <input
                 value={ex.weight || ""}
@@ -634,14 +574,16 @@ export function WorkoutForm({
                 placeholder="e.g. 10s"
               />
             </div>
-            <button
-              className="btn icon"
-              type="button"
-              onClick={() => removeExercise(idx, exIdx)}
-              title="Remove exercise"
-            >
-              ×
-            </button>
+            <div className="field action">
+              <button
+                className="btn icon"
+                type="button"
+                onClick={() => removeExercise(idx, exIdx)}
+                title="Remove exercise"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
         <div className="btn-group">
