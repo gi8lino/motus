@@ -105,7 +105,7 @@ export function ProfileView({
               </div>
               <div className="btn-group">
                 <button
-                  className="btn subtle"
+                  className={canExport ? "btn primary" : "btn subtle"}
                   type="button"
                   onClick={onExportWorkout}
                   disabled={!canExport}
@@ -113,7 +113,7 @@ export function ProfileView({
                   Export
                 </button>
                 <button
-                  className="btn subtle"
+                  className="btn primary"
                   type="button"
                   onClick={() => importInputRef.current?.click()}
                 >

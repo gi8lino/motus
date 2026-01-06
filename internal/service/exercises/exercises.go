@@ -85,22 +85,11 @@ func (s *Service) Update(ctx context.Context, userID, exerciseID, name string) (
 	if err != nil || user == nil {
 		return nil, service.NewError(service.ErrorNotFound, "user not found")
 	}
-	exercise, err := s.Store.GetExercise(ctx, exerciseID)
-	if err != nil {
+	if !user.IsAdmin {
+		return nil, service.NewError(service.ErrorForbidden, "admin privileges required")
+	}
+	if _, err := s.Store.GetExercise(ctx, exerciseID); err != nil {
 		return nil, service.NewError(service.ErrorNotFound, "exercise not found")
-	}
-	if exercise.IsCore && !user.IsAdmin {
-		copied, err := s.Store.CreateExercise(ctx, name, userID, false)
-		if err != nil {
-			return nil, service.NewError(service.ErrorValidation, err.Error())
-		}
-		if err := s.Store.ReplaceExerciseForUser(ctx, userID, exercise.ID, copied.ID, copied.Name); err != nil {
-			return nil, service.NewError(service.ErrorInternal, err.Error())
-		}
-		return copied, nil
-	}
-	if !user.IsAdmin && exercise.OwnerUserID != "" && exercise.OwnerUserID != userID {
-		return nil, service.NewError(service.ErrorForbidden, "exercise not owned by user")
 	}
 	updated, err := s.Store.RenameExercise(ctx, exerciseID, name)
 	if err != nil {
@@ -123,15 +112,11 @@ func (s *Service) Delete(ctx context.Context, userID, exerciseID string) error {
 	if err != nil || user == nil {
 		return service.NewError(service.ErrorNotFound, "user not found")
 	}
-	exercise, err := s.Store.GetExercise(ctx, exerciseID)
-	if err != nil {
+	if !user.IsAdmin {
+		return service.NewError(service.ErrorForbidden, "admin privileges required")
+	}
+	if _, err := s.Store.GetExercise(ctx, exerciseID); err != nil {
 		return service.NewError(service.ErrorNotFound, "exercise not found")
-	}
-	if exercise.IsCore && !user.IsAdmin {
-		return service.NewError(service.ErrorForbidden, "cannot delete core exercise")
-	}
-	if !user.IsAdmin && exercise.OwnerUserID != "" && exercise.OwnerUserID != userID {
-		return service.NewError(service.ErrorForbidden, "exercise not owned by user")
 	}
 	if err := s.Store.DeleteExercise(ctx, exerciseID); err != nil {
 		return service.NewError(service.ErrorValidation, err.Error())

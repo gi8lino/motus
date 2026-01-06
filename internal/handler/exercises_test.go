@@ -61,7 +61,7 @@ func TestExercisesHandlers(t *testing.T) {
 	t.Run("Update exercise", func(t *testing.T) {
 		store := &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
-				return &db.User{ID: "user@example.com"}, nil
+				return &db.User{ID: "user@example.com", IsAdmin: true}, nil
 			},
 			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
 				return &db.Exercise{ID: "ex1", Name: "Burpee", OwnerUserID: "user@example.com"}, nil
@@ -89,7 +89,7 @@ func TestExercisesHandlers(t *testing.T) {
 	t.Run("Delete exercise", func(t *testing.T) {
 		store := &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
-				return &db.User{ID: "user@example.com"}, nil
+				return &db.User{ID: "user@example.com", IsAdmin: true}, nil
 			},
 			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
 				return &db.Exercise{ID: "ex1", Name: "Burpee", OwnerUserID: "user@example.com"}, nil

@@ -129,61 +129,48 @@ func TestServiceCreate(t *testing.T) {
 func TestServiceUpdate(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Core copies for non-admin", func(t *testing.T) {
+	t.Run("Requires admin", func(t *testing.T) {
 		t.Parallel()
 
-		replaceCalled := false
-		copied := &db.Exercise{ID: "copy", Name: "Burpee", OwnerUserID: "user"}
 		svc := &Service{Store: &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user", IsAdmin: false}, nil
-			},
-			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
-				return &db.Exercise{ID: "core", Name: "Burpee", IsCore: true}, nil
-			},
-			createExerciseFn: func(context.Context, string, string, bool) (*db.Exercise, error) {
-				return copied, nil
-			},
-			replaceExerciseFn: func(context.Context, string, string, string, string) error {
-				replaceCalled = true
-				return nil
 			},
 		}}
-		updated, err := svc.Update(context.Background(), "user", "core", "Burpee")
-		require.NoError(t, err)
-		assert.Equal(t, copied.ID, updated.ID)
-		assert.True(t, replaceCalled, "expected ReplaceExerciseForUser to be called")
+		_, err := svc.Update(context.Background(), "user", "core", "Burpee")
+		require.Error(t, err)
+		assert.True(t, service.IsKind(err, service.ErrorForbidden))
 	})
 
-	t.Run("Not owner", func(t *testing.T) {
+	t.Run("Admin can rename", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &Service{Store: &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
-				return &db.User{ID: "user", IsAdmin: false}, nil
+				return &db.User{ID: "admin", IsAdmin: true}, nil
 			},
 			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
 				return &db.Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other", IsCore: false}, nil
 			},
+			renameExerciseFn: func(context.Context, string, string) (*db.Exercise, error) {
+				return &db.Exercise{ID: "ex", Name: "Burpee 2"}, nil
+			},
 		}}
-		_, err := svc.Update(context.Background(), "user", "ex", "Burpee")
-		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		updated, err := svc.Update(context.Background(), "admin", "ex", "Burpee 2")
+		require.NoError(t, err)
+		assert.Equal(t, "Burpee 2", updated.Name)
 	})
 }
 
 func TestServiceDelete(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Core forbidden", func(t *testing.T) {
+	t.Run("Requires admin", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &Service{Store: &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user", IsAdmin: false}, nil
-			},
-			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
-				return &db.Exercise{ID: "core", Name: "Core", IsCore: true}, nil
 			},
 		}}
 		err := svc.Delete(context.Background(), "user", "core")
@@ -191,20 +178,22 @@ func TestServiceDelete(t *testing.T) {
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
 	})
 
-	t.Run("Not owner", func(t *testing.T) {
+	t.Run("Admin can delete", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &Service{Store: &fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
-				return &db.User{ID: "user", IsAdmin: false}, nil
+				return &db.User{ID: "admin", IsAdmin: true}, nil
 			},
 			getExerciseFn: func(context.Context, string) (*db.Exercise, error) {
 				return &db.Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other"}, nil
 			},
+			deleteExerciseFn: func(context.Context, string) error {
+				return nil
+			},
 		}}
-		err := svc.Delete(context.Background(), "user", "ex")
-		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		err := svc.Delete(context.Background(), "admin", "ex")
+		require.NoError(t, err)
 	})
 }
 

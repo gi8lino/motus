@@ -51,19 +51,22 @@ export function ExercisesView({
                 </div>
               </div>
               <div className="btn-group">
-                <button
-                  className="btn subtle"
-                  onClick={() => onRenameExercise(ex)}
-                >
-                  {ex.isCore && !isAdmin ? "Copy" : "Rename"}
-                </button>
-                <button
-                  className="btn subtle"
-                  onClick={() => onDeleteExercise(ex)}
-                  disabled={Boolean(ex.isCore && !isAdmin)}
-                >
-                  Delete
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      className="btn subtle"
+                      onClick={() => onRenameExercise(ex)}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="btn subtle"
+                      onClick={() => onDeleteExercise(ex)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </li>
