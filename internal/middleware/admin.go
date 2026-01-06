@@ -1,15 +1,21 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gi8lino/motus/internal/db"
 )
 
+// adminStore describes the user lookup required by RequireAdmin.
+type adminStore interface {
+	GetUser(ctx context.Context, id string) (*db.User, error)
+}
+
 // RequireAdmin blocks requests without an admin user (looked up by X-User-ID).
 // This is a lightweight guard; replace with real auth for production.
-func RequireAdmin(store *db.Store, authHeader string) Middleware {
+func RequireAdmin(store adminStore, authHeader string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := authHeader

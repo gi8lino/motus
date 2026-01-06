@@ -4,6 +4,7 @@ import "context"
 
 // EnsureSchema creates required tables.
 func (s *Store) EnsureSchema(ctx context.Context) error {
+	// Apply the latest schema definitions and additive migrations.
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -81,6 +82,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		`ALTER TABLE exercises ADD COLUMN IF NOT EXISTS is_core BOOLEAN NOT NULL DEFAULT FALSE`,
 		`ALTER TABLE exercises DROP COLUMN IF EXISTS is_admin`,
 	}
+	// Apply each schema statement in order.
 	for _, stmt := range stmts {
 		if _, err := s.pool.Exec(ctx, stmt); err != nil {
 			return err

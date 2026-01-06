@@ -1,20 +1,16 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
-	"strings"
-
-	"github.com/jackc/pgx/v5"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/workouts"
 )
 
 // GetWorkouts lists workouts for the current user.
 func (a *API) GetWorkouts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := strings.TrimSpace(r.PathValue("id"))
+		userID := r.PathValue("id")
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
@@ -31,33 +27,23 @@ func (a *API) GetWorkouts() http.HandlerFunc {
 
 // CreateWorkout stores a new workout for the current user.
 func (a *API) CreateWorkout() http.HandlerFunc {
+	svc := workouts.New(a.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := strings.TrimSpace(r.PathValue("id"))
-		var req workoutRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		userID := r.PathValue("id")
+		req, err := decode[workouts.WorkoutRequest](r)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
-		req.Name = strings.TrimSpace(req.Name)
 		resolvedUserID, err := a.resolveUserID(r, userID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
-		if req.UserID == "" || req.Name == "" || len(req.Steps) == 0 {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "name and at least one step are required"})
-			return
-		}
-		steps, err := normalizeSteps(req.Steps)
+		created, err := svc.Create(r.Context(), req)
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
-			return
-		}
-		workout := &db.Workout{UserID: req.UserID, Name: req.Name, Steps: steps}
-		created, err := a.Store.CreateWorkout(r.Context(), workout)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
@@ -67,14 +53,10 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 // GetWorkout returns a workout by id.
 func (a *API) GetWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimSpace(r.PathValue("id"))
-		if id == "" {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "workout id is required"})
-			return
-		}
-		workout, err := a.Store.WorkoutWithSteps(r.Context(), id)
+		id := r.PathValue("id")
+		workout, err := workouts.New(a.Store).Get(r.Context(), id)
 		if err != nil {
-			writeJSON(w, http.StatusNotFound, apiError{Error: err.Error()})
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, workout)
@@ -84,14 +66,10 @@ func (a *API) GetWorkout() http.HandlerFunc {
 // ExportWorkout returns a workout with nested steps/exercises for sharing.
 func (a *API) ExportWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimSpace(r.PathValue("id"))
-		if id == "" {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "workout id is required"})
-			return
-		}
-		workout, err := a.Store.WorkoutWithSteps(r.Context(), id)
+		id := r.PathValue("id")
+		workout, err := workouts.New(a.Store).Export(r.Context(), id)
 		if err != nil {
-			writeJSON(w, http.StatusNotFound, apiError{Error: err.Error()})
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, workout)
@@ -100,47 +78,26 @@ func (a *API) ExportWorkout() http.HandlerFunc {
 
 // ImportWorkout creates a new workout from exported JSON.
 func (a *API) ImportWorkout() http.HandlerFunc {
+	svc := workouts.New(a.Store)
+	type importWorkoutRequest struct {
+		UserID  string     `json:"userId"`
+		Workout db.Workout `json:"workout"`
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			UserID  string     `json:"userId"`
-			Workout db.Workout `json:"workout"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req, err := decode[importWorkoutRequest](r)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
-		req.UserID = strings.TrimSpace(req.UserID)
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
-		req.Workout.Name = strings.TrimSpace(req.Workout.Name)
-		if req.Workout.Name == "" || len(req.Workout.Steps) == 0 {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "workout name and steps are required"})
-			return
-		}
-		for idx := range req.Workout.Steps {
-			step := &req.Workout.Steps[idx]
-			step.ID = ""
-			step.WorkoutID = ""
-			step.Order = idx
-			for exIdx := range step.Exercises {
-				ex := &step.Exercises[exIdx]
-				ex.ID = ""
-				ex.StepID = ""
-				ex.Order = exIdx
-				ex.ExerciseID = ""
-			}
-		}
-		created, err := a.Store.CreateWorkout(r.Context(), &db.Workout{
-			UserID: req.UserID,
-			Name:   req.Workout.Name,
-			Steps:  req.Workout.Steps,
-		})
+		created, err := svc.Import(r.Context(), req.UserID, req.Workout)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
@@ -149,23 +106,14 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 
 // UpdateWorkout replaces a workout and its steps.
 func (a *API) UpdateWorkout() http.HandlerFunc {
+	svc := workouts.New(a.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimSpace(r.PathValue("id"))
-		if id == "" {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "workout id is required"})
-			return
-		}
-		var req workoutRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		id := r.PathValue("id")
+		req, err := decode[workouts.WorkoutRequest](r)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
-		req.Name = strings.TrimSpace(req.Name)
-		if req.Name == "" || len(req.Steps) == 0 {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "name and steps are required"})
-			return
-		}
-		req.UserID = strings.TrimSpace(req.UserID)
 		if a.AuthHeader != "" {
 			resolvedUserID, err := a.resolveUserID(r, "")
 			if err != nil {
@@ -181,15 +129,9 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 			}
 			req.UserID = current.UserID
 		}
-		steps, err := normalizeSteps(req.Steps)
+		updated, err := svc.Update(r.Context(), id, req)
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
-			return
-		}
-		workout := &db.Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps}
-		updated, err := a.Store.UpdateWorkout(r.Context(), workout)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
@@ -199,17 +141,9 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 // DeleteWorkout removes a workout by id.
 func (a *API) DeleteWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimSpace(r.PathValue("id"))
-		if id == "" {
-			writeJSON(w, http.StatusBadRequest, apiError{Error: "workout id is required"})
-			return
-		}
-		if err := a.Store.DeleteWorkout(r.Context(), id); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				writeJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
-				return
-			}
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
+		id := r.PathValue("id")
+		if err := workouts.New(a.Store).Delete(r.Context(), id); err != nil {
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

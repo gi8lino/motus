@@ -9,6 +9,7 @@ import (
 
 // RecordSession stores a completed workout session and optional step timings. Duplicate IDs are ignored.
 func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []SessionStepLog) error {
+	// Persist the session log and optional step timings in one transaction.
 	if log.ID == "" {
 		return fmt.Errorf("session id required")
 	}
@@ -37,6 +38,7 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 	}
 	if len(steps) > 0 {
 		batch := &pgx.Batch{}
+		// Queue each step timing insert in the batch.
 		for _, st := range steps {
 			batch.Queue(
 				`
@@ -64,6 +66,7 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 
 // SessionHistory returns recent sessions for a user.
 func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([]SessionLog, error) {
+	// Load recent session logs for a user.
 	if limit <= 0 {
 		limit = 25
 	}
@@ -79,6 +82,7 @@ func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([
 	}
 	defer rows.Close()
 	var history []SessionLog
+	// Collect each session log row.
 	for rows.Next() {
 		var entry SessionLog
 		if err := rows.Scan(&entry.ID, &entry.WorkoutID, &entry.WorkoutName, &entry.UserID, &entry.StartedAt, &entry.CompletedAt); err != nil {
@@ -91,6 +95,7 @@ func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([
 
 // SessionStepTimings returns stored step durations for a session.
 func (s *Store) SessionStepTimings(ctx context.Context, sessionID string) ([]SessionStepLog, error) {
+	// Load stored step durations for a session.
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, session_id, step_order, step_type, name, estimated_seconds, elapsed_millis
 		FROM session_steps
@@ -101,6 +106,7 @@ func (s *Store) SessionStepTimings(ctx context.Context, sessionID string) ([]Ses
 	}
 	defer rows.Close()
 	var steps []SessionStepLog
+	// Collect each step timing row.
 	for rows.Next() {
 		var st SessionStepLog
 		if err := rows.Scan(&st.ID, &st.SessionID, &st.StepOrder, &st.Type, &st.Name, &st.EstimatedSeconds, &st.ElapsedMillis); err != nil {

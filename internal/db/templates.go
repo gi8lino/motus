@@ -8,6 +8,7 @@ import (
 
 // ListTemplates returns all workout templates.
 func (s *Store) ListTemplates(ctx context.Context) ([]Workout, error) {
+	// Load all workouts flagged as templates.
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, user_id, name, is_template, created_at
 		FROM workouts
@@ -20,6 +21,7 @@ func (s *Store) ListTemplates(ctx context.Context) ([]Workout, error) {
 	defer rows.Close()
 
 	var templates []Workout
+	// Collect template rows and hydrate their steps.
 	for rows.Next() {
 		var w Workout
 		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
@@ -37,6 +39,7 @@ func (s *Store) ListTemplates(ctx context.Context) ([]Workout, error) {
 
 // CreateTemplateFromWorkout clones an existing workout as a template.
 func (s *Store) CreateTemplateFromWorkout(ctx context.Context, workoutID string, nameOverride string) (*Workout, error) {
+	// Clone a workout and persist it as a template.
 	src, err := s.WorkoutWithSteps(ctx, workoutID)
 	if err != nil {
 		return nil, err
@@ -57,6 +60,7 @@ func (s *Store) CreateTemplateFromWorkout(ctx context.Context, workoutID string,
 
 // CreateWorkoutFromTemplate copies an existing template to a user.
 func (s *Store) CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*Workout, error) {
+	// Clone a template into a user-owned workout.
 	template, err := s.WorkoutWithSteps(ctx, templateID)
 	if err != nil {
 		return nil, err

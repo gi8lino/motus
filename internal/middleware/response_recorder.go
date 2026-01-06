@@ -8,7 +8,7 @@ type responseRecorder struct {
 	statusCode int
 }
 
-// ResponseWriter sends an HTTP response header with the provided status code.
+// WriteHeader sends an HTTP response header with the provided status code.
 func (rw *responseRecorder) WriteHeader(statusCode int) {
 	rw.statusCode = statusCode
 	rw.ResponseWriter.WriteHeader(statusCode)

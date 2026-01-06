@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - motus-db-data:/var/lib/postgresql/data
+      - motus-db-data:/var/lib/postgresql/
   motus-pgadmin:
     image: dpage/pgadmin4:9
     container_name: motus-pgadmin

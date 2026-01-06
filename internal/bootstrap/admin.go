@@ -12,8 +12,13 @@ import (
 	"github.com/gi8lino/motus/internal/db"
 )
 
+// store defines the persistence methods needed by EnsureAdminUser.
+type store interface {
+	UpsertAdminUser(ctx context.Context, email, passwordHash string) (*db.User, bool, error)
+}
+
 // EnsureAdminUser creates or updates the bootstrap admin when configured.
-func EnsureAdminUser(ctx context.Context, store *db.Store, logger *slog.Logger, email, password string) error {
+func EnsureAdminUser(ctx context.Context, store store, logger *slog.Logger, email, password string) error {
 	email = strings.TrimSpace(email)
 	password = strings.TrimSpace(password)
 	if email == "" && password == "" {

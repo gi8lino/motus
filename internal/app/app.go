@@ -36,6 +36,7 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	logger := logging.SetupLogger(opts.LogFormat, opts.Debug, w)
 	logger.Info("starting Motus", "version", version, "commit", commit)
 
+	// Log CLI overrides
 	if len(opts.OverriddenValues) > 0 {
 		logger.Info("CLI Overrides", "overrides", opts.OverriddenValues)
 	}

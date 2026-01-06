@@ -11,6 +11,7 @@ import (
 
 // BackfillCoreExercises creates core exercises from existing workout data and links them.
 func (s *Store) BackfillCoreExercises(ctx context.Context) error {
+	// Build core exercises from distinct names in existing workouts.
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -27,6 +28,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 	defer nameRows.Close()
 
 	var names []string
+	// Gather distinct exercise names from existing workouts.
 	for nameRows.Next() {
 		var name string
 		if err := nameRows.Scan(&name); err != nil {
@@ -54,6 +56,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 	defer existingRows.Close()
 
 	existing := make(map[string]string)
+	// Load existing exercise names to avoid duplicates.
 	for existingRows.Next() {
 		var id, name string
 		if err := existingRows.Scan(&id, &name); err != nil {
@@ -65,6 +68,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 		return err
 	}
 
+	// Insert any missing core exercise rows.
 	for _, name := range names {
 		key := strings.ToLower(name)
 		if key == "" || existing[key] != "" {
@@ -95,6 +99,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 
 // ListExercises returns core exercises plus user-owned exercises.
 func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {
+	// Return core exercises plus user-owned entries.
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, created_at
 		FROM exercises
@@ -106,6 +111,7 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 	defer rows.Close()
 
 	var exercises []Exercise
+	// Collect each exercise row for the response.
 	for rows.Next() {
 		var ex Exercise
 		var ownerID *string
@@ -122,6 +128,7 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 
 // GetExercise fetches a single exercise by id.
 func (s *Store) GetExercise(ctx context.Context, id string) (*Exercise, error) {
+	// Fetch a single exercise row by id.
 	row := s.pool.QueryRow(ctx, `
 		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, created_at
 		FROM exercises
@@ -139,6 +146,7 @@ func (s *Store) GetExercise(ctx context.Context, id string) (*Exercise, error) {
 
 // CreateExercise inserts a new exercise entry.
 func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, isCore bool) (*Exercise, error) {
+	// Insert a new exercise row.
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
 		return nil, fmt.Errorf("exercise name required")
@@ -165,6 +173,7 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 
 // RenameExercise updates the catalog name and linked workout exercise names.
 func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise, error) {
+	// Update exercise name and propagate to workout references.
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
 		return nil, fmt.Errorf("exercise name required")
@@ -196,6 +205,7 @@ func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise,
 
 // ReplaceExerciseForUser swaps a user workout's exercise references to a new exercise id.
 func (s *Store) ReplaceExerciseForUser(ctx context.Context, userID, fromID, toID, toName string) error {
+	// Swap exercise references for a user's workouts.
 	_, err := s.pool.Exec(ctx, `
 		UPDATE workout_step_exercises
 		SET exercise_id=$1, name=$2
@@ -211,6 +221,7 @@ func (s *Store) ReplaceExerciseForUser(ctx context.Context, userID, fromID, toID
 
 // DeleteExercise removes an exercise and clears linked workout rows.
 func (s *Store) DeleteExercise(ctx context.Context, id string) error {
+	// Delete exercise and clear references from workout steps.
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err

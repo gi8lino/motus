@@ -1,4 +1,4 @@
-package handler
+package utils
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// normalizeEmail trims, lowercases, and validates an email address.
-func normalizeEmail(value string) (string, error) {
+// NormalizeEmail trims, lowercases, and validates an email address.
+func NormalizeEmail(value string) (string, error) {
 	trimmed := strings.TrimSpace(strings.ToLower(value))
 	if trimmed == "" {
 		return "", fmt.Errorf("email is required")
