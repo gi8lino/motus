@@ -3,23 +3,48 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
-	"github.com/jackc/pgx/v5"
-
+	"github.com/gi8lino/motus/internal/auth"
 	"github.com/gi8lino/motus/internal/db"
 )
+
+// Store defines the persistence methods needed by handlers and services.
+type Store interface {
+	Ping(ctx context.Context) error
+	GetUser(ctx context.Context, id string) (*db.User, error)
+	ListUsers(ctx context.Context) ([]db.User, error)
+	GetUserWithPassword(ctx context.Context, id string) (*db.User, string, error)
+	UpdateUserPassword(ctx context.Context, id, passwordHash string) error
+	UpdateUserAdmin(ctx context.Context, id string, isAdmin bool) error
+	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
+	ListExercises(ctx context.Context, userID string) ([]db.Exercise, error)
+	CreateExercise(ctx context.Context, name, userID string, isCore bool) (*db.Exercise, error)
+	GetExercise(ctx context.Context, id string) (*db.Exercise, error)
+	RenameExercise(ctx context.Context, id, name string) (*db.Exercise, error)
+	ReplaceExerciseForUser(ctx context.Context, userID, oldID, newID, newName string) error
+	DeleteExercise(ctx context.Context, id string) error
+	BackfillCoreExercises(ctx context.Context) error
+	ListTemplates(ctx context.Context) ([]db.Workout, error)
+	CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error)
+	CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error)
+	WorkoutsByUser(ctx context.Context, userID string) ([]db.Workout, error)
+	CreateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error)
+	UpdateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error)
+	WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error)
+	DeleteWorkout(ctx context.Context, id string) error
+	SessionHistory(ctx context.Context, userID string, limit int) ([]db.SessionLog, error)
+	SessionStepTimings(ctx context.Context, sessionID string) ([]db.SessionStepLog, error)
+	RecordSession(ctx context.Context, log db.SessionLog, steps []db.SessionStepLog) error
+}
 
 // API bundles shared handler dependencies and runtime configuration.
 type API struct {
 	Origin            string       // Origin is used for CORS configuration.
 	Version           string       // Version is the build version string.
 	Commit            string       // Commit is the build commit SHA.
-	Store             *db.Store    // Store provides database access.
+	Store             Store        // Store provides database access.
 	Logger            *slog.Logger // Logger reports server activity.
 	AuthHeader        string       // AuthHeader specifies the proxy auth header.
 	AllowRegistration bool         // AllowRegistration toggles self-serve user creation.
@@ -31,11 +56,8 @@ type apiError struct {
 	Error string `json:"error"`
 }
 
-// localAuthHeader is the fallback header for local auth.
-const localAuthHeader = "X-User-ID"
-
 // NewAPI builds a handler container with shared dependencies.
-func NewAPI(store *db.Store, logger *slog.Logger, authHeader, origin, version, commit string, allowRegistration, autoCreateUsers bool) *API {
+func NewAPI(store Store, logger *slog.Logger, authHeader, origin, version, commit string, allowRegistration, autoCreateUsers bool) *API {
 	return &API{
 		Origin:            origin,
 		Version:           version,
@@ -50,57 +72,7 @@ func NewAPI(store *db.Store, logger *slog.Logger, authHeader, origin, version, c
 
 // resolveUserID selects the user id from auth header or request payload.
 func (a *API) resolveUserID(r *http.Request, fallback string) (string, error) {
-	if a.AuthHeader != "" {
-		id := strings.TrimSpace(r.Header.Get(a.AuthHeader))
-		if id == "" {
-			return "", fmt.Errorf("auth header is required")
-		}
-		email, err := normalizeEmail(id)
-		if err != nil {
-			return "", err
-		}
-		if a.AutoCreateUsers {
-			if err := a.ensureUser(r.Context(), email); err != nil {
-				return "", err
-			}
-		}
-		return email, nil
-	}
-	if fallback != "" {
-		email, err := normalizeEmail(fallback)
-		if err != nil {
-			return "", err
-		}
-		return email, nil
-	}
-	id := strings.TrimSpace(r.Header.Get(localAuthHeader))
-	if id == "" {
-		return "", fmt.Errorf("userId is required")
-	}
-	email, err := normalizeEmail(id)
-	if err != nil {
-		return "", err
-	}
-	return email, nil
-}
-
-// ensureUser creates a user if it does not already exist.
-func (a *API) ensureUser(ctx context.Context, email string) error {
-	user, err := a.Store.GetUser(ctx, email)
-	if err == nil && user != nil {
-		return nil
-	}
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return err
-	}
-	if _, err := a.Store.CreateUser(ctx, email, "", ""); err != nil {
-		// Guard against race conditions if another request created the user.
-		if _, getErr := a.Store.GetUser(ctx, email); getErr == nil {
-			return nil
-		}
-		return err
-	}
-	return nil
+	return auth.ResolveUserID(r, a.Store, a.AuthHeader, a.AutoCreateUsers, fallback)
 }
 
 // WithCORS adds CORS headers to the handler.

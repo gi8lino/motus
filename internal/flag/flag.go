@@ -52,6 +52,14 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Placeholder("PATH").
 		Value()
 
+	tf.StringVar(&opts.SiteRoot, "site-root", "http://localhost:8080", "Site root URL").
+		Finalize(func(input string) string {
+			return strings.TrimRight(input, "/")
+		}).
+		Short("r").
+		Placeholder("URL").
+		Value()
+
 	tf.StringVar(&opts.AuthHeader, "auth-header", "", "Authentication header").
 		Placeholder("HEADER").
 		Value()
@@ -60,11 +68,6 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	tf.BoolVar(&opts.AutoCreateUsers, "auto-create-users", false, "Auto-create users when auth-header is enabled").
-		Value()
-
-	tf.StringVar(&opts.SiteRoot, "site-root", "http://localhost:8080", "Site root URL").
-		Short("r").
-		Placeholder("URL").
 		Value()
 
 	// If set, the admin email and password are used to create a user on startup.
@@ -91,10 +94,8 @@ func ParseFlags(args []string, version string) (Options, error) {
 	opts.ListenAddr = (*listenAddr).String()
 	opts.LogFormat = logging.LogFormat(*logFormat)
 	opts.OverriddenValues = tf.OverriddenValues()
-
-	// normalize and join SiteRoot + RoutePrefix
-	if opts.RoutePrefix != "" {
-		opts.SiteRoot = strings.TrimRight(opts.SiteRoot, "/") + opts.RoutePrefix
+	if opts.RoutePrefix != "" && !strings.HasSuffix(opts.SiteRoot, opts.RoutePrefix) {
+		opts.SiteRoot += opts.RoutePrefix
 	}
 
 	return opts, nil
