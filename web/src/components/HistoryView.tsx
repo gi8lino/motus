@@ -165,13 +165,13 @@ export function HistoryView({
                                     : "";
                                 })()}
                               </div>
-                            {step.exercises?.length ? (
-                              <div className="muted small">
-                                {step.exercises
-                                  .map((ex) => formatExerciseLine(ex))
-                                  .filter(Boolean)
-                                  .join(" | ")}
-                              </div>
+                              {step.exercises?.length ? (
+                                <div className="muted small">
+                                  {step.exercises
+                                    .map((ex) => formatExerciseLine(ex))
+                                    .filter(Boolean)
+                                    .join(" | ")}
+                                </div>
                               ) : null}
                             </div>
                           </div>

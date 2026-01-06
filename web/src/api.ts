@@ -253,9 +253,7 @@ export async function logSessionCompletion(payload: {
 export async function listSessionHistory(
   userId: string,
 ): Promise<SessionHistoryItem[]> {
-  return request(
-    `/api/users/${encodeURIComponent(userId)}/sessions/history`,
-  );
+  return request(`/api/users/${encodeURIComponent(userId)}/sessions/history`);
 }
 
 // getSessionSteps fetches stored per-step timings for a session.
