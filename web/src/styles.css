@@ -162,6 +162,13 @@ main {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
+.divider {
+  border-top: 1px solid var(--panel-border);
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
 .panel-header {
   display: flex;
   align-items: center;

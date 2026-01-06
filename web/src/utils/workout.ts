@@ -7,7 +7,9 @@ export type ExpandedWorkoutStep = WorkoutStep & {
 };
 
 // expandWorkoutSteps expands repeat definitions into a flat list of steps.
-export function expandWorkoutSteps(steps: WorkoutStep[]): ExpandedWorkoutStep[] {
+export function expandWorkoutSteps(
+  steps: WorkoutStep[],
+): ExpandedWorkoutStep[] {
   const expanded: ExpandedWorkoutStep[] = [];
   steps.forEach((step) => {
     const repeatCount = Math.max(1, Math.floor(step.repeatCount || 1));
