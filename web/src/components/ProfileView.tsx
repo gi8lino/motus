@@ -11,6 +11,8 @@ export function ProfileView({
   onProfileTabChange,
   themeMode,
   onThemeChange,
+  repeatRestAfterLastDefault,
+  onRepeatRestAfterLastDefaultChange,
   exportWorkoutId,
   onExportWorkoutChange,
   activeWorkouts,
@@ -24,6 +26,8 @@ export function ProfileView({
   onProfileTabChange: (tab: ProfileTab) => void;
   themeMode: ThemeMode;
   onThemeChange: (mode: ThemeMode) => void;
+  repeatRestAfterLastDefault: boolean;
+  onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
   exportWorkoutId: string;
   onExportWorkoutChange: (id: string) => void;
   activeWorkouts: Workout[];
@@ -66,6 +70,16 @@ export function ProfileView({
                   <option value="light">Light</option>
                 </select>
               </div>
+              <label className="field checkbox">
+                <input
+                  type="checkbox"
+                  checked={repeatRestAfterLastDefault}
+                  onChange={(e) =>
+                    onRepeatRestAfterLastDefaultChange(e.target.checked)
+                  }
+                />
+                <span>Repeat rest after last (default)</span>
+              </label>
             </div>
           )}
           {profileTab === "password" && !authHeaderEnabled && (

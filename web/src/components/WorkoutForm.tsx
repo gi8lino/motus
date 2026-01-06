@@ -6,6 +6,8 @@ import type {
   Workout,
   WorkoutStep,
 } from "../types";
+import { PauseOptionsField } from "./PauseOptionsField";
+import { parseDurationSeconds } from "../utils/time";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
 
@@ -21,6 +23,7 @@ export function WorkoutForm({
   onClose,
   promptUser,
   notifyUser,
+  repeatRestAfterLastDefault,
   onDirtyChange,
   onToast,
 }: {
@@ -41,6 +44,7 @@ export function WorkoutForm({
     defaultValue?: string,
   ) => Promise<string | null>;
   notifyUser: (message: string) => Promise<void>;
+  repeatRestAfterLastDefault: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onToast?: (message: string) => void;
 }) {
@@ -50,6 +54,10 @@ export function WorkoutForm({
   const dragIndex = useRef<number | null>(null);
   const dragExerciseRef = useRef<{ stepIdx: number; idx: number } | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
+  const [expandedRepeats, setExpandedRepeats] = useState<Set<number>>(
+    new Set(),
+  );
+  const [repeatRestInputs, setRepeatRestInputs] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const catalog = exerciseCatalog || [];
   const catalogById = useMemo(
@@ -67,6 +75,8 @@ export function WorkoutForm({
       setName(DEFAULT_WORKOUT_NAME);
       setSteps([]);
       setExpandedSteps(new Set([0]));
+      setExpandedRepeats(new Set());
+      setRepeatRestInputs([]);
       setDirty(false);
       onDirtyChange?.(false);
       return;
@@ -95,11 +105,28 @@ export function WorkoutForm({
                   },
                 ]
               : [],
+        repeatCount: s.repeatCount || 1,
+        repeatRestSeconds: s.repeatRestSeconds || 0,
+        repeatRestAfterLast:
+          typeof s.repeatRestAfterLast === "boolean"
+            ? s.repeatRestAfterLast
+            : repeatRestAfterLastDefault,
+        repeatRestSoundKey: s.repeatRestSoundKey || "",
+        repeatRestAutoAdvance:
+          typeof s.repeatRestAutoAdvance === "boolean"
+            ? s.repeatRestAutoAdvance
+            : true,
       })),
     );
+    setRepeatRestInputs(
+      (editingWorkout.steps || []).map((s) =>
+        s.repeatRestSeconds ? `${s.repeatRestSeconds}s` : "",
+      ),
+    );
     setDirty(false);
+    setExpandedRepeats(new Set());
     onDirtyChange?.(false);
-  }, [editingWorkout, onDirtyChange]);
+  }, [editingWorkout, onDirtyChange, repeatRestAfterLastDefault]);
 
   useEffect(() => {
     if (!catalog.length) return;
@@ -123,9 +150,15 @@ export function WorkoutForm({
         type: "set",
         name: `Step ${prev.length + 1}`,
         duration: "1m",
+        repeatCount: 1,
+        repeatRestSeconds: 0,
+        repeatRestAfterLast: repeatRestAfterLastDefault,
+        repeatRestSoundKey: "",
+        repeatRestAutoAdvance: true,
       };
       const next = [...prev, newStep];
       setExpandedSteps((exp) => new Set(exp).add(next.length - 1));
+      setRepeatRestInputs((inputs) => [...inputs, ""]);
       setDirty(true);
       onDirtyChange?.(true);
       return next;
@@ -148,6 +181,12 @@ export function WorkoutForm({
       next.delete(idx);
       return next;
     });
+    setExpandedRepeats((prev) => {
+      const next = new Set(prev);
+      next.delete(idx);
+      return next;
+    });
+    setRepeatRestInputs((prev) => prev.filter((_, i) => i !== idx));
     setDirty(true);
     onDirtyChange?.(true);
   };
@@ -162,9 +201,29 @@ export function WorkoutForm({
       next.splice(target, 0, item);
       return next;
     });
+    setRepeatRestInputs((prev) => {
+      const next = [...prev];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return prev;
+      const [item] = next.splice(index, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
     setDirty(true);
     onDirtyChange?.(true);
   };
+
+  // toggleRepeatOptions expands or collapses the repeat settings for a step.
+  const toggleRepeatOptions = (idx: number) =>
+    setExpandedRepeats((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
 
   // moveExercise reorders an exercise inside a step.
   const moveExercise = (stepIdx: number, from: number, to: number) => {
@@ -240,6 +299,99 @@ export function WorkoutForm({
     }),
     [],
   );
+
+  // renderRepeatToggle shows the repeat options trigger next to action buttons.
+  function renderRepeatToggle(idx: number, step: WorkoutStep) {
+    return (
+      <>
+        <button
+          className="btn subtle"
+          type="button"
+          onClick={() => toggleRepeatOptions(idx)}
+        >
+          {expandedRepeats.has(idx) ? "Hide repeat options" : "Repeat options"}
+        </button>
+        <span className="muted small">
+          {step.repeatCount && step.repeatCount > 1
+            ? `Repeats ${step.repeatCount}x`
+            : "No repeats"}
+        </span>
+      </>
+    );
+  }
+
+  // renderRepeatFields shows expanded repeat settings under the action row.
+  function renderRepeatFields(idx: number, step: WorkoutStep) {
+    if (!expandedRepeats.has(idx)) return null;
+    return (
+      <>
+        <div className="field">
+          <label>Repeat count</label>
+          <input
+            type="number"
+            min={1}
+            value={step.repeatCount ?? 1}
+            onChange={(e) =>
+              updateStep(idx, {
+                repeatCount: Number(e.target.value || 1),
+              })
+            }
+          />
+        </div>
+        {Boolean(step.repeatCount && step.repeatCount > 1) && (
+          <>
+            <div className="field">
+              <label>{durationLabel.pause}</label>
+              <input
+                value={
+                  repeatRestInputs[idx] ??
+                  (step.repeatRestSeconds ? `${step.repeatRestSeconds}s` : "")
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRepeatRestInputs((prev) => {
+                    const next = [...prev];
+                    next[idx] = value;
+                    return next;
+                  });
+                  updateStep(idx, {
+                    repeatRestSeconds: parseDurationSeconds(value),
+                  });
+                }}
+              />
+            </div>
+          </>
+        )}
+        {Boolean(step.repeatCount && step.repeatCount > 1) && (
+          <PauseOptionsField
+            autoAdvance={Boolean(step.repeatRestAutoAdvance)}
+            soundKey={step.repeatRestSoundKey || ""}
+            sounds={sounds}
+            onAutoAdvanceChange={(value) =>
+              updateStep(idx, { repeatRestAutoAdvance: value })
+            }
+            onSoundChange={(value) =>
+              updateStep(idx, { repeatRestSoundKey: value })
+            }
+            extra={
+              <label className="field checkbox">
+                <input
+                  type="checkbox"
+                  checked={Boolean(step.repeatRestAfterLast)}
+                  onChange={(e) =>
+                    updateStep(idx, {
+                      repeatRestAfterLast: e.target.checked,
+                    })
+                  }
+                />
+                <span>Pause after last repeat</span>
+              </label>
+            }
+          />
+        )}
+      </>
+    );
+  }
 
   // renderStandardExercises shows normal set inputs with drag handles.
   function renderStandardExercises(idx: number, step: WorkoutStep) {
@@ -359,13 +511,17 @@ export function WorkoutForm({
             </button>
           </div>
         ))}
-        <button
-          className="btn outline"
-          type="button"
-          onClick={() => addExercise(idx)}
-        >
-          Add Exercise
-        </button>
+        <div className="btn-group">
+          <button
+            className="btn outline"
+            type="button"
+            onClick={() => addExercise(idx)}
+          >
+            Add Exercise
+          </button>
+          {renderRepeatToggle(idx, step)}
+        </div>
+        {renderRepeatFields(idx, step)}
       </div>
     );
   }
@@ -488,13 +644,17 @@ export function WorkoutForm({
             </button>
           </div>
         ))}
-        <button
-          className="btn outline"
-          type="button"
-          onClick={() => addExercise(idx)}
-        >
-          Add Exercise
-        </button>
+        <div className="btn-group">
+          <button
+            className="btn outline"
+            type="button"
+            onClick={() => addExercise(idx)}
+          >
+            Add Exercise
+          </button>
+          {renderRepeatToggle(idx, step)}
+        </div>
+        {renderRepeatFields(idx, step)}
       </div>
     );
   }
@@ -524,6 +684,18 @@ export function WorkoutForm({
           weight,
           pauseOptions: autoAdvance ? { autoAdvance: true } : undefined,
           duration: s.duration?.trim() || "",
+          repeatCount: Math.max(1, Math.floor(Number(s.repeatCount) || 1)),
+          repeatRestSeconds: Math.max(
+            0,
+            Math.floor(Number(s.repeatRestSeconds) || 0),
+          ),
+          repeatRestAfterLast: Boolean(s.repeatRestAfterLast),
+          repeatRestSoundKey:
+            s.repeatRestSeconds && (s.repeatRestSoundKey || "").trim()
+              ? (s.repeatRestSoundKey || "").trim()
+              : "",
+          repeatRestAutoAdvance:
+            Boolean(s.repeatRestSeconds) && Boolean(s.repeatRestAutoAdvance),
           exercises:
             s.exercises && s.exercises.length
               ? s.exercises
@@ -621,6 +793,12 @@ export function WorkoutForm({
                 });
                 return next;
               });
+              setRepeatRestInputs((prev) => {
+                const next = [...prev];
+                const [item] = next.splice(from, 1);
+                next.splice(to, 0, item);
+                return next;
+              });
               dragIndex.current = idx;
               setDirty(true);
               onDirtyChange?.(true);
@@ -640,7 +818,7 @@ export function WorkoutForm({
             >
               <span className="badge">{idx + 1}</span>
               <span className="chevron">
-                {expandedSteps.has(idx) ? "▾" : "▸"}
+                {expandedSteps.has(idx) ? "▼" : "▶"}
               </span>
               <select
                 value={step.type}
@@ -707,6 +885,9 @@ export function WorkoutForm({
                       ? `${step.estimatedSeconds}s`
                       : "open")
                   : "Timed block"}
+                {step.repeatCount && step.repeatCount > 1
+                  ? ` • repeats ${step.repeatCount}x`
+                  : ""}
                 {step.exercises?.length
                   ? ` • ${step.exercises
                       .map((ex) =>
@@ -722,7 +903,7 @@ export function WorkoutForm({
 
             {expandedSteps.has(idx) && (
               <div className="step-details">
-                <div className="field">
+                <div className="field spaced">
                   <label>Name</label>
                   <input
                     value={step.name}
@@ -742,39 +923,24 @@ export function WorkoutForm({
                   </div>
                 )}
                 {step.type === "pause" && (
-                  <label className="field checkbox">
-                    <input
-                      type="checkbox"
-                      checked={
-                        step.weight === "__auto__" ||
-                        Boolean(step.pauseOptions?.autoAdvance)
-                      }
-                      onChange={(e) =>
-                        updateStep(idx, {
-                          pauseOptions: { autoAdvance: e.target.checked },
-                          weight: e.target.checked ? "__auto__" : "",
-                        })
-                      }
-                    />
-                    <span>Auto-advance when time elapses</span>
-                  </label>
-                )}
-                <div className="field">
-                  <label>Sound</label>
-                  <select
-                    value={step.soundKey || ""}
-                    onChange={(e) =>
-                      updateStep(idx, { soundKey: e.target.value })
+                  <PauseOptionsField
+                    autoAdvance={
+                      step.weight === "__auto__" ||
+                      Boolean(step.pauseOptions?.autoAdvance)
                     }
-                  >
-                    <option value="">None</option>
-                    {sounds.map((s) => (
-                      <option key={s.key} value={s.key}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    soundKey={step.soundKey || ""}
+                    sounds={sounds}
+                    onAutoAdvanceChange={(value) =>
+                      updateStep(idx, {
+                        pauseOptions: { autoAdvance: value },
+                        weight: value ? "__auto__" : "",
+                      })
+                    }
+                    onSoundChange={(value) =>
+                      updateStep(idx, { soundKey: value })
+                    }
+                  />
+                )}
                 {step.type === "set" && renderStandardExercises(idx, step)}
                 {step.type === "timed" && renderTimedExercises(idx, step)}
               </div>

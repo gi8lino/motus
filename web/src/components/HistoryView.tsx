@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { formatExerciseLine, formatMillis } from "../utils/format";
 import { buildSummary } from "../utils/summary";
+import { expandWorkoutSteps } from "../utils/workout";
 import { AISummary, HistoryList } from "./HistoryCard";
 
 // HistoryView lists logged sessions and opens a session preview.
@@ -41,16 +42,18 @@ export function HistoryView({
     return map;
   };
 
-  // mergeWorkoutDurations injects elapsed times into workout steps.
+  // mergeWorkoutDurations injects elapsed times into expanded workout steps.
   const mergeWorkoutDurations = (
     workout: Workout,
     durations: Record<string, number>,
-  ) =>
-    workout.steps.map((step, idx) => ({
+  ) => {
+    const expanded = expandWorkoutSteps(workout.steps || []);
+    return expanded.map((step, idx) => ({
       ...step,
       elapsedMillis:
         durations[`order-${idx}`] ?? durations[step.id || `step-${idx}`] ?? 0,
     }));
+  };
 
   // handleSelect loads preview details for a selected session.
   const handleSelect = (item: SessionHistoryItem) => {
@@ -144,7 +147,10 @@ export function HistoryView({
                   <>
                     {/* Step list */}
                     <ul className="list compact">
-                      {previewWorkout.steps.map((step, idx) => (
+                      {mergeWorkoutDurations(
+                        previewWorkout,
+                        previewDurations,
+                      ).map((step, idx) => (
                         <li key={step.id || idx} className="list-item">
                           <div className="list-row">
                             <div>
@@ -156,14 +162,9 @@ export function HistoryView({
                                 {step.estimatedSeconds
                                   ? `target ${step.estimatedSeconds}s`
                                   : step.duration || "open"}
-                                {(() => {
-                                  const durMs =
-                                    previewDurations[`order-${idx}`] ??
-                                    previewDurations[step.id || `step-${idx}`];
-                                  return durMs
-                                    ? ` • actual ${formatMillis(durMs)}`
-                                    : "";
-                                })()}
+                                {step.elapsedMillis
+                                  ? ` • actual ${formatMillis(step.elapsedMillis)}`
+                                  : ""}
                               </div>
                               {step.exercises?.length ? (
                                 <div className="muted small">

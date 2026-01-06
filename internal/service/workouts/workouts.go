@@ -22,16 +22,21 @@ type WorkoutRequest struct {
 
 // StepInput describes a workout step in an incoming request.
 type StepInput struct {
-	Type             string          `json:"type"`
-	Name             string          `json:"name"`
-	Duration         string          `json:"duration"`
-	EstimatedSeconds int             `json:"estimatedSeconds"`
-	SoundKey         string          `json:"soundKey"`
-	Exercise         string          `json:"exercise"`
-	Amount           string          `json:"amount"`
-	Weight           string          `json:"weight"`
-	Exercises        []ExerciseInput `json:"exercises"`
-	PauseOptions     db.PauseOptions `json:"pauseOptions"`
+	Type                  string          `json:"type"`
+	Name                  string          `json:"name"`
+	Duration              string          `json:"duration"`
+	EstimatedSeconds      int             `json:"estimatedSeconds"`
+	SoundKey              string          `json:"soundKey"`
+	Exercise              string          `json:"exercise"`
+	Amount                string          `json:"amount"`
+	Weight                string          `json:"weight"`
+	Exercises             []ExerciseInput `json:"exercises"`
+	PauseOptions          db.PauseOptions `json:"pauseOptions"`
+	RepeatCount           int             `json:"repeatCount"`
+	RepeatRestSeconds     int             `json:"repeatRestSeconds"`
+	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast"`
+	RepeatRestSoundKey    string          `json:"repeatRestSoundKey"`
+	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance"`
 }
 
 // ExerciseInput describes a nested exercise entry in a step.
@@ -98,6 +103,31 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if validSoundKey != nil && !validSoundKey(soundKey) {
 			return nil, fmt.Errorf("invalid sound selection for step %s", name)
 		}
+		repeatCount := in.RepeatCount
+		if repeatCount <= 0 {
+			repeatCount = 1
+		}
+		repeatRestSeconds := in.RepeatRestSeconds
+		if repeatRestSeconds < 0 {
+			repeatRestSeconds = 0
+		}
+		repeatRestSoundKey := strings.TrimSpace(in.RepeatRestSoundKey)
+		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
+			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
+		}
+		repeatRestAutoAdvance := in.RepeatRestAutoAdvance
+		repeatRestAfterLast := in.RepeatRestAfterLast
+		if repeatCount <= 1 {
+			repeatRestSeconds = 0
+			repeatRestAutoAdvance = false
+			repeatRestAfterLast = false
+			repeatRestSoundKey = ""
+		}
+		if repeatRestSeconds == 0 {
+			repeatRestAutoAdvance = false
+			repeatRestAfterLast = false
+			repeatRestSoundKey = ""
+		}
 		autoAdvance := stepType == "pause" && in.PauseOptions.AutoAdvance
 		weight := strings.TrimSpace(in.Weight)
 		if autoAdvance {
@@ -129,15 +159,20 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		}
 
 		step := db.WorkoutStep{
-			Type:             stepType,
-			Name:             name,
-			EstimatedSeconds: seconds,
-			SoundKey:         soundKey,
-			Exercise:         strings.TrimSpace(in.Exercise),
-			Amount:           strings.TrimSpace(in.Amount),
-			Weight:           weight,
-			Exercises:        exercises,
-			PauseOptions:     db.PauseOptions{AutoAdvance: autoAdvance},
+			Type:                  stepType,
+			Name:                  name,
+			EstimatedSeconds:      seconds,
+			SoundKey:              soundKey,
+			Exercise:              strings.TrimSpace(in.Exercise),
+			Amount:                strings.TrimSpace(in.Amount),
+			Weight:                weight,
+			Exercises:             exercises,
+			PauseOptions:          db.PauseOptions{AutoAdvance: autoAdvance},
+			RepeatCount:           repeatCount,
+			RepeatRestSeconds:     repeatRestSeconds,
+			RepeatRestAfterLast:   repeatRestAfterLast,
+			RepeatRestSoundKey:    repeatRestSoundKey,
+			RepeatRestAutoAdvance: repeatRestAutoAdvance,
 		}
 		if len(exercises) > 0 && stepType != "pause" {
 			step.Exercise = exercises[0].Name

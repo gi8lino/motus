@@ -17,7 +17,7 @@ Motus is a training companion for circuit and round-based workouts. It keeps tra
 ## Features
 
 - Create users and manage local accounts.
-- Build workouts with sets, pauses, and timed blocks using Go-style duration strings (e.g. `45s`, `1m30s`).
+- Build workouts with sets, pauses, timed blocks, and repeatable steps using Go-style duration strings (e.g. `45s`, `1m30s`).
 - Attach multiple exercises with amount/weight to each set; drag/drop steps and exercises.
 - Maintain a global exercise catalog with Core + Personal exercises.
 - Share workouts as templates and apply them to create new workouts.
@@ -49,6 +49,7 @@ Motus separates session timing from data storage:
 - **Set**: a regular exercise block that you complete, then move on.
 - **Pause**: a rest block; can auto-advance on a countdown.
 - **Timed set**: time-based work like warmups (e.g. 20s per exercise), then advance.
+- **Repeat options**: repeat a set or timed block multiple times with a configurable pause between repeats.
 
 Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Session summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
 
@@ -98,6 +99,12 @@ When `--auth-header` is set, Motus trusts the specified header as the authentica
 ## Local admin bootstrap
 
 To auto-create or update a local admin account at startup, use the admin flags (or env vars with `MOTUS_` prefix). The server logs when it creates or updates the admin user.
+
+To promote an existing user to admin directly in the database:
+
+```sql
+UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
+```
 
 ## Docker Compose (DB + pgAdmin)
 

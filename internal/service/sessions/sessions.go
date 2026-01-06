@@ -50,6 +50,8 @@ type SessionStepState struct {
 	ElapsedMillis    int64        `json:"elapsedMillis"`
 	Exercises        []Exercise   `json:"exercises"`
 	PauseOptions     PauseOptions `json:"pauseOptions"`
+	LoopIndex        int          `json:"loopIndex,omitempty"`
+	LoopTotal        int          `json:"loopTotal,omitempty"`
 }
 
 // Exercise describes a single exercise inside a step.
@@ -114,29 +116,58 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 		CurrentIndex: 0,
 	}
 
-	for idx, st := range workout.Steps {
-		exercises := make([]Exercise, 0, len(st.Exercises))
-		for _, ex := range st.Exercises {
-			exercises = append(exercises, Exercise{
-				Name:   ex.Name,
-				Amount: ex.Amount,
-				Weight: ex.Weight,
-			})
+	for _, st := range workout.Steps {
+		repeatCount := st.RepeatCount
+		if repeatCount <= 0 {
+			repeatCount = 1
 		}
-		stepState := SessionStepState{
-			ID:               st.ID,
-			Name:             st.Name,
-			Type:             st.Type,
-			EstimatedSeconds: st.EstimatedSeconds,
-			SoundURL:         soundURLByKey(st.SoundKey),
-			Exercises:        exercises,
-			Current:          idx == 0,
+		for loopIdx := 0; loopIdx < repeatCount; loopIdx++ {
+			exercises := make([]Exercise, 0, len(st.Exercises))
+			for _, ex := range st.Exercises {
+				exercises = append(exercises, Exercise{
+					Name:   ex.Name,
+					Amount: ex.Amount,
+					Weight: ex.Weight,
+				})
+			}
+			stepID := st.ID
+			if repeatCount > 1 {
+				stepID = fmt.Sprintf("%s-r%d", st.ID, loopIdx+1)
+			}
+			stepState := SessionStepState{
+				ID:               stepID,
+				Name:             st.Name,
+				Type:             st.Type,
+				EstimatedSeconds: st.EstimatedSeconds,
+				SoundURL:         soundURLByKey(st.SoundKey),
+				Exercises:        exercises,
+				Current:          len(state.Steps) == 0,
+			}
+			if repeatCount > 1 {
+				stepState.LoopIndex = loopIdx + 1
+				stepState.LoopTotal = repeatCount
+			}
+			autoAdvance := st.Type == "pause" && (strings.EqualFold(st.Weight, "__auto__") || st.PauseOptions.AutoAdvance)
+			if autoAdvance {
+				stepState.PauseOptions = PauseOptions{AutoAdvance: true}
+			}
+			state.Steps = append(state.Steps, stepState)
+
+			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
+				restState := SessionStepState{
+					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
+					Name:             "Pause",
+					Type:             "pause",
+					EstimatedSeconds: st.RepeatRestSeconds,
+					SoundURL:         soundURLByKey(st.RepeatRestSoundKey),
+					Current:          len(state.Steps) == 0,
+				}
+				if st.RepeatRestAutoAdvance {
+					restState.PauseOptions = PauseOptions{AutoAdvance: true}
+				}
+				state.Steps = append(state.Steps, restState)
+			}
 		}
-		autoAdvance := st.Type == "pause" && (strings.EqualFold(st.Weight, "__auto__") || st.PauseOptions.AutoAdvance)
-		if autoAdvance {
-			stepState.PauseOptions = PauseOptions{AutoAdvance: true}
-		}
-		state.Steps = append(state.Steps, stepState)
 	}
 	return state
 }
