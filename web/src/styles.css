@@ -296,6 +296,10 @@ main {
   margin-bottom: 10px;
 }
 
+.field.spaced {
+  margin-top: 14px;
+}
+
 input,
 select {
   background: var(--input-bg);
@@ -539,10 +543,10 @@ select option.exercise-option.user {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  background: #1e2635;
+  background: var(--panel);
   border: 1px solid var(--primary);
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 20px rgba(10, 16, 24, 0.18);
   z-index: 10;
 }
 

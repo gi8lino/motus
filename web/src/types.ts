@@ -43,6 +43,11 @@ export type WorkoutStep = {
   duration?: string;
   exercises?: Exercise[];
   pauseOptions?: PauseOptions;
+  repeatCount?: number;
+  repeatRestSeconds?: number;
+  repeatRestAfterLast?: boolean;
+  repeatRestSoundKey?: string;
+  repeatRestAutoAdvance?: boolean;
 };
 
 // View represents the active app section.
@@ -88,6 +93,8 @@ export type SessionStepState = {
   running: boolean;
   soundPlayed?: boolean;
   pauseOptions?: PauseOptions;
+  loopIndex?: number;
+  loopTotal?: number;
 };
 
 // SessionStepLog stores a completed step timing.

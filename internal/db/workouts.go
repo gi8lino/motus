@@ -43,6 +43,18 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
+		if step.RepeatCount <= 0 {
+			step.RepeatCount = 1
+		}
+		if step.RepeatRestSeconds < 0 {
+			step.RepeatRestSeconds = 0
+		}
+		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
+			step.RepeatRestSeconds = 0
+			step.RepeatRestAfterLast = false
+			step.RepeatRestSoundKey = ""
+			step.RepeatRestAutoAdvance = false
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -55,11 +67,32 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 				exercise,
 				amount,
 				weight,
+				repeat_count,
+				repeat_rest_seconds,
+				repeat_rest_after_last,
+				repeat_rest_sound_key,
+				repeat_rest_auto_advance,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		`,
-			step.ID, step.WorkoutID, step.Order, step.Type, step.Name, step.EstimatedSeconds, step.SoundKey, step.Exercise, step.Amount, step.Weight, step.CreatedAt); err != nil {
+			step.ID,
+			step.WorkoutID,
+			step.Order,
+			step.Type,
+			step.Name,
+			step.EstimatedSeconds,
+			step.SoundKey,
+			step.Exercise,
+			step.Amount,
+			step.Weight,
+			step.RepeatCount,
+			step.RepeatRestSeconds,
+			step.RepeatRestAfterLast,
+			step.RepeatRestSoundKey,
+			step.RepeatRestAutoAdvance,
+			step.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		if err := s.insertStepExercises(ctx, tx, step.ID, step.Exercises); err != nil {
@@ -109,7 +142,22 @@ func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, e
 func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutStep, error) {
 	// Load steps and associated exercises for a workout.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, workout_id, step_order, step_type, name, estimated_seconds, sound_key, exercise, amount, weight, created_at
+		SELECT id,
+			workout_id,
+			step_order,
+			step_type,
+			name,
+			estimated_seconds,
+			sound_key,
+			exercise,
+			amount,
+			weight,
+			repeat_count,
+			repeat_rest_seconds,
+			repeat_rest_after_last,
+			repeat_rest_sound_key,
+			repeat_rest_auto_advance,
+			created_at
 		FROM workout_steps
 		WHERE workout_id=$1
 		ORDER BY step_order ASC
@@ -124,8 +172,28 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	// Collect step rows and index them for exercise hydration.
 	for rows.Next() {
 		var st WorkoutStep
-		if err := rows.Scan(&st.ID, &st.WorkoutID, &st.Order, &st.Type, &st.Name, &st.EstimatedSeconds, &st.SoundKey, &st.Exercise, &st.Amount, &st.Weight, &st.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&st.ID,
+			&st.WorkoutID,
+			&st.Order,
+			&st.Type,
+			&st.Name,
+			&st.EstimatedSeconds,
+			&st.SoundKey,
+			&st.Exercise,
+			&st.Amount,
+			&st.Weight,
+			&st.RepeatCount,
+			&st.RepeatRestSeconds,
+			&st.RepeatRestAfterLast,
+			&st.RepeatRestSoundKey,
+			&st.RepeatRestAutoAdvance,
+			&st.CreatedAt,
+		); err != nil {
 			return nil, err
+		}
+		if st.RepeatCount == 0 {
+			st.RepeatCount = 1
 		}
 		steps = append(steps, st)
 		index[st.ID] = len(steps) - 1
@@ -233,6 +301,18 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
+		if step.RepeatCount <= 0 {
+			step.RepeatCount = 1
+		}
+		if step.RepeatRestSeconds < 0 {
+			step.RepeatRestSeconds = 0
+		}
+		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
+			step.RepeatRestSeconds = 0
+			step.RepeatRestAfterLast = false
+			step.RepeatRestSoundKey = ""
+			step.RepeatRestAutoAdvance = false
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -245,11 +325,32 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 				exercise,
 				amount,
 				weight,
+				repeat_count,
+				repeat_rest_seconds,
+				repeat_rest_after_last,
+				repeat_rest_sound_key,
+				repeat_rest_auto_advance,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		`,
-			step.ID, step.WorkoutID, step.Order, step.Type, step.Name, step.EstimatedSeconds, step.SoundKey, step.Exercise, step.Amount, step.Weight, step.CreatedAt); err != nil {
+			step.ID,
+			step.WorkoutID,
+			step.Order,
+			step.Type,
+			step.Name,
+			step.EstimatedSeconds,
+			step.SoundKey,
+			step.Exercise,
+			step.Amount,
+			step.Weight,
+			step.RepeatCount,
+			step.RepeatRestSeconds,
+			step.RepeatRestAfterLast,
+			step.RepeatRestSoundKey,
+			step.RepeatRestAutoAdvance,
+			step.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		if err := s.insertStepExercises(ctx, tx, step.ID, step.Exercises); err != nil {

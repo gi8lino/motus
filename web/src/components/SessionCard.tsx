@@ -135,6 +135,12 @@ export function SessionCard({
               Step {currentNumber}/{totalSteps}
             </div>
           ) : null}
+          {currentStep && (currentStep as any).loopTotal ? (
+            <div className="muted small">
+              Loop {(currentStep as any).loopIndex}/
+              {(currentStep as any).loopTotal}
+            </div>
+          ) : null}
           <div className="clock-row">
             <div className="clock">
               {currentStep ? formatMillis(displayMillis) : "00:00"}
@@ -238,6 +244,9 @@ export function SessionCard({
                     {step.estimatedSeconds
                       ? `${step.estimatedSeconds}s target`
                       : step.duration || "open"}{" "}
+                    {step.loopTotal
+                      ? `• loop ${step.loopIndex}/${step.loopTotal} `
+                      : ""}
                   </div>
                   {expanded && formatExercises(step) && (
                     <div className="muted small">{formatExercises(step)}</div>

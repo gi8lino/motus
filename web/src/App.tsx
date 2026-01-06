@@ -165,6 +165,8 @@ export default function App() {
     }
     return "auto";
   });
+  const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
+    useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
@@ -259,6 +261,27 @@ export default function App() {
       media.removeEventListener("change", handler);
     };
   }, [themeMode]);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setRepeatRestAfterLastDefault(false);
+      return;
+    }
+    const stored = localStorage.getItem(
+      `motus:repeatRestAfterLast:${currentUserId}`,
+    );
+    setRepeatRestAfterLastDefault(stored === "true");
+  }, [currentUserId]);
+
+  // handleRepeatRestAfterLastDefault persists the profile default for rest-after-last.
+  const handleRepeatRestAfterLastDefault = (value: boolean) => {
+    setRepeatRestAfterLastDefault(value);
+    if (!currentUserId) return;
+    localStorage.setItem(
+      `motus:repeatRestAfterLast:${currentUserId}`,
+      value ? "true" : "false",
+    );
+  };
 
   useEffect(() => {
     // Validate stored user id once local users are known.
@@ -795,6 +818,10 @@ export default function App() {
               onProfileTabChange={setProfileTab}
               themeMode={themeMode}
               onThemeChange={setThemeMode}
+              repeatRestAfterLastDefault={repeatRestAfterLastDefault}
+              onRepeatRestAfterLastDefaultChange={
+                handleRepeatRestAfterLastDefault
+              }
               exportWorkoutId={exportWorkoutId}
               onExportWorkoutChange={setExportWorkoutId}
               activeWorkouts={activeWorkouts}
@@ -833,6 +860,7 @@ export default function App() {
               onClose={handleCloseWorkoutModal}
               promptUser={askPrompt}
               notifyUser={notify}
+              repeatRestAfterLastDefault={repeatRestAfterLastDefault}
               onDirtyChange={setWorkoutDirty}
               onToast={showToast}
             />

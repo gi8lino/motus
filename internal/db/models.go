@@ -28,19 +28,24 @@ type PauseOptions struct {
 
 // WorkoutStep defines a single part of the workout.
 type WorkoutStep struct {
-	ID               string         `json:"id"`
-	WorkoutID        string         `json:"workoutId"`
-	Order            int            `json:"order"`
-	Type             string         `json:"type"`
-	Name             string         `json:"name"`
-	EstimatedSeconds int            `json:"estimatedSeconds"`
-	SoundKey         string         `json:"soundKey"`
-	Exercise         string         `json:"exercise"`
-	Amount           string         `json:"amount"`
-	Weight           string         `json:"weight"`
-	Exercises        []StepExercise `json:"exercises"`
-	PauseOptions     PauseOptions   `json:"pauseOptions,omitempty"`
-	CreatedAt        time.Time      `json:"createdAt"`
+	ID                    string         `json:"id"`
+	WorkoutID             string         `json:"workoutId"`
+	Order                 int            `json:"order"`
+	Type                  string         `json:"type"`
+	Name                  string         `json:"name"`
+	EstimatedSeconds      int            `json:"estimatedSeconds"`
+	SoundKey              string         `json:"soundKey"`
+	Exercise              string         `json:"exercise"`
+	Amount                string         `json:"amount"`
+	Weight                string         `json:"weight"`
+	Exercises             []StepExercise `json:"exercises"`
+	PauseOptions          PauseOptions   `json:"pauseOptions,omitempty"`
+	RepeatCount           int            `json:"repeatCount,omitempty"`
+	RepeatRestSeconds     int            `json:"repeatRestSeconds,omitempty"`
+	RepeatRestAfterLast   bool           `json:"repeatRestAfterLast,omitempty"`
+	RepeatRestSoundKey    string         `json:"repeatRestSoundKey,omitempty"`
+	RepeatRestAutoAdvance bool           `json:"repeatRestAutoAdvance,omitempty"`
+	CreatedAt             time.Time      `json:"createdAt"`
 }
 
 // StepExercise represents a detailed exercise entry for a step.
