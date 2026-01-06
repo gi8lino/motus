@@ -234,8 +234,8 @@ export function SessionCard({
                   {step.type === "pause" && !formatExercises(step)
                     ? ""
                     : expanded
-                      ? "▾"
-                      : "▸"}
+                      ? "▼"
+                      : "▶"}
                 </span>
                 <div className="step-info">
                   <strong>{step.name}</strong>
