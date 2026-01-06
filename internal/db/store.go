@@ -15,6 +15,7 @@ type Store struct {
 
 // New establishes a connection pool.
 func New(ctx context.Context, url string, logger *slog.Logger) (*Store, error) {
+	// Initialize the pgx connection pool with the provided URL.
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		return nil, err
@@ -27,6 +28,7 @@ func New(ctx context.Context, url string, logger *slog.Logger) (*Store, error) {
 
 // Close releases the underlying connection pool.
 func (s *Store) Close() {
+	// Guard against nil pool during shutdown.
 	if s.pool != nil {
 		s.pool.Close()
 	}
@@ -34,5 +36,6 @@ func (s *Store) Close() {
 
 // Ping validates the connection.
 func (s *Store) Ping(ctx context.Context) error {
+	// Delegate to the underlying pool health check.
 	return s.pool.Ping(ctx)
 }

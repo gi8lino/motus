@@ -14,11 +14,13 @@ import (
 
 // CreateWorkout inserts a workout and its steps for a user.
 func (s *Store) CreateWorkout(ctx context.Context, w *Workout) (*Workout, error) {
+	// Persist workout and steps as a new workout.
 	return s.insertWorkout(ctx, w, false)
 }
 
 // insertWorkout stores a workout and optionally marks it as a template.
 func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) (*Workout, error) {
+	// Start a transaction so workout and steps are created together.
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		return nil, err
 	}
 
+	// Insert each step and its nested exercises.
 	for idx := range w.Steps {
 		step := &w.Steps[idx]
 		step.ID = utils.NewID()
@@ -73,6 +76,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 
 // WorkoutsByUser returns workouts for a user.
 func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, error) {
+	// Load workouts and their steps for the given user.
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, user_id, name, is_template, created_at
 		FROM workouts
@@ -85,6 +89,7 @@ func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, e
 	defer rows.Close()
 
 	var workouts []Workout
+	// Collect workouts and hydrate each with steps.
 	for rows.Next() {
 		var w Workout
 		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
@@ -102,6 +107,7 @@ func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, e
 
 // WorkoutSteps fetches all steps for a workout ordered by step order.
 func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutStep, error) {
+	// Load steps and associated exercises for a workout.
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, workout_id, step_order, step_type, name, estimated_seconds, sound_key, exercise, amount, weight, created_at
 		FROM workout_steps
@@ -115,6 +121,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 
 	var steps []WorkoutStep
 	index := make(map[string]int)
+	// Collect step rows and index them for exercise hydration.
 	for rows.Next() {
 		var st WorkoutStep
 		if err := rows.Scan(&st.ID, &st.WorkoutID, &st.Order, &st.Type, &st.Name, &st.EstimatedSeconds, &st.SoundKey, &st.Exercise, &st.Amount, &st.Weight, &st.CreatedAt); err != nil {
@@ -141,6 +148,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 		return nil, err
 	}
 	defer exRows.Close()
+	// Attach exercise rows to their parent steps.
 	for exRows.Next() {
 		var ex StepExercise
 		if err := exRows.Scan(&ex.ID, &ex.StepID, &ex.Order, &ex.ExerciseID, &ex.Name, &ex.Amount, &ex.Weight); err != nil {
@@ -153,6 +161,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	if err := exRows.Err(); err != nil {
 		return nil, err
 	}
+	// Normalize derived fields after loading exercises.
 	for i := range steps {
 		if len(steps[i].Exercises) > 0 && steps[i].Type != "pause" {
 			steps[i].Exercise = steps[i].Exercises[0].Name
@@ -168,6 +177,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 
 // WorkoutWithSteps retrieves a workout by id.
 func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workout, error) {
+	// Fetch the workout row and hydrate its steps.
 	row := s.pool.QueryRow(ctx, `
 		SELECT id, user_id, name, is_template, created_at
 		FROM workouts
@@ -190,6 +200,7 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 
 // UpdateWorkout replaces the workout name and steps.
 func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error) {
+	// Replace workout name and step definitions in a transaction.
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -215,6 +226,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	`, w.ID); err != nil {
 		return nil, err
 	}
+	// Recreate steps after clearing previous definitions.
 	for idx := range w.Steps {
 		step := &w.Steps[idx]
 		step.ID = utils.NewID()
@@ -253,11 +265,14 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 
 // cloneSteps copies workout steps for template/workout reuse.
 func cloneSteps(src []WorkoutStep) []WorkoutStep {
+	// Deep-copy steps so templates can be reused safely.
 	result := make([]WorkoutStep, len(src))
+	// Deep-copy step and exercise slices.
 	for i := range src {
 		result[i] = src[i]
 		result[i].ID = ""
 		result[i].Exercises = make([]StepExercise, len(src[i].Exercises))
+		// Copy nested exercises for each step.
 		for j := range src[i].Exercises {
 			result[i].Exercises[j] = src[i].Exercises[j]
 			result[i].Exercises[j].ID = ""
@@ -269,6 +284,8 @@ func cloneSteps(src []WorkoutStep) []WorkoutStep {
 
 // insertStepExercises saves the exercise rows for a workout step.
 func (s *Store) insertStepExercises(ctx context.Context, tx pgx.Tx, stepID string, exercises []StepExercise) error {
+	// Insert normalized exercise rows for a step.
+	// Insert each exercise row for the step.
 	for idx := range exercises {
 		ex := exercises[idx]
 		name := strings.TrimSpace(ex.Name)
@@ -299,6 +316,7 @@ func (s *Store) insertStepExercises(ctx context.Context, tx pgx.Tx, stepID strin
 
 // DeleteWorkout removes a workout and cascades its steps.
 func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
+	// Delete the workout and rely on cascading deletes for related rows.
 	tag, err := s.pool.Exec(ctx, `
 		DELETE FROM workouts
 		WHERE id=$1
