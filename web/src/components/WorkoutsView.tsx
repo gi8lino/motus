@@ -4,8 +4,6 @@ import type { Workout } from "../types";
 export function WorkoutsView({
   workouts,
   loading,
-  authHeaderEnabled,
-  currentUserName,
   hasUser,
   onNewWorkout,
   onEditWorkout,
@@ -14,8 +12,6 @@ export function WorkoutsView({
 }: {
   workouts: Workout[];
   loading: boolean;
-  authHeaderEnabled: boolean;
-  currentUserName: string;
   hasUser: boolean;
   onNewWorkout: () => void;
   onEditWorkout: (workoutId: string) => void;
@@ -26,9 +22,6 @@ export function WorkoutsView({
     <section className="panel">
       <div className="panel-header">
         <h3>Workouts</h3>
-        {authHeaderEnabled && (
-          <div className="muted small">{currentUserName}</div>
-        )}
         <button
           className="btn primary"
           onClick={onNewWorkout}

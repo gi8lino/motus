@@ -741,7 +741,6 @@ export default function App() {
               users={users.data || []}
               loading={users.loading}
               currentUserId={currentUserId}
-              currentUserName={currentUser?.name || "Unknown user"}
               allowRegistration={allowRegistration}
               onToggleAdmin={handleToggleAdmin}
               onCreateUser={async (email, password) => {
@@ -759,8 +758,6 @@ export default function App() {
             <WorkoutsView
               workouts={activeWorkouts}
               loading={workouts.loading}
-              authHeaderEnabled={authHeaderEnabled}
-              currentUserName={currentUser?.name || "Unknown user"}
               hasUser={Boolean(currentUserId)}
               onNewWorkout={handleNewWorkout}
               onEditWorkout={handleEditWorkoutFromList}
