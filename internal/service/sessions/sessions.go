@@ -75,6 +75,7 @@ type store interface {
 
 // BuildSessionHistory loads step timings and maps session logs to response items.
 func BuildSessionHistory(ctx context.Context, store store, history []db.SessionLog) ([]SessionHistoryItem, error) {
+	// Collect step timing rows per session to enrich the history payload.
 	stepMap := make(map[string][]db.SessionStepLog, len(history))
 	for _, entry := range history {
 		steps, err := store.SessionStepTimings(ctx, entry.ID)
@@ -90,6 +91,7 @@ func BuildSessionHistory(ctx context.Context, store store, history []db.SessionL
 func BuildSessionHistoryItems(history []db.SessionLog, stepMap map[string][]db.SessionStepLog) []SessionHistoryItem {
 	items := make([]SessionHistoryItem, 0, len(history))
 	for _, h := range history {
+		// Copy timestamps to avoid referencing loop variables.
 		started := h.StartedAt
 		completed := h.CompletedAt
 		items = append(items, SessionHistoryItem{
@@ -117,8 +119,10 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 	}
 
 	for _, st := range workout.Steps {
+		// Guard: repeat count defaults to a single iteration.
 		repeatCount := max(st.RepeatCount, 1)
 		for loopIdx := range repeatCount {
+			// Copy exercise details so session steps are decoupled from workout storage.
 			exercises := make([]Exercise, 0, len(st.Exercises))
 			for _, ex := range st.Exercises {
 				exercises = append(exercises, Exercise{
@@ -127,6 +131,7 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 					Weight: ex.Weight,
 				})
 			}
+			// Build a stable step id and suffix it when repeats are expanded.
 			stepID := st.ID
 			if repeatCount > 1 {
 				stepID = fmt.Sprintf("%s-r%d", st.ID, loopIdx+1)
@@ -140,16 +145,19 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 				Exercises:        exercises,
 				Current:          len(state.Steps) == 0,
 			}
+			// Attach round metadata so the UI can show "round x/y".
 			if repeatCount > 1 {
 				stepState.LoopIndex = loopIdx + 1
 				stepState.LoopTotal = repeatCount
 			}
+			// Preserve pause auto-advance signals from stored steps.
 			autoAdvance := st.Type == "pause" && (strings.EqualFold(st.Weight, "__auto__") || st.PauseOptions.AutoAdvance)
 			if autoAdvance {
 				stepState.PauseOptions = PauseOptions{AutoAdvance: true}
 			}
 			state.Steps = append(state.Steps, stepState)
 
+			// Inject a repeat rest pause after each loop (and optionally after the last).
 			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
 				restState := SessionStepState{
 					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
@@ -159,6 +167,7 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 					SoundURL:         soundURLByKey(st.RepeatRestSoundKey),
 					Current:          len(state.Steps) == 0,
 				}
+				// Repeat rests can auto-advance independently of the main step.
 				if st.RepeatRestAutoAdvance {
 					restState.PauseOptions = PauseOptions{AutoAdvance: true}
 				}
@@ -200,22 +209,27 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 	req.WorkoutName = strings.TrimSpace(req.WorkoutName)
 	req.UserID = strings.TrimSpace(req.UserID)
 
+	// Guard: core identifiers must be present.
 	if req.SessionID == "" || req.WorkoutID == "" || req.UserID == "" {
 		return db.SessionLog{}, nil, service.NewError(service.ErrorValidation, "sessionId, workoutId, and userId are required")
 	}
+	// Default timestamps to now when missing.
 	now := time.Now()
 	req.StartedAt = utils.DefaultIfZero(req.StartedAt, now)
 	req.CompletedAt = utils.DefaultIfZero(req.CompletedAt, now)
 
+	// Ensure completion is never before the start.
 	if req.CompletedAt.Before(req.StartedAt) {
 		req.CompletedAt = req.StartedAt.Add(time.Second)
 	}
 
 	var stepLogs []db.SessionStepLog
 	for idx, st := range req.Steps {
+		// Skip empty entries emitted by the client.
 		if st.ID == "" && st.Name == "" {
 			continue
 		}
+		// Create a stable step log id per order position.
 		stepID := fmt.Sprintf("%s-%d", req.SessionID, idx)
 		stepLogs = append(stepLogs, db.SessionStepLog{
 			ID:               stepID,
@@ -236,15 +250,18 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 		StartedAt:   req.StartedAt,
 		CompletedAt: req.CompletedAt,
 	}
+	// Return both the session log and step log entries for persistence.
 	return log, stepLogs, nil
 }
 
 // RecordSession persists a session log and its step timings.
 func RecordSession(ctx context.Context, store store, req CompleteRequest) (db.SessionLog, error) {
+	// Validate and map the completion payload before persisting.
 	log, steps, err := BuildSessionLog(req)
 	if err != nil {
 		return db.SessionLog{}, err
 	}
+	// Persist the session summary and per-step timings together.
 	if err := store.RecordSession(ctx, log, steps); err != nil {
 		return db.SessionLog{}, service.NewError(service.ErrorInternal, err.Error())
 	}
@@ -254,9 +271,11 @@ func RecordSession(ctx context.Context, store store, req CompleteRequest) (db.Se
 // FetchStepTimings returns stored step timings for a session.
 func FetchStepTimings(ctx context.Context, store store, sessionID string) ([]db.SessionStepLog, error) {
 	sessionID = strings.TrimSpace(sessionID)
+	// Guard: callers must specify a session id.
 	if sessionID == "" {
 		return nil, service.NewError(service.ErrorValidation, "sessionId is required")
 	}
+	// Load stored timings for the requested session.
 	steps, err := store.SessionStepTimings(ctx, sessionID)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())

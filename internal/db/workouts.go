@@ -269,7 +269,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) // nolint:errcheck
 
 	if _, err := tx.Exec(ctx, `
 		UPDATE workouts

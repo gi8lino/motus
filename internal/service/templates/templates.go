@@ -28,6 +28,7 @@ func New(store store) *Service {
 
 // List returns all shared templates.
 func (s *Service) List(ctx context.Context) ([]db.Workout, error) {
+	// Fetch all shared templates from storage.
 	templates, err := s.Store.ListTemplates(ctx)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
@@ -38,9 +39,11 @@ func (s *Service) List(ctx context.Context) ([]db.Workout, error) {
 // Create marks a workout as a template.
 func (s *Service) Create(ctx context.Context, workoutID, name string) (*db.Workout, error) {
 	workoutID = strings.TrimSpace(workoutID)
+	// Guard: template creation requires a workout id.
 	if workoutID == "" {
 		return nil, service.NewError(service.ErrorValidation, "workoutId is required")
 	}
+	// Convert the workout into a reusable template.
 	template, err := s.Store.CreateTemplateFromWorkout(ctx, workoutID, name)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())
@@ -51,9 +54,11 @@ func (s *Service) Create(ctx context.Context, workoutID, name string) (*db.Worko
 // Get returns a template by id.
 func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
 	id = strings.TrimSpace(id)
+	// Guard: callers must specify a template id.
 	if id == "" {
 		return nil, service.NewError(service.ErrorValidation, "template id is required")
 	}
+	// Load the template along with its steps.
 	template, err := s.Store.WorkoutWithSteps(ctx, id)
 	if err != nil || !template.IsTemplate {
 		if err == nil {
@@ -67,14 +72,17 @@ func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
 // Apply clones a template into a new workout.
 func (s *Service) Apply(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
 	templateID = strings.TrimSpace(templateID)
+	// Guard: require a template id before cloning.
 	if templateID == "" {
 		return nil, service.NewError(service.ErrorValidation, "template id is required")
 	}
 	userID = strings.TrimSpace(userID)
+	// Guard: require a user id to own the new workout.
 	if userID == "" {
 		return nil, service.NewError(service.ErrorValidation, "userId is required")
 	}
 	name = strings.TrimSpace(name)
+	// Create a new workout instance from the template.
 	workout, err := s.Store.CreateWorkoutFromTemplate(ctx, templateID, userID, name)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())

@@ -84,6 +84,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			in.Duration = ""
 			in.EstimatedSeconds = 0
 		}
+		// Parse duration if provided, otherwise fall back to estimated seconds.
 		durationStr := strings.TrimSpace(in.Duration)
 		seconds := in.EstimatedSeconds
 		if durationStr != "" {
@@ -91,35 +92,43 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			if err != nil {
 				return nil, fmt.Errorf("invalid duration for %s: %w", name, err)
 			}
+			// Guard: avoid negative durations.
 			dur = max(dur, 0)
 			seconds = int(dur / time.Second)
 		}
+		// Guard: seconds cannot be negative.
 		seconds = max(seconds, 0)
 		soundKey := strings.TrimSpace(in.SoundKey)
+		// Validate selected sound keys when provided.
 		if validSoundKey != nil && !validSoundKey(soundKey) {
 			return nil, fmt.Errorf("invalid sound selection for step %s", name)
 		}
 
+		// Normalize repeat settings and clamp to valid ranges.
 		repeatCount := max(in.RepeatCount, 1)
 		repeatRestSeconds := max(in.RepeatRestSeconds, 0)
 
 		repeatRestSoundKey := strings.TrimSpace(in.RepeatRestSoundKey)
+		// Validate repeat rest sound if one was selected.
 		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
 			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
 		}
 		repeatRestAutoAdvance := in.RepeatRestAutoAdvance
 		repeatRestAfterLast := in.RepeatRestAfterLast
+		// Strip repeat rest config when repeats are disabled.
 		if repeatCount <= 1 {
 			repeatRestSeconds = 0
 			repeatRestAutoAdvance = false
 			repeatRestAfterLast = false
 			repeatRestSoundKey = ""
 		}
+		// Strip repeat rest config when no rest seconds are set.
 		if repeatRestSeconds == 0 {
 			repeatRestAutoAdvance = false
 			repeatRestAfterLast = false
 			repeatRestSoundKey = ""
 		}
+		// Map pause auto-advance to the stored weight flag.
 		autoAdvance := stepType == "pause" && in.PauseOptions.AutoAdvance
 		weight := strings.TrimSpace(in.Weight)
 		if autoAdvance {
@@ -128,6 +137,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if stepType == "pause" && !autoAdvance && strings.EqualFold(weight, "__auto__") {
 			weight = ""
 		}
+		// Normalize exercises so blank rows are dropped.
 		var exercises []db.StepExercise
 		if len(in.Exercises) > 0 {
 			for _, ex := range in.Exercises {
@@ -150,6 +160,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			})
 		}
 
+		// Build the normalized step payload for storage.
 		step := db.WorkoutStep{
 			Type:                  stepType,
 			Name:                  name,
@@ -167,6 +178,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			RepeatRestAutoAdvance: repeatRestAutoAdvance,
 		}
 		if len(exercises) > 0 && stepType != "pause" {
+			// Mirror the first exercise into the legacy fields for compatibility.
 			step.Exercise = exercises[0].Name
 			step.Amount = exercises[0].Amount
 			step.Weight = exercises[0].Weight
@@ -189,13 +201,16 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*db.Workout, error) {
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
+	// Guard: require a user, workout name, and steps.
 	if req.UserID == "" || strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and at least one step are required")
 	}
+	// Normalize the incoming step payloads.
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
+	// Persist the workout and normalized steps.
 	workout := &db.Workout{UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
 	created, err := s.Store.CreateWorkout(ctx, workout)
 	if err != nil {
@@ -209,16 +224,19 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 	id = strings.TrimSpace(id)
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
+	// Guard: require the workout id and steps to replace.
 	if id == "" {
 		return nil, service.NewError(service.ErrorValidation, "workout id is required")
 	}
 	if strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and steps are required")
 	}
+	// Normalize the incoming step payloads.
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
+	// Persist the replacement workout definition.
 	workout := &db.Workout{ID: id, UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
 	updated, err := s.Store.UpdateWorkout(ctx, workout)
 	if err != nil {
@@ -231,12 +249,14 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 func (s *Service) Import(ctx context.Context, userID string, workout db.Workout) (*db.Workout, error) {
 	userID = strings.TrimSpace(userID)
 	workout.Name = strings.TrimSpace(workout.Name)
+	// Guard: importing requires a user id and workout definition.
 	if userID == "" {
 		return nil, service.NewError(service.ErrorValidation, "userId is required")
 	}
 	if workout.Name == "" || len(workout.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "workout name and steps are required")
 	}
+	// Reset ids and ordering so new rows are created.
 	for idx := range workout.Steps {
 		step := &workout.Steps[idx]
 		step.ID = ""
@@ -264,9 +284,11 @@ func (s *Service) Import(ctx context.Context, userID string, workout db.Workout)
 // Get returns a workout by id.
 func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
 	id = strings.TrimSpace(id)
+	// Guard: require a workout id before fetching.
 	if id == "" {
 		return nil, service.NewError(service.ErrorValidation, "workout id is required")
 	}
+	// Load the workout and its steps for editing or export.
 	workout, err := s.Store.WorkoutWithSteps(ctx, id)
 	if err != nil {
 		return nil, service.NewError(service.ErrorNotFound, err.Error())
@@ -282,9 +304,11 @@ func (s *Service) Export(ctx context.Context, id string) (*db.Workout, error) {
 // Delete removes a workout by id.
 func (s *Service) Delete(ctx context.Context, id string) error {
 	id = strings.TrimSpace(id)
+	// Guard: require a workout id before deletion.
 	if id == "" {
 		return service.NewError(service.ErrorValidation, "workout id is required")
 	}
+	// Delete the workout and handle not-found explicitly.
 	if err := s.Store.DeleteWorkout(ctx, id); err != nil {
 		if err == pgx.ErrNoRows {
 			return service.NewError(service.ErrorNotFound, "workout not found")

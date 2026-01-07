@@ -22,7 +22,7 @@ var BuiltinOptions = []Option{
 	{Key: "count321", Label: "3-2-1 Action", File: "/sounds/count321.wav", LeadSeconds: 3},
 }
 
-// lookup is a map of sound keys to options.
+// lookup is a map of sound keys to options, built once to avoid recomputing per call.
 var lookup = func() map[string]Option {
 	m := make(map[string]Option, len(BuiltinOptions))
 	for _, opt := range BuiltinOptions {
