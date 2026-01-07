@@ -285,10 +285,17 @@ main {
 
 .label {
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.field > label {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
-  margin: 0 0 4px;
 }
 
 .badge {

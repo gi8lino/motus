@@ -837,7 +837,6 @@ export function WorkoutForm({
             </div>
 
             <div className="step-preview">
-              <div className="muted small hint">{step.type.toUpperCase()}</div>
               <div className="step-title">{step.name}</div>
               <div className="muted small">
                 {step.type !== "timed"

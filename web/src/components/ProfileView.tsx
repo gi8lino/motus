@@ -83,10 +83,13 @@ export function ProfileView({
           {/* Tab content */}
           {profileTab === "settings" && (
             <div className="stack">
+              <div className="label">Account</div>
               <DisplayNameForm
                 currentName={currentName}
                 onUpdate={onUpdateName}
               />
+              <div className="divider" />
+              <div className="label">Appearance</div>
               <div className="field">
                 <label>Theme</label>
                 <select
