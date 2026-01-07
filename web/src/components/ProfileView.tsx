@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-import type { Workout } from "../types";
+import type { SoundOption, Workout } from "../types";
 
 type ProfileTab = "settings" | "password" | "transfer";
 type ThemeMode = "auto" | "dark" | "light";
@@ -11,6 +11,15 @@ export function ProfileView({
   onProfileTabChange,
   themeMode,
   onThemeChange,
+  sounds,
+  defaultStepSoundKey,
+  onDefaultStepSoundChange,
+  defaultPauseDuration,
+  onDefaultPauseDurationChange,
+  defaultPauseSoundKey,
+  onDefaultPauseSoundChange,
+  defaultPauseAutoAdvance,
+  onDefaultPauseAutoAdvanceChange,
   repeatRestAfterLastDefault,
   onRepeatRestAfterLastDefaultChange,
   exportWorkoutId,
@@ -26,6 +35,15 @@ export function ProfileView({
   onProfileTabChange: (tab: ProfileTab) => void;
   themeMode: ThemeMode;
   onThemeChange: (mode: ThemeMode) => void;
+  sounds: SoundOption[];
+  defaultStepSoundKey: string;
+  onDefaultStepSoundChange: (value: string) => void;
+  defaultPauseDuration: string;
+  onDefaultPauseDurationChange: (value: string) => void;
+  defaultPauseSoundKey: string;
+  onDefaultPauseSoundChange: (value: string) => void;
+  defaultPauseAutoAdvance: boolean;
+  onDefaultPauseAutoAdvanceChange: (value: boolean) => void;
   repeatRestAfterLastDefault: boolean;
   onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
   exportWorkoutId: string;
@@ -71,6 +89,53 @@ export function ProfileView({
                 </select>
               </div>
               <div className="divider" />
+              <div className="label">Defaults</div>
+              <div className="field">
+                <label>Default step sound</label>
+                <select
+                  value={defaultStepSoundKey}
+                  onChange={(e) => onDefaultStepSoundChange(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {sounds.map((sound) => (
+                    <option key={sound.key} value={sound.key}>
+                      {sound.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Default pause duration</label>
+                <input
+                  value={defaultPauseDuration}
+                  onChange={(e) => onDefaultPauseDurationChange(e.target.value)}
+                  placeholder="e.g. 45s"
+                />
+              </div>
+              <div className="field">
+                <label>Default pause sound</label>
+                <select
+                  value={defaultPauseSoundKey}
+                  onChange={(e) => onDefaultPauseSoundChange(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {sounds.map((sound) => (
+                    <option key={sound.key} value={sound.key}>
+                      {sound.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="field checkbox">
+                <input
+                  type="checkbox"
+                  checked={defaultPauseAutoAdvance}
+                  onChange={(e) =>
+                    onDefaultPauseAutoAdvanceChange(e.target.checked)
+                  }
+                />
+                <span>Default pause auto-advance</span>
+              </label>
               <label className="field checkbox">
                 <input
                   type="checkbox"

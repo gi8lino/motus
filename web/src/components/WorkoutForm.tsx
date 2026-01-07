@@ -24,6 +24,10 @@ export function WorkoutForm({
   onClose,
   promptUser,
   notifyUser,
+  defaultStepSoundKey,
+  defaultPauseDuration,
+  defaultPauseSoundKey,
+  defaultPauseAutoAdvance,
   repeatRestAfterLastDefault,
   onDirtyChange,
   onToast,
@@ -45,6 +49,10 @@ export function WorkoutForm({
     defaultValue?: string,
   ) => Promise<string | null>;
   notifyUser: (message: string) => Promise<void>;
+  defaultStepSoundKey: string;
+  defaultPauseDuration: string;
+  defaultPauseSoundKey: string;
+  defaultPauseAutoAdvance: boolean;
   repeatRestAfterLastDefault: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onToast?: (message: string) => void;
@@ -147,6 +155,7 @@ export function WorkoutForm({
         type: "set",
         name: `Step ${prev.length + 1}`,
         duration: "1m",
+        soundKey: defaultStepSoundKey,
         repeatCount: 1,
         repeatRestSeconds: 0,
         repeatRestAfterLast: repeatRestAfterLastDefault,
@@ -764,11 +773,30 @@ export function WorkoutForm({
               </span>
               <select
                 value={step.type}
-                onChange={(e) =>
-                  updateStep(idx, {
-                    type: e.target.value as WorkoutStep["type"],
-                  })
-                }
+                onChange={(e) => {
+                  const nextType = e.target.value as WorkoutStep["type"];
+                  const patch: Partial<WorkoutStep> = { type: nextType };
+                  if (nextType === "pause") {
+                    if (!step.duration) {
+                      patch.duration = defaultPauseDuration || "";
+                    }
+                    if (!step.soundKey) {
+                      patch.soundKey =
+                        defaultPauseSoundKey || defaultStepSoundKey || "";
+                    }
+                    if (defaultPauseAutoAdvance) {
+                      patch.pauseOptions = { autoAdvance: true };
+                      patch.weight = "__auto__";
+                    } else {
+                      patch.pauseOptions = undefined;
+                      patch.weight = "";
+                    }
+                  } else {
+                    patch.pauseOptions = undefined;
+                    patch.weight = "";
+                  }
+                  updateStep(idx, patch);
+                }}
               >
                 <option
                   value="set"

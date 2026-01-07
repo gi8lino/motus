@@ -188,6 +188,10 @@ export default function App() {
     }
     return "auto";
   });
+  const [defaultStepSoundKey, setDefaultStepSoundKey] = useState("");
+  const [defaultPauseDuration, setDefaultPauseDuration] = useState("");
+  const [defaultPauseSoundKey, setDefaultPauseSoundKey] = useState("");
+  const [defaultPauseAutoAdvance, setDefaultPauseAutoAdvance] = useState(false);
   const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
     useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
@@ -288,12 +292,29 @@ export default function App() {
   useEffect(() => {
     if (!currentUserId) {
       setRepeatRestAfterLastDefault(false);
+      setDefaultStepSoundKey("");
+      setDefaultPauseDuration("");
+      setDefaultPauseSoundKey("");
+      setDefaultPauseAutoAdvance(false);
       return;
     }
     const stored = localStorage.getItem(
       `motus:repeatRestAfterLast:${currentUserId}`,
     );
     setRepeatRestAfterLastDefault(stored === "true");
+    setDefaultStepSoundKey(
+      localStorage.getItem(`motus:defaultStepSound:${currentUserId}`) || "",
+    );
+    setDefaultPauseDuration(
+      localStorage.getItem(`motus:defaultPauseDuration:${currentUserId}`) || "",
+    );
+    setDefaultPauseSoundKey(
+      localStorage.getItem(`motus:defaultPauseSound:${currentUserId}`) || "",
+    );
+    setDefaultPauseAutoAdvance(
+      localStorage.getItem(`motus:defaultPauseAuto:${currentUserId}`) ===
+        "true",
+    );
   }, [currentUserId]);
 
   // handleRepeatRestAfterLastDefault persists the profile default for rest-after-last.
@@ -302,6 +323,37 @@ export default function App() {
     if (!currentUserId) return;
     localStorage.setItem(
       `motus:repeatRestAfterLast:${currentUserId}`,
+      value ? "true" : "false",
+    );
+  };
+
+  // handleDefaultStepSound persists the default sound for new steps.
+  const handleDefaultStepSound = (value: string) => {
+    setDefaultStepSoundKey(value);
+    if (!currentUserId) return;
+    localStorage.setItem(`motus:defaultStepSound:${currentUserId}`, value);
+  };
+
+  // handleDefaultPauseDuration persists the default pause duration string.
+  const handleDefaultPauseDuration = (value: string) => {
+    setDefaultPauseDuration(value);
+    if (!currentUserId) return;
+    localStorage.setItem(`motus:defaultPauseDuration:${currentUserId}`, value);
+  };
+
+  // handleDefaultPauseSound persists the default pause sound selection.
+  const handleDefaultPauseSound = (value: string) => {
+    setDefaultPauseSoundKey(value);
+    if (!currentUserId) return;
+    localStorage.setItem(`motus:defaultPauseSound:${currentUserId}`, value);
+  };
+
+  // handleDefaultPauseAutoAdvance persists the default pause auto-advance.
+  const handleDefaultPauseAutoAdvance = (value: boolean) => {
+    setDefaultPauseAutoAdvance(value);
+    if (!currentUserId) return;
+    localStorage.setItem(
+      `motus:defaultPauseAuto:${currentUserId}`,
       value ? "true" : "false",
     );
   };
@@ -838,6 +890,15 @@ export default function App() {
               onProfileTabChange={setProfileTab}
               themeMode={themeMode}
               onThemeChange={setThemeMode}
+              sounds={sounds.data || []}
+              defaultStepSoundKey={defaultStepSoundKey}
+              onDefaultStepSoundChange={handleDefaultStepSound}
+              defaultPauseDuration={defaultPauseDuration}
+              onDefaultPauseDurationChange={handleDefaultPauseDuration}
+              defaultPauseSoundKey={defaultPauseSoundKey}
+              onDefaultPauseSoundChange={handleDefaultPauseSound}
+              defaultPauseAutoAdvance={defaultPauseAutoAdvance}
+              onDefaultPauseAutoAdvanceChange={handleDefaultPauseAutoAdvance}
               repeatRestAfterLastDefault={repeatRestAfterLastDefault}
               onRepeatRestAfterLastDefaultChange={
                 handleRepeatRestAfterLastDefault
@@ -880,6 +941,10 @@ export default function App() {
               onClose={handleCloseWorkoutModal}
               promptUser={askPrompt}
               notifyUser={notify}
+              defaultStepSoundKey={defaultStepSoundKey}
+              defaultPauseDuration={defaultPauseDuration}
+              defaultPauseSoundKey={defaultPauseSoundKey}
+              defaultPauseAutoAdvance={defaultPauseAutoAdvance}
               repeatRestAfterLastDefault={repeatRestAfterLastDefault}
               onDirtyChange={setWorkoutDirty}
               onToast={showToast}
