@@ -67,9 +67,7 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 // SessionHistory returns recent sessions for a user.
 func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([]SessionLog, error) {
 	// Load recent session logs for a user.
-	if limit <= 0 {
-		limit = 25
-	}
+	limit = max(limit, 25)
 	rows, err := s.pool.Query(ctx, `
 		SELECT ws.id, ws.workout_id, COALESCE(w.name, ''), ws.user_id, ws.started_at, ws.completed_at
 		FROM workout_sessions ws

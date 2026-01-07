@@ -117,11 +117,8 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 	}
 
 	for _, st := range workout.Steps {
-		repeatCount := st.RepeatCount
-		if repeatCount <= 0 {
-			repeatCount = 1
-		}
-		for loopIdx := 0; loopIdx < repeatCount; loopIdx++ {
+		repeatCount := max(st.RepeatCount, 1)
+		for loopIdx := range repeatCount {
 			exercises := make([]Exercise, 0, len(st.Exercises))
 			for _, ex := range st.Exercises {
 				exercises = append(exercises, Exercise{
@@ -207,12 +204,9 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 		return db.SessionLog{}, nil, service.NewError(service.ErrorValidation, "sessionId, workoutId, and userId are required")
 	}
 	now := time.Now()
-	if req.StartedAt.IsZero() {
-		req.StartedAt = now
-	}
-	if req.CompletedAt.IsZero() {
-		req.CompletedAt = now
-	}
+	req.StartedAt = utils.DefaultIfZero(req.StartedAt, now)
+	req.CompletedAt = utils.DefaultIfZero(req.CompletedAt, now)
+
 	if req.CompletedAt.Before(req.StartedAt) {
 		req.CompletedAt = req.StartedAt.Add(time.Second)
 	}

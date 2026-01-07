@@ -43,12 +43,8 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
-		if step.RepeatCount <= 0 {
-			step.RepeatCount = 1
-		}
-		if step.RepeatRestSeconds < 0 {
-			step.RepeatRestSeconds = 0
-		}
+		step.RepeatCount = max(step.RepeatCount, 1)
+		step.RepeatRestSeconds = max(step.RepeatRestSeconds, 0)
 		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
 			step.RepeatRestSeconds = 0
 			step.RepeatRestAfterLast = false
@@ -301,12 +297,8 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
-		if step.RepeatCount <= 0 {
-			step.RepeatCount = 1
-		}
-		if step.RepeatRestSeconds < 0 {
-			step.RepeatRestSeconds = 0
-		}
+		step.RepeatCount = max(step.RepeatCount, 1)
+		step.RepeatRestSeconds = max(step.RepeatRestSeconds, 0)
 		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
 			step.RepeatRestSeconds = 0
 			step.RepeatRestAfterLast = false

@@ -91,26 +91,18 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			if err != nil {
 				return nil, fmt.Errorf("invalid duration for %s: %w", name, err)
 			}
-			if dur < 0 {
-				dur = 0
-			}
+			dur = max(dur, 0)
 			seconds = int(dur / time.Second)
 		}
-		if seconds < 0 {
-			seconds = 0
-		}
+		seconds = max(seconds, 0)
 		soundKey := strings.TrimSpace(in.SoundKey)
 		if validSoundKey != nil && !validSoundKey(soundKey) {
 			return nil, fmt.Errorf("invalid sound selection for step %s", name)
 		}
-		repeatCount := in.RepeatCount
-		if repeatCount <= 0 {
-			repeatCount = 1
-		}
-		repeatRestSeconds := in.RepeatRestSeconds
-		if repeatRestSeconds < 0 {
-			repeatRestSeconds = 0
-		}
+
+		repeatCount := max(in.RepeatCount, 1)
+		repeatRestSeconds := max(in.RepeatRestSeconds, 0)
+
 		repeatRestSoundKey := strings.TrimSpace(in.RepeatRestSoundKey)
 		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
 			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
