@@ -13,10 +13,15 @@ import (
 
 // store defines the persistence methods needed by the users service.
 type store interface {
+	// CreateUser inserts a new user for local registration.
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
+	// UpdateUserAdmin toggles admin access for a user.
 	UpdateUserAdmin(ctx context.Context, id string, isAdmin bool) error
+	// GetUserWithPassword loads the password hash for a user.
 	GetUserWithPassword(ctx context.Context, id string) (*db.User, string, error)
+	// UpdateUserPassword updates the stored password hash.
 	UpdateUserPassword(ctx context.Context, id, passwordHash string) error
+	// UpdateUserName changes the display name for a user.
 	UpdateUserName(ctx context.Context, id, name string) error
 }
 

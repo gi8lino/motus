@@ -10,9 +10,13 @@ import (
 
 // store defines the persistence methods needed by the templates service.
 type store interface {
+	// ListTemplates returns all shared workout templates.
 	ListTemplates(ctx context.Context) ([]db.Workout, error)
+	// CreateTemplateFromWorkout stores a workout as a template.
 	CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error)
+	// WorkoutWithSteps loads a workout and its steps.
 	WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error)
+	// CreateWorkoutFromTemplate clones a template for a user.
 	CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error)
 }
 

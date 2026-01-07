@@ -10,13 +10,21 @@ import (
 
 // store defines the persistence methods needed by the exercises service.
 type store interface {
+	// ListExercises loads core plus user-specific exercises for a user.
 	ListExercises(ctx context.Context, userID string) ([]db.Exercise, error)
+	// GetUser fetches a user by id for permission checks.
 	GetUser(ctx context.Context, userID string) (*db.User, error)
+	// CreateExercise inserts a catalog entry for a user.
 	CreateExercise(ctx context.Context, name, userID string, isCore bool) (*db.Exercise, error)
+	// GetExercise returns a single exercise entry.
 	GetExercise(ctx context.Context, id string) (*db.Exercise, error)
+	// ReplaceExerciseForUser replaces a core exercise with a user copy.
 	ReplaceExerciseForUser(ctx context.Context, userID, oldID, newID, newName string) error
+	// RenameExercise updates the name of an exercise.
 	RenameExercise(ctx context.Context, id, name string) (*db.Exercise, error)
+	// DeleteExercise removes an exercise entry.
 	DeleteExercise(ctx context.Context, id string) error
+	// BackfillCoreExercises migrates workout exercises into the core catalog.
 	BackfillCoreExercises(ctx context.Context) error
 }
 

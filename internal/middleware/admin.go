@@ -10,6 +10,7 @@ import (
 
 // adminStore describes the user lookup required by RequireAdmin.
 type adminStore interface {
+	// GetUser fetches a user for admin checks.
 	GetUser(ctx context.Context, id string) (*db.User, error)
 }
 

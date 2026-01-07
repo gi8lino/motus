@@ -18,7 +18,9 @@ const localAuthHeader = "X-User-ID"
 
 // store defines the persistence methods needed by auth helpers.
 type store interface {
+	// GetUser returns a user by id for auth lookups.
 	GetUser(ctx context.Context, email string) (*db.User, error)
+	// CreateUser inserts a new user for auto-provisioning.
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
 }
 
@@ -44,6 +46,7 @@ func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUs
 		}
 		return email, nil
 	}
+
 	if fallback != "" {
 		// Accept a fallback id when provided by handlers.
 		email, err := utils.NormalizeEmail(fallback)
@@ -63,6 +66,7 @@ func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUs
 	if err != nil {
 		return "", err
 	}
+
 	return email, nil
 }
 
@@ -78,6 +82,7 @@ func ensureUser(ctx context.Context, store store, email string) error {
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
+
 	// Create a placeholder user; retry lookup to handle races.
 	if _, err := store.CreateUser(ctx, email, "", ""); err != nil {
 		// Guard against race conditions if another request created the user.
@@ -86,5 +91,6 @@ func ensureUser(ctx context.Context, store store, email string) error {
 		}
 		return err
 	}
+
 	return nil
 }

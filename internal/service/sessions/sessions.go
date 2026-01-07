@@ -68,8 +68,11 @@ type PauseOptions struct {
 
 // store defines the persistence methods needed by the session helpers.
 type store interface {
+	// SessionStepTimings loads logged steps for a session.
 	SessionStepTimings(ctx context.Context, sessionID string) ([]db.SessionStepLog, error)
+	// WorkoutWithSteps loads a workout and its steps.
 	WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error)
+	// RecordSession stores a completed session and its steps.
 	RecordSession(ctx context.Context, log db.SessionLog, steps []db.SessionStepLog) error
 }
 

@@ -14,6 +14,7 @@ import (
 
 // store defines the persistence methods needed by EnsureAdminUser.
 type store interface {
+	// UpsertAdminUser creates or updates the bootstrap admin user.
 	UpsertAdminUser(ctx context.Context, email, passwordHash string) (*db.User, bool, error)
 }
 
