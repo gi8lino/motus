@@ -151,7 +151,7 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 				stepState.LoopTotal = repeatCount
 			}
 			// Preserve pause auto-advance signals from stored steps.
-			autoAdvance := st.Type == "pause" && (strings.EqualFold(st.Weight, "__auto__") || st.PauseOptions.AutoAdvance)
+			autoAdvance := st.Type == "pause" && st.PauseOptions.AutoAdvance
 			if autoAdvance {
 				stepState.PauseOptions = PauseOptions{AutoAdvance: true}
 			}

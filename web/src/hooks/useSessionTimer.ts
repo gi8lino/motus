@@ -72,8 +72,8 @@ function expandTimedSteps(state: SessionState): SessionState {
       return;
     }
     step.exercises.forEach((ex, idx) => {
-      const durSec = parseDurationSeconds(ex.durationSeconds || ex.amount);
-      const restSec = parseDurationSeconds(ex.transitionSeconds || ex.weight);
+      const durSec = parseDurationSeconds(ex.amount);
+      const restSec = parseDurationSeconds(ex.weight);
       const baseName = ex.name || step.name || `Exercise ${idx + 1}`;
       const stepSound = step.soundKey;
       expanded.steps.push({

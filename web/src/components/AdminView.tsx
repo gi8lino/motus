@@ -42,7 +42,9 @@ export function AdminView({
       <div className="panel-header">
         <div>
           <h3>Admin</h3>
-          <p className="muted small">Manage users and maintenance tasks.</p>
+          <p className="muted small hint">
+            Manage users and maintenance tasks.
+          </p>
         </div>
       </div>
       <div className="profile-layout">
@@ -54,7 +56,9 @@ export function AdminView({
                 <div className="panel-header">
                   <div>
                     <h3>Users</h3>
-                    <p className="muted small">Manage roles and switch user.</p>
+                    <p className="muted small hint">
+                      Manage roles and switch user.
+                    </p>
                   </div>
                 </div>
                 {loading && <p>Loading users…</p>}
@@ -95,7 +99,7 @@ export function AdminView({
                 {allowRegistration ? (
                   <UserForm onCreate={onCreateUser} />
                 ) : (
-                  <p className="muted small">
+                  <p className="muted small hint">
                     Registration is disabled in this environment.
                   </p>
                 )}
@@ -106,7 +110,7 @@ export function AdminView({
             <div className="stack">
               <div className="panel">
                 <div className="label">Maintenance</div>
-                <p className="muted small">
+                <p className="muted small hint">
                   Backfill promotes workouts exercises into the Core catalog.
                 </p>
                 <button

@@ -27,8 +27,7 @@ func TestSessionStateFromWorkout(t *testing.T) {
 					Name:             "Pause",
 					EstimatedSeconds: 10,
 					SoundKey:         "beep",
-					Weight:           "__auto__",
-					PauseOptions:     db.PauseOptions{AutoAdvance: false},
+					PauseOptions:     db.PauseOptions{AutoAdvance: true},
 				},
 			},
 		}

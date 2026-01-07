@@ -33,7 +33,7 @@ export function LoginView({
       ) : (
         <div className="panel">
           <h3>Registration disabled</h3>
-          <p className="muted small">
+          <p className="muted small hint">
             Ask an admin to create an account for you.
           </p>
         </div>

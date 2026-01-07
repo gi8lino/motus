@@ -69,7 +69,9 @@ export function ProfileView({
       <div className="panel-header">
         <div>
           <h3>Profile</h3>
-          <p className="muted small">Manage your local account preferences.</p>
+          <p className="muted small hint">
+            Manage your local account preferences.
+          </p>
         </div>
       </div>
       <div className="profile-layout">

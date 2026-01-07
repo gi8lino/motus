@@ -60,9 +60,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 				name,
 				estimated_seconds,
 				sound_key,
-				exercise,
-				amount,
-				weight,
+				pause_auto_advance,
 				repeat_count,
 				repeat_rest_seconds,
 				repeat_rest_after_last,
@@ -70,7 +68,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 				repeat_rest_auto_advance,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		`,
 			step.ID,
 			step.WorkoutID,
@@ -79,9 +77,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 			step.Name,
 			step.EstimatedSeconds,
 			step.SoundKey,
-			step.Exercise,
-			step.Amount,
-			step.Weight,
+			step.PauseOptions.AutoAdvance,
 			step.RepeatCount,
 			step.RepeatRestSeconds,
 			step.RepeatRestAfterLast,
@@ -145,9 +141,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			name,
 			estimated_seconds,
 			sound_key,
-			exercise,
-			amount,
-			weight,
+			pause_auto_advance,
 			repeat_count,
 			repeat_rest_seconds,
 			repeat_rest_after_last,
@@ -176,9 +170,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			&st.Name,
 			&st.EstimatedSeconds,
 			&st.SoundKey,
-			&st.Exercise,
-			&st.Amount,
-			&st.Weight,
+			&st.PauseOptions.AutoAdvance,
 			&st.RepeatCount,
 			&st.RepeatRestSeconds,
 			&st.RepeatRestAfterLast,
@@ -225,17 +217,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	if err := exRows.Err(); err != nil {
 		return nil, err
 	}
-	// Normalize derived fields after loading exercises.
-	for i := range steps {
-		if len(steps[i].Exercises) > 0 && steps[i].Type != "pause" {
-			steps[i].Exercise = steps[i].Exercises[0].Name
-			steps[i].Amount = steps[i].Exercises[0].Amount
-			steps[i].Weight = steps[i].Exercises[0].Weight
-		}
-		if strings.EqualFold(steps[i].Weight, "__auto__") {
-			steps[i].PauseOptions = PauseOptions{AutoAdvance: true}
-		}
-	}
+	// Pause auto-advance is loaded from the dedicated column.
 	return steps, nil
 }
 
@@ -314,9 +296,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 				name,
 				estimated_seconds,
 				sound_key,
-				exercise,
-				amount,
-				weight,
+				pause_auto_advance,
 				repeat_count,
 				repeat_rest_seconds,
 				repeat_rest_after_last,
@@ -324,7 +304,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 				repeat_rest_auto_advance,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		`,
 			step.ID,
 			step.WorkoutID,
@@ -333,9 +313,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 			step.Name,
 			step.EstimatedSeconds,
 			step.SoundKey,
-			step.Exercise,
-			step.Amount,
-			step.Weight,
+			step.PauseOptions.AutoAdvance,
 			step.RepeatCount,
 			step.RepeatRestSeconds,
 			step.RepeatRestAfterLast,

@@ -19,9 +19,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 	defer tx.Rollback(ctx) // nolint:errcheck
 
 	nameRows, err := tx.Query(ctx, `
-		SELECT DISTINCT name FROM workout_step_exercises WHERE name <> ''
-		UNION
-		SELECT DISTINCT exercise FROM workout_steps WHERE exercise <> ''`)
+		SELECT DISTINCT name FROM workout_step_exercises WHERE name <> ''`)
 	if err != nil {
 		return err
 	}

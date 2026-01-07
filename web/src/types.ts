@@ -4,9 +4,6 @@ export type Exercise = {
   name: string;
   amount?: string;
   weight?: string;
-  // For timed sets, durationSeconds and transitionSeconds are derived from amount/weight inputs.
-  durationSeconds?: number;
-  transitionSeconds?: number;
 };
 
 // PauseOptions configures pause step behavior.
@@ -36,7 +33,6 @@ export type WorkoutStep = {
   order?: number;
   type: "set" | "pause" | "timed";
   name: string;
-  weight?: string;
   estimatedSeconds?: number;
   soundKey?: string;
   soundUrl?: string;

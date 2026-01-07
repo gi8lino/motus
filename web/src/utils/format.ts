@@ -13,7 +13,6 @@ export function formatExerciseLine(ex: Exercise) {
   const amount = (ex.amount || "").trim();
   const name = (ex.name || "").trim();
   const weight = (ex.weight || "").trim();
-  const cleanWeight = weight === "__auto__" ? "" : weight;
   let base = "";
   if (amount && name) {
     base = `${amount} × ${name}`;
@@ -21,8 +20,8 @@ export function formatExerciseLine(ex: Exercise) {
     base = name || amount;
   }
   if (!base) return "";
-  if (cleanWeight) {
-    return `${base} (${cleanWeight})`;
+  if (weight) {
+    return `${base} (${weight})`;
   }
   return base;
 }
@@ -35,16 +34,7 @@ export function formatExercises(
 ) {
   // Pause steps never show exercise details.
   if (step.type === "pause") return "";
-  const list =
-    step.exercises && step.exercises.length
-      ? step.exercises
-      : [
-          {
-            name: (step as any).exercise,
-            amount: (step as any).amount,
-            weight: (step as any).weight,
-          },
-        ];
+  const list = step.exercises || [];
   const parts = list
     // Filter empty entries so the UI doesn't show blank pills.
     .filter((ex: Exercise) => ex && (ex.name || ex.amount || ex.weight))

@@ -92,9 +92,7 @@ export function WorkoutForm({
     setSteps(
       (editingWorkout.steps || []).map((s) => ({
         ...s,
-        pauseOptions:
-          s.pauseOptions ||
-          (s.weight === "__auto__" ? { autoAdvance: true } : undefined),
+        pauseOptions: s.pauseOptions,
         duration:
           s.duration || (s.estimatedSeconds ? `${s.estimatedSeconds}s` : ""),
         exercises:
@@ -346,6 +344,11 @@ export function WorkoutForm({
         </div>
         {Boolean(step.repeatCount && step.repeatCount > 1) && (
           <>
+            <div className="divider" />
+            <div className="label">Repeat pause</div>
+            <div className="muted small hint">
+              Configure the break between repeat rounds.
+            </div>
             <div className="field">
               <label>{durationLabel.pause}</label>
               <input
@@ -620,19 +623,10 @@ export function WorkoutForm({
     const cleanSteps = steps
       .filter((s) => s.name.trim())
       .map((s, idx) => {
-        const autoAdvance =
-          s.type === "pause" &&
-          (s.pauseOptions?.autoAdvance || s.weight === "__auto__");
-        const weight =
-          s.type === "pause"
-            ? autoAdvance
-              ? "__auto__"
-              : ""
-            : (s.weight || "").trim();
+        const autoAdvance = s.type === "pause" && s.pauseOptions?.autoAdvance;
         return {
           ...s,
           order: idx,
-          weight,
           pauseOptions: autoAdvance ? { autoAdvance: true } : undefined,
           duration: s.duration?.trim() || "",
           repeatCount: Math.max(1, Math.floor(Number(s.repeatCount) || 1)),
@@ -786,14 +780,11 @@ export function WorkoutForm({
                     }
                     if (defaultPauseAutoAdvance) {
                       patch.pauseOptions = { autoAdvance: true };
-                      patch.weight = "__auto__";
                     } else {
                       patch.pauseOptions = undefined;
-                      patch.weight = "";
                     }
                   } else {
                     patch.pauseOptions = undefined;
-                    patch.weight = "";
                   }
                   updateStep(idx, patch);
                 }}
@@ -846,7 +837,7 @@ export function WorkoutForm({
             </div>
 
             <div className="step-preview">
-              <div className="muted small">{step.type.toUpperCase()}</div>
+              <div className="muted small hint">{step.type.toUpperCase()}</div>
               <div className="step-title">{step.name}</div>
               <div className="muted small">
                 {step.type !== "timed"
@@ -912,16 +903,12 @@ export function WorkoutForm({
                 )}
                 {step.type === "pause" && (
                   <PauseOptionsField
-                    autoAdvance={
-                      step.weight === "__auto__" ||
-                      Boolean(step.pauseOptions?.autoAdvance)
-                    }
+                    autoAdvance={Boolean(step.pauseOptions?.autoAdvance)}
                     soundKey={step.soundKey || ""}
                     sounds={sounds}
                     onAutoAdvanceChange={(value) =>
                       updateStep(idx, {
                         pauseOptions: { autoAdvance: value },
-                        weight: value ? "__auto__" : "",
                       })
                     }
                     onSoundChange={(value) =>

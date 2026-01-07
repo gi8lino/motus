@@ -41,14 +41,7 @@ export function SessionCard({
     if (!currentStep) return [];
     if ((currentStep as any).exercises?.length)
       return (currentStep as any).exercises;
-    const fallback = {
-      name: (currentStep as any).exercise || "",
-      amount: (currentStep as any).amount,
-      weight: (currentStep as any).weight,
-    };
-    return fallback.name || fallback.amount || fallback.weight
-      ? [fallback]
-      : [];
+    return [];
   }, [currentStep]);
   const isLastStep =
     session && session.steps.length

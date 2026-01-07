@@ -279,6 +279,10 @@ main {
   font-size: 12px;
 }
 
+.hint {
+  margin-bottom: 8px;
+}
+
 .label {
   text-transform: uppercase;
   letter-spacing: 0.08em;

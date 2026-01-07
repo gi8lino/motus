@@ -27,9 +27,6 @@ type StepInput struct {
 	Duration              string          `json:"duration"`
 	EstimatedSeconds      int             `json:"estimatedSeconds"`
 	SoundKey              string          `json:"soundKey"`
-	Exercise              string          `json:"exercise"`
-	Amount                string          `json:"amount"`
-	Weight                string          `json:"weight"`
 	Exercises             []ExerciseInput `json:"exercises"`
 	PauseOptions          db.PauseOptions `json:"pauseOptions"`
 	RepeatCount           int             `json:"repeatCount"`
@@ -128,15 +125,8 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			repeatRestAfterLast = false
 			repeatRestSoundKey = ""
 		}
-		// Map pause auto-advance to the stored weight flag.
+		// Map pause auto-advance to the stored pause options.
 		autoAdvance := stepType == "pause" && in.PauseOptions.AutoAdvance
-		weight := strings.TrimSpace(in.Weight)
-		if autoAdvance {
-			weight = "__auto__"
-		}
-		if stepType == "pause" && !autoAdvance && strings.EqualFold(weight, "__auto__") {
-			weight = ""
-		}
 		// Normalize exercises so blank rows are dropped.
 		var exercises []db.StepExercise
 		if len(in.Exercises) > 0 {
@@ -152,12 +142,6 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 					Weight:     strings.TrimSpace(ex.Weight),
 				})
 			}
-		} else if strings.TrimSpace(in.Exercise) != "" || strings.TrimSpace(in.Amount) != "" || strings.TrimSpace(in.Weight) != "" {
-			exercises = append(exercises, db.StepExercise{
-				Name:   strings.TrimSpace(in.Exercise),
-				Amount: strings.TrimSpace(in.Amount),
-				Weight: strings.TrimSpace(in.Weight),
-			})
 		}
 
 		// Build the normalized step payload for storage.
@@ -166,9 +150,6 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			Name:                  name,
 			EstimatedSeconds:      seconds,
 			SoundKey:              soundKey,
-			Exercise:              strings.TrimSpace(in.Exercise),
-			Amount:                strings.TrimSpace(in.Amount),
-			Weight:                weight,
 			Exercises:             exercises,
 			PauseOptions:          db.PauseOptions{AutoAdvance: autoAdvance},
 			RepeatCount:           repeatCount,
@@ -177,20 +158,9 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			RepeatRestSoundKey:    repeatRestSoundKey,
 			RepeatRestAutoAdvance: repeatRestAutoAdvance,
 		}
-		if len(exercises) > 0 && stepType != "pause" {
-			// Mirror the first exercise into the legacy fields for compatibility.
-			step.Exercise = exercises[0].Name
-			step.Amount = exercises[0].Amount
-			step.Weight = exercises[0].Weight
-		}
 		if stepType == "pause" {
 			// Pause steps shouldn't persist exercise rows; keep only the flag and duration.
 			step.Exercises = nil
-			step.Exercise = ""
-			step.Amount = ""
-			if !autoAdvance && strings.EqualFold(step.Weight, "__auto__") {
-				step.Weight = ""
-			}
 		}
 		steps = append(steps, step)
 	}

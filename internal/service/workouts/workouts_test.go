@@ -30,7 +30,6 @@ func TestNormalizeSteps(t *testing.T) {
 				Name:         "Rest",
 				Duration:     "30s",
 				PauseOptions: db.PauseOptions{AutoAdvance: true},
-				Weight:       "",
 			},
 			{
 				Type:             "timed",
@@ -49,15 +48,13 @@ func TestNormalizeSteps(t *testing.T) {
 		setStep := steps[0]
 		assert.Equal(t, "set", setStep.Type)
 		assert.Equal(t, "Squats", setStep.Name)
-		assert.Equal(t, "Squat", setStep.Exercise)
-		assert.Equal(t, "10", setStep.Amount)
+		require.Len(t, setStep.Exercises, 1)
+		assert.Equal(t, "Squat", setStep.Exercises[0].Name)
+		assert.Equal(t, "10", setStep.Exercises[0].Amount)
 
 		pauseStep := steps[1]
 		assert.Equal(t, "pause", pauseStep.Type)
 		assert.True(t, pauseStep.PauseOptions.AutoAdvance)
-		assert.Equal(t, "__auto__", pauseStep.Weight)
-		assert.Empty(t, pauseStep.Exercise)
-		assert.Empty(t, pauseStep.Amount)
 		assert.Empty(t, pauseStep.Exercises)
 
 		timedStep := steps[2]

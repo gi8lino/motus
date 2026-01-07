@@ -35,9 +35,6 @@ type WorkoutStep struct {
 	Name                  string         `json:"name"`
 	EstimatedSeconds      int            `json:"estimatedSeconds"`
 	SoundKey              string         `json:"soundKey"`
-	Exercise              string         `json:"exercise"`
-	Amount                string         `json:"amount"`
-	Weight                string         `json:"weight"`
 	Exercises             []StepExercise `json:"exercises"`
 	PauseOptions          PauseOptions   `json:"pauseOptions,omitempty"`
 	RepeatCount           int            `json:"repeatCount,omitempty"`
