@@ -89,7 +89,18 @@ body {
   gap: 12px;
 }
 
-nav {
+.nav-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-toggle {
+  display: none;
+}
+
+.nav-menu {
   display: flex;
   gap: 8px;
 }
@@ -106,6 +117,43 @@ nav {
 .tab.active {
   background: var(--panel);
   border-color: var(--primary);
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .nav-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    min-width: 180px;
+    display: none;
+    z-index: 50;
+  }
+
+  .nav-menu.open {
+    display: flex;
+  }
 }
 
 .profile-layout {
@@ -410,6 +458,20 @@ select {
   cursor: pointer;
 }
 
+.select-dropdown-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-dropdown-chevron {
+  font-size: 14px;
+  line-height: 1;
+}
+
 .select-dropdown-menu {
   position: absolute;
   left: 0;
@@ -438,6 +500,7 @@ select {
   color: var(--text);
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
 }
 
 .select-dropdown-option:hover {
@@ -490,6 +553,14 @@ select {
 }
 
 @media (max-width: 720px) {
+  .select-dropdown {
+    min-width: 0;
+  }
+
+  .exercise-row {
+    grid-template-columns: 1fr;
+  }
+
   .actions .btn {
     min-width: 0;
     width: auto;

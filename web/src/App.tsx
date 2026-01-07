@@ -82,6 +82,7 @@ function NavTabs({
   views: View[];
   onSelect: (next: View) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const labels: Record<View, string> = {
     train: "Train",
     workouts: "Workouts",
@@ -93,17 +94,30 @@ function NavTabs({
   };
   // Render the main shell with resume prompt, navigation, and active view.
   return (
-    <nav>
-      {views.map((v) => (
-        <button
-          key={v}
-          className={view === v ? "tab active" : "tab"}
-          onClick={() => onSelect(v)}
-        >
-          {labels[v]}
-        </button>
-      ))}
-    </nav>
+    <div className="nav-shell">
+      <button
+        className="btn icon nav-toggle"
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Toggle navigation"
+      >
+        ☰
+      </button>
+      <nav className={open ? "nav-menu open" : "nav-menu"}>
+        {views.map((v) => (
+          <button
+            key={v}
+            className={view === v ? "tab active" : "tab"}
+            onClick={() => {
+              onSelect(v);
+              setOpen(false);
+            }}
+          >
+            {labels[v]}
+          </button>
+        ))}
+      </nav>
+    </div>
   );
 }
 
