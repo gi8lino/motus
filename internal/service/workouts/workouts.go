@@ -68,6 +68,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 	if len(inputs) == 0 {
 		return nil, fmt.Errorf("at least one step is required")
 	}
+
 	steps := make([]db.WorkoutStep, 0, len(inputs))
 	for idx := range inputs {
 		in := inputs[idx]
@@ -81,6 +82,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			in.Duration = ""
 			in.EstimatedSeconds = 0
 		}
+
 		// Parse duration if provided, otherwise fall back to estimated seconds.
 		durationStr := strings.TrimSpace(in.Duration)
 		seconds := in.EstimatedSeconds
@@ -89,10 +91,12 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			if err != nil {
 				return nil, fmt.Errorf("invalid duration for %s: %w", name, err)
 			}
+
 			// Guard: avoid negative durations.
 			dur = max(dur, 0)
 			seconds = int(dur / time.Second)
 		}
+
 		// Guard: seconds cannot be negative.
 		seconds = max(seconds, 0)
 		soundKey := strings.TrimSpace(in.SoundKey)
@@ -110,6 +114,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
 			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
 		}
+
 		repeatRestAutoAdvance := in.RepeatRestAutoAdvance
 		repeatRestAfterLast := in.RepeatRestAfterLast
 		// Strip repeat rest config when repeats are disabled.
@@ -119,12 +124,14 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			repeatRestAfterLast = false
 			repeatRestSoundKey = ""
 		}
+
 		// Strip repeat rest config when no rest seconds are set.
 		if repeatRestSeconds == 0 {
 			repeatRestAutoAdvance = false
 			repeatRestAfterLast = false
 			repeatRestSoundKey = ""
 		}
+
 		// Map pause auto-advance to the stored pause options.
 		autoAdvance := stepType == "pause" && in.PauseOptions.AutoAdvance
 		// Normalize exercises so blank rows are dropped.
@@ -135,6 +142,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 				if exName == "" && strings.TrimSpace(ex.Amount) == "" && strings.TrimSpace(ex.Weight) == "" {
 					continue
 				}
+
 				exercises = append(exercises, db.StepExercise{
 					ExerciseID: strings.TrimSpace(ex.ExerciseID),
 					Name:       exName,
@@ -171,21 +179,21 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*db.Workout, error) {
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
-	// Guard: require a user, workout name, and steps.
 	if req.UserID == "" || strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and at least one step are required")
 	}
-	// Normalize the incoming step payloads.
+
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
-	// Persist the workout and normalized steps.
+
 	workout := &db.Workout{UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
 	created, err := s.Store.CreateWorkout(ctx, workout)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return created, nil
 }
 
@@ -194,24 +202,25 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 	id = strings.TrimSpace(id)
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
-	// Guard: require the workout id and steps to replace.
 	if id == "" {
 		return nil, service.NewError(service.ErrorValidation, "workout id is required")
 	}
+
 	if strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and steps are required")
 	}
-	// Normalize the incoming step payloads.
+
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
-	// Persist the replacement workout definition.
+
 	workout := &db.Workout{ID: id, UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
 	updated, err := s.Store.UpdateWorkout(ctx, workout)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return updated, nil
 }
 
@@ -219,13 +228,14 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 func (s *Service) Import(ctx context.Context, userID string, workout db.Workout) (*db.Workout, error) {
 	userID = strings.TrimSpace(userID)
 	workout.Name = strings.TrimSpace(workout.Name)
-	// Guard: importing requires a user id and workout definition.
 	if userID == "" {
 		return nil, service.NewError(service.ErrorValidation, "userId is required")
 	}
+
 	if workout.Name == "" || len(workout.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "workout name and steps are required")
 	}
+
 	// Reset ids and ordering so new rows are created.
 	for idx := range workout.Steps {
 		step := &workout.Steps[idx]
@@ -248,21 +258,22 @@ func (s *Service) Import(ctx context.Context, userID string, workout db.Workout)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return created, nil
 }
 
 // Get returns a workout by id.
 func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
 	id = strings.TrimSpace(id)
-	// Guard: require a workout id before fetching.
 	if id == "" {
 		return nil, service.NewError(service.ErrorValidation, "workout id is required")
 	}
-	// Load the workout and its steps for editing or export.
+
 	workout, err := s.Store.WorkoutWithSteps(ctx, id)
 	if err != nil {
 		return nil, service.NewError(service.ErrorNotFound, err.Error())
 	}
+
 	return workout, nil
 }
 
@@ -274,16 +285,16 @@ func (s *Service) Export(ctx context.Context, id string) (*db.Workout, error) {
 // Delete removes a workout by id.
 func (s *Service) Delete(ctx context.Context, id string) error {
 	id = strings.TrimSpace(id)
-	// Guard: require a workout id before deletion.
 	if id == "" {
 		return service.NewError(service.ErrorValidation, "workout id is required")
 	}
-	// Delete the workout and handle not-found explicitly.
+
 	if err := s.Store.DeleteWorkout(ctx, id); err != nil {
 		if err == pgx.ErrNoRows {
 			return service.NewError(service.ErrorNotFound, "workout not found")
 		}
 		return service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return nil
 }

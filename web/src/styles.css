@@ -359,6 +359,17 @@ main {
   margin-top: 14px;
 }
 
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.input-row input {
+  flex: 1;
+}
+
 input,
 select {
   background: var(--input-bg);

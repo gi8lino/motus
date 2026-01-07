@@ -9,6 +9,8 @@ type ThemeMode = "auto" | "dark" | "light";
 export function ProfileView({
   profileTab,
   onProfileTabChange,
+  currentName,
+  onUpdateName,
   themeMode,
   onThemeChange,
   sounds,
@@ -33,6 +35,8 @@ export function ProfileView({
 }: {
   profileTab: ProfileTab;
   onProfileTabChange: (tab: ProfileTab) => void;
+  currentName: string;
+  onUpdateName: (name: string) => void | Promise<void>;
   themeMode: ThemeMode;
   onThemeChange: (mode: ThemeMode) => void;
   sounds: SoundOption[];
@@ -79,6 +83,10 @@ export function ProfileView({
           {/* Tab content */}
           {profileTab === "settings" && (
             <div className="stack">
+              <DisplayNameForm
+                currentName={currentName}
+                onUpdate={onUpdateName}
+              />
               <div className="field">
                 <label>Theme</label>
                 <select
@@ -292,5 +300,62 @@ function PasswordForm({
         Update password
       </button>
     </form>
+  );
+}
+
+// DisplayNameForm edits the user-friendly display name.
+function DisplayNameForm({
+  currentName,
+  onUpdate,
+}: {
+  currentName: string;
+  onUpdate: (name: string) => void | Promise<void>;
+}) {
+  const [name, setName] = useState(currentName);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(currentName);
+  }, [currentName]);
+
+  const trimmed = name.trim();
+  const canSave = trimmed.length > 0 && trimmed !== currentName;
+
+  return (
+    <div className="field">
+      <label>Display name</label>
+      <div className="input-row">
+        <input
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setError(null);
+          }}
+          placeholder="Your name"
+        />
+        <button
+          className={canSave ? "btn primary" : "btn subtle"}
+          type="button"
+          disabled={!canSave || saving}
+          onClick={async () => {
+            setSaving(true);
+            setError(null);
+            try {
+              await onUpdate(trimmed);
+            } catch (err) {
+              const message =
+                err instanceof Error ? err.message : "Unable to update name";
+              setError(message);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+      {error && <div className="muted small">{error}</div>}
+    </div>
   );
 }

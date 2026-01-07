@@ -11,16 +11,19 @@ import (
 func (a *API) GetWorkouts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("id")
+
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		workouts, err := a.Store.WorkoutsByUser(r.Context(), resolvedID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, workouts)
 	}
 }
@@ -30,22 +33,26 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 	svc := workouts.New(a.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("id")
+
 		req, err := decode[workouts.WorkoutRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		resolvedUserID, err := a.resolveUserID(r, userID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
+
 		created, err := svc.Create(r.Context(), req)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, created)
 	}
 }
@@ -54,11 +61,13 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 func (a *API) GetWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		workout, err := workouts.New(a.Store).Get(r.Context(), id)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, workout)
 	}
 }
@@ -67,11 +76,13 @@ func (a *API) GetWorkout() http.HandlerFunc {
 func (a *API) ExportWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		workout, err := workouts.New(a.Store).Export(r.Context(), id)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, workout)
 	}
 }
@@ -89,17 +100,20 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
+
 		created, err := svc.Import(r.Context(), req.UserID, req.Workout)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, created)
 	}
 }
@@ -109,11 +123,13 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 	svc := workouts.New(a.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		req, err := decode[workouts.WorkoutRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		if a.AuthHeader != "" {
 			resolvedUserID, err := a.resolveUserID(r, "")
 			if err != nil {
@@ -129,11 +145,13 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 			}
 			req.UserID = current.UserID
 		}
+
 		updated, err := svc.Update(r.Context(), id, req)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, updated)
 	}
 }
@@ -142,10 +160,12 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 func (a *API) DeleteWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		if err := workouts.New(a.Store).Delete(r.Context(), id); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

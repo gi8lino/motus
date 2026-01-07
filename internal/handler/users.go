@@ -14,6 +14,7 @@ func (a *API) GetUsers() http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, users)
 	}
 }
@@ -32,11 +33,13 @@ func (a *API) CreateUser() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		user, err := svc.Create(r.Context(), req.Email, req.AvatarURL, req.Password)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, user)
 	}
 }
@@ -49,15 +52,18 @@ func (a *API) UpdateUserRole() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		req, err := decode[updateUserRoleRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		if err := svc.UpdateRole(r.Context(), id, req.IsAdmin); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -75,11 +81,13 @@ func (a *API) Login() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		user, err := svc.Login(r.Context(), req.Email, req.Password)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, user)
 	}
 }
@@ -97,15 +105,46 @@ func (a *API) ChangePassword() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		req, err := decode[changePasswordRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		if err := svc.ChangePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// UpdateUserName updates the current user's display name.
+func (a *API) UpdateUserName() http.HandlerFunc {
+	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	type updateUserNameRequest struct {
+		Name string `json:"name"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := a.resolveUserID(r, "")
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+			return
+		}
+
+		req, err := decode[updateUserNameRequest](r)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+			return
+		}
+
+		if err := svc.UpdateName(r.Context(), userID, req.Name); err != nil {
+			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
+			return
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

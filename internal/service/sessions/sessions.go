@@ -209,7 +209,6 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 	req.WorkoutName = strings.TrimSpace(req.WorkoutName)
 	req.UserID = strings.TrimSpace(req.UserID)
 
-	// Guard: core identifiers must be present.
 	if req.SessionID == "" || req.WorkoutID == "" || req.UserID == "" {
 		return db.SessionLog{}, nil, service.NewError(service.ErrorValidation, "sessionId, workoutId, and userId are required")
 	}
@@ -250,35 +249,35 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 		StartedAt:   req.StartedAt,
 		CompletedAt: req.CompletedAt,
 	}
-	// Return both the session log and step log entries for persistence.
+
 	return log, stepLogs, nil
 }
 
 // RecordSession persists a session log and its step timings.
 func RecordSession(ctx context.Context, store store, req CompleteRequest) (db.SessionLog, error) {
-	// Validate and map the completion payload before persisting.
 	log, steps, err := BuildSessionLog(req)
 	if err != nil {
 		return db.SessionLog{}, err
 	}
-	// Persist the session summary and per-step timings together.
+
 	if err := store.RecordSession(ctx, log, steps); err != nil {
 		return db.SessionLog{}, service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return log, nil
 }
 
 // FetchStepTimings returns stored step timings for a session.
 func FetchStepTimings(ctx context.Context, store store, sessionID string) ([]db.SessionStepLog, error) {
 	sessionID = strings.TrimSpace(sessionID)
-	// Guard: callers must specify a session id.
 	if sessionID == "" {
 		return nil, service.NewError(service.ErrorValidation, "sessionId is required")
 	}
-	// Load stored timings for the requested session.
+
 	steps, err := store.SessionStepTimings(ctx, sessionID)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
 	}
+
 	return steps, nil
 }

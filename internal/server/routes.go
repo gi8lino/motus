@@ -45,6 +45,7 @@ func NewRouter(
 	apiMux.Handle("GET /me", api.CurrentUser())
 	apiMux.Handle("POST /login", api.Login())
 	apiMux.Handle("PUT /me/password", api.ChangePassword())
+	apiMux.Handle("PUT /me/name", api.UpdateUserName())
 	apiMux.Handle("GET /users", api.GetUsers())
 	apiMux.Handle("POST /users", api.CreateUser())
 	apiMux.Handle("PUT /users/{id}/admin", middleware.Chain(api.UpdateUserRole(), middleware.RequireAdmin(api.Store, api.AuthHeader)))

@@ -13,6 +13,7 @@ type fakeStore struct {
 	getUserWithPasswordFn     func(context.Context, string) (*db.User, string, error)
 	updateUserPasswordFn      func(context.Context, string, string) error
 	updateUserAdminFn         func(context.Context, string, bool) error
+	updateUserNameFn          func(context.Context, string, string) error
 	createUserFn              func(context.Context, string, string, string) (*db.User, error)
 	listExercisesFn           func(context.Context, string) ([]db.Exercise, error)
 	createExerciseFn          func(context.Context, string, string, bool) (*db.Exercise, error)
@@ -74,6 +75,13 @@ func (f *fakeStore) UpdateUserAdmin(ctx context.Context, id string, isAdmin bool
 		return nil
 	}
 	return f.updateUserAdminFn(ctx, id, isAdmin)
+}
+
+func (f *fakeStore) UpdateUserName(ctx context.Context, id, name string) error {
+	if f.updateUserNameFn == nil {
+		return nil
+	}
+	return f.updateUserNameFn(ctx, id, name)
 }
 
 func (f *fakeStore) CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error) {

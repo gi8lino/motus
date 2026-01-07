@@ -9,6 +9,7 @@ func (a *API) Healthz() http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	}
 }

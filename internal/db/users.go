@@ -126,6 +126,23 @@ func (s *Store) UpdateUserAdmin(ctx context.Context, userID string, isAdmin bool
 	return nil
 }
 
+// UpdateUserName changes the display name for a user.
+func (s *Store) UpdateUserName(ctx context.Context, userID, name string) error {
+	// Persist the display name for the target user.
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE users
+		SET name=$1
+		WHERE id=$2
+	`, strings.TrimSpace(name), strings.TrimSpace(userID))
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
 // UpsertAdminUser ensures the admin user exists with the given password hash.
 func (s *Store) UpsertAdminUser(ctx context.Context, email, passwordHash string) (*User, bool, error) {
 	// Insert or update the bootstrap admin account.

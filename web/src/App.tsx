@@ -10,6 +10,7 @@ import {
   getConfig,
   getCurrentUser,
   setAuthHeaderEnabled,
+  updateUserName,
 } from "./api";
 import { useSessionTimer } from "./hooks/useSessionTimer";
 import { WorkoutForm } from "./components/WorkoutForm";
@@ -84,6 +85,7 @@ function NavTabs({
 }) {
   const [open, setOpen] = useState(false);
   const labels: Record<View, string> = {
+    login: "Login",
     train: "Train",
     workouts: "Workouts",
     templates: "Templates",
@@ -493,6 +495,22 @@ export default function App() {
     [users.data, currentUserId],
   );
 
+  // handleUpdateName saves the display name for the signed-in user.
+  const handleUpdateName = useCallback(
+    async (name: string) => {
+      if (!currentUserId) {
+        throw new Error("No active user");
+      }
+      await updateUserName(name);
+      users.setData?.((prev) =>
+        prev
+          ? prev.map((u) => (u.id === currentUserId ? { ...u, name } : u))
+          : prev,
+      );
+    },
+    [currentUserId, users],
+  );
+
   // onLoginSuccess persists the authenticated user for local mode.
   const onLoginSuccess = (user: User) => {
     setCurrentUserId(user.id);
@@ -888,6 +906,8 @@ export default function App() {
             <ProfileView
               profileTab={profileTab}
               onProfileTabChange={setProfileTab}
+              currentName={currentUser?.name || ""}
+              onUpdateName={handleUpdateName}
               themeMode={themeMode}
               onThemeChange={setThemeMode}
               sounds={sounds.data || []}

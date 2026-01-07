@@ -30,11 +30,13 @@ func (a *API) CurrentUser() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		user, err := a.Store.GetUser(r.Context(), userID)
 		if err != nil || user == nil {
 			writeJSON(w, http.StatusNotFound, apiError{Error: "user not found"})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, user)
 	}
 }

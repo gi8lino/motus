@@ -100,6 +100,14 @@ export async function changePassword(
   });
 }
 
+// updateUserName changes the current user's display name.
+export async function updateUserName(name: string): Promise<void> {
+  return request("/api/me/name", {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  });
+}
+
 // updateUserAdmin toggles admin flag for a user.
 export async function updateUserAdmin(
   userId: string,

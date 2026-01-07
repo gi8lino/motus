@@ -30,11 +30,12 @@ func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUs
 		if id == "" {
 			return "", fmt.Errorf("auth header is required")
 		}
-		// Normalize the header value into a canonical email.
+
 		email, err := utils.NormalizeEmail(id)
 		if err != nil {
 			return "", err
 		}
+
 		// Optionally auto-provision users for new headers.
 		if autoCreateUsers {
 			if err := ensureUser(r.Context(), store, email); err != nil {
@@ -51,11 +52,13 @@ func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUs
 		}
 		return email, nil
 	}
-	id := strings.TrimSpace(r.Header.Get(localAuthHeader))
+
 	// Require the local auth header when no proxy header is configured.
+	id := strings.TrimSpace(r.Header.Get(localAuthHeader))
 	if id == "" {
 		return "", fmt.Errorf("userId is required")
 	}
+
 	email, err := utils.NormalizeEmail(id)
 	if err != nil {
 		return "", err
@@ -70,6 +73,7 @@ func ensureUser(ctx context.Context, store store, email string) error {
 	if err == nil && user != nil {
 		return nil
 	}
+
 	// Bubble up unexpected lookup errors.
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err

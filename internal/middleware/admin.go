@@ -22,18 +22,21 @@ func RequireAdmin(store adminStore, authHeader string) Middleware {
 			if header == "" {
 				header = "X-User-ID"
 			}
+
 			userID := strings.TrimSpace(r.Header.Get(header))
 			if userID == "" {
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte("forbidden"))
 				return
 			}
+
 			user, err := store.GetUser(r.Context(), userID)
 			if err != nil || user == nil || !user.IsAdmin {
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte("forbidden"))
 				return
 			}
+
 			next.ServeHTTP(w, r)
 		})
 	}

@@ -18,6 +18,7 @@ type Store interface {
 	GetUserWithPassword(ctx context.Context, id string) (*db.User, string, error)
 	UpdateUserPassword(ctx context.Context, id, passwordHash string) error
 	UpdateUserAdmin(ctx context.Context, id string, isAdmin bool) error
+	UpdateUserName(ctx context.Context, id, name string) error
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
 	ListExercises(ctx context.Context, userID string) ([]db.Exercise, error)
 	CreateExercise(ctx context.Context, name, userID string, isCore bool) (*db.Exercise, error)

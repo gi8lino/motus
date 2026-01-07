@@ -15,6 +15,7 @@ func (a *API) ListTemplates() http.HandlerFunc {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, items)
 	}
 }
@@ -32,11 +33,13 @@ func (a *API) CreateTemplate() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		template, err := svc.Create(r.Context(), req.WorkoutID, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, template)
 	}
 }
@@ -50,6 +53,7 @@ func (a *API) GetTemplate() http.HandlerFunc {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, template)
 	}
 }
@@ -67,17 +71,20 @@ func (a *API) ApplyTemplate() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
+
 		workout, err := svc.Apply(r.Context(), r.PathValue("id"), req.UserID, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, workout)
 	}
 }

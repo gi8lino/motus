@@ -15,11 +15,13 @@ func (a *API) ListExercises() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		items, err := svc.List(r.Context(), userID)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, items)
 	}
 }
@@ -37,16 +39,19 @@ func (a *API) CreateExercise() http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		req, err := decode[createExerciseRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		exercise, err := svc.Create(r.Context(), userID, req.Name, req.IsCore)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, exercise)
 	}
 }
@@ -59,21 +64,25 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		req, err := decode[updateExerciseRequest](r)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		updated, err := svc.Update(r.Context(), userID, id, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		writeJSON(w, http.StatusOK, updated)
 	}
 }
@@ -83,15 +92,18 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 	svc := exercises.New(a.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+
 		if err := svc.Delete(r.Context(), userID, id); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
