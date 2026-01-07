@@ -864,6 +864,24 @@ export function WorkoutForm({
                     />
                   </div>
                 )}
+                {step.type === "timed" && (
+                  <div className="field">
+                    <label>Sound</label>
+                    <select
+                      value={step.soundKey || ""}
+                      onChange={(e) =>
+                        updateStep(idx, { soundKey: e.target.value })
+                      }
+                    >
+                      <option value="">None</option>
+                      {sounds.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {step.type === "pause" && (
                   <PauseOptionsField
                     autoAdvance={

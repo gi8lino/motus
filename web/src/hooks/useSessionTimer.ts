@@ -75,13 +75,14 @@ function expandTimedSteps(state: SessionState): SessionState {
       const durSec = parseDurationSeconds(ex.durationSeconds || ex.amount);
       const restSec = parseDurationSeconds(ex.transitionSeconds || ex.weight);
       const baseName = ex.name || step.name || `Exercise ${idx + 1}`;
-      const defaultTransitionSound = step.soundKey;
+      const stepSound = step.soundKey;
       expanded.steps.push({
         ...step,
         id: `${step.id || "step"}-ex-${idx}`,
         name: baseName,
         estimatedSeconds: durSec,
         exercises: [ex],
+        soundKey: stepSound,
       });
       if (restSec > 0) {
         expanded.steps.push({
@@ -92,7 +93,7 @@ function expandTimedSteps(state: SessionState): SessionState {
           estimatedSeconds: restSec,
           exercises: [],
           pauseOptions: { autoAdvance: true },
-          soundKey: defaultTransitionSound,
+          soundKey: stepSound,
         });
       }
     });
