@@ -1,5 +1,7 @@
 package utils
 
+import "strings"
+
 // DefaultIfZero returns fallback when value is the zero value.
 func DefaultIfZero[T comparable](value, fallback T) T {
 	var zero T
@@ -7,4 +9,9 @@ func DefaultIfZero[T comparable](value, fallback T) T {
 		return fallback
 	}
 	return value
+}
+
+// NormalizeToken normalizes a token to lowercase and trimmed
+func NormalizeToken(token string) string {
+	return strings.TrimSpace(strings.ToLower(token))
 }

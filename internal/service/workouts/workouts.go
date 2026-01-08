@@ -11,6 +11,7 @@ import (
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/service"
 	"github.com/gi8lino/motus/internal/service/sounds"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 // WorkoutRequest captures the payload for creating or updating workouts.
@@ -40,8 +41,10 @@ type StepInput struct {
 type ExerciseInput struct {
 	ExerciseID string `json:"exerciseId"`
 	Name       string `json:"name"`
-	Amount     string `json:"amount"`
+	Type       string `json:"type"`
+	Reps       string `json:"reps"`
 	Weight     string `json:"weight"`
+	Duration   string `json:"duration"`
 }
 
 // store defines the persistence methods needed by the workouts service.
@@ -82,10 +85,8 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if stepType == "" || name == "" {
 			return nil, fmt.Errorf("step %d requires name and type", idx+1)
 		}
-		if stepType == "timed" {
-			// Timed steps use per-exercise durations; keep step duration zero.
-			in.Duration = ""
-			in.EstimatedSeconds = 0
+		if stepType != "set" && stepType != "pause" {
+			return nil, fmt.Errorf("step %d has invalid type", idx+1)
 		}
 
 		// Parse duration if provided, otherwise fall back to estimated seconds.
@@ -110,32 +111,20 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			return nil, fmt.Errorf("invalid sound selection for step %s", name)
 		}
 
-		// Normalize repeat settings and clamp to valid ranges.
-		repeatCount := max(in.RepeatCount, 1)
-		repeatRestSeconds := max(in.RepeatRestSeconds, 0)
-
 		repeatRestSoundKey := strings.TrimSpace(in.RepeatRestSoundKey)
 		// Validate repeat rest sound if one was selected.
 		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
 			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
 		}
 
-		repeatRestAutoAdvance := in.RepeatRestAutoAdvance
-		repeatRestAfterLast := in.RepeatRestAfterLast
-		// Strip repeat rest config when repeats are disabled.
-		if repeatCount <= 1 {
-			repeatRestSeconds = 0
-			repeatRestAutoAdvance = false
-			repeatRestAfterLast = false
-			repeatRestSoundKey = ""
-		}
-
-		// Strip repeat rest config when no rest seconds are set.
-		if repeatRestSeconds == 0 {
-			repeatRestAutoAdvance = false
-			repeatRestAfterLast = false
-			repeatRestSoundKey = ""
-		}
+		repeatCount := max(in.RepeatCount, 1) // Step always carries the actual repeat count. Must be at least 1 to enable rest
+		repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey := normalizeRepeatRest(
+			repeatCount,
+			max(in.RepeatRestSeconds, 0), // clamp to valid range (min 0)
+			in.RepeatRestAutoAdvance,
+			in.RepeatRestAfterLast,
+			repeatRestSoundKey,
+		)
 
 		// Map pause auto-advance to the stored pause options.
 		autoAdvance := stepType == "pause" && in.PauseOptions.AutoAdvance
@@ -144,15 +133,36 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if len(in.Exercises) > 0 {
 			for _, ex := range in.Exercises {
 				exName := strings.TrimSpace(ex.Name)
-				if exName == "" && strings.TrimSpace(ex.Amount) == "" && strings.TrimSpace(ex.Weight) == "" {
+				exType := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), "rep")
+
+				if exType != "rep" && exType != "timed" {
+					return nil, fmt.Errorf("invalid exercise type for %s", name)
+				}
+				if exType == "timed" && strings.TrimSpace(ex.Duration) == "" {
+					continue
+				}
+				if exType == "rep" && isEmptyRepExercise(ex) {
 					continue
 				}
 
+				exerciseID := strings.TrimSpace(ex.ExerciseID)
+				reps := strings.TrimSpace(ex.Reps)
+				weight := strings.TrimSpace(ex.Weight)
+				duration := strings.TrimSpace(ex.Duration)
+				if exType != "rep" {
+					reps = ""
+					weight = ""
+				}
+				if exType == "rep" {
+					duration = ""
+				}
 				exercises = append(exercises, db.StepExercise{
-					ExerciseID: strings.TrimSpace(ex.ExerciseID),
+					ExerciseID: exerciseID,
 					Name:       exName,
-					Amount:     strings.TrimSpace(ex.Amount),
-					Weight:     strings.TrimSpace(ex.Weight),
+					Type:       exType,
+					Reps:       reps,
+					Weight:     weight,
+					Duration:   duration,
 				})
 			}
 		}
@@ -184,7 +194,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*db.Workout, error) {
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
-	if req.UserID == "" || strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
+	if req.UserID == "" || req.Name == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and at least one step are required")
 	}
 
@@ -193,7 +203,7 @@ func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*db.Workout, 
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
 
-	workout := &db.Workout{UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
+	workout := &db.Workout{UserID: req.UserID, Name: req.Name, Steps: steps}
 	created, err := s.Store.CreateWorkout(ctx, workout)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
@@ -211,7 +221,7 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 		return nil, service.NewError(service.ErrorValidation, "workout id is required")
 	}
 
-	if strings.TrimSpace(req.Name) == "" || len(req.Steps) == 0 {
+	if req.Name == "" || len(req.Steps) == 0 {
 		return nil, service.NewError(service.ErrorValidation, "name and steps are required")
 	}
 
@@ -220,7 +230,7 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*d
 		return nil, service.NewError(service.ErrorValidation, err.Error())
 	}
 
-	workout := &db.Workout{ID: id, UserID: req.UserID, Name: strings.TrimSpace(req.Name), Steps: steps}
+	workout := &db.Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps}
 	updated, err := s.Store.UpdateWorkout(ctx, workout)
 	if err != nil {
 		return nil, service.NewError(service.ErrorInternal, err.Error())
@@ -302,4 +312,25 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// normalizeRepeatRest clears rest settings when repeats are disabled or rest seconds are zero.
+func normalizeRepeatRest(
+	repeatCount int,
+	repeatRestSeconds int,
+	repeatRestAutoAdvance bool,
+	repeatRestAfterLast bool,
+	repeatRestSoundKey string,
+) (seconds int, autoAdvance bool, afterLast bool, soundKey string) {
+	if repeatCount <= 1 || repeatRestSeconds == 0 {
+		return 0, false, false, ""
+	}
+	return repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey
+}
+
+// isEmptyRepExercise returns true when a rep exercise has no meaningful content.
+func isEmptyRepExercise(ex ExerciseInput) bool {
+	return strings.TrimSpace(ex.Name) == "" &&
+		strings.TrimSpace(ex.Reps) == "" &&
+		strings.TrimSpace(ex.Weight) == ""
 }

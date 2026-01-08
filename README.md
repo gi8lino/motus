@@ -17,8 +17,8 @@ Motus is a training companion for circuit and round-based workouts. It keeps tra
 ## Features
 
 - Create users and manage local accounts.
-- Build workouts with sets, pauses, timed blocks, and repeatable steps using Go-style duration strings (e.g. `45s`, `1m30s`).
-- Attach multiple exercises with amount/weight to each set; drag/drop steps and exercises.
+- Build workouts with sets, pauses, and repeatable steps using Go-style duration strings (e.g. `45s`, `1m30s`).
+- Attach multiple exercises to each set; each exercise can track reps/weight or a timed duration.
 - Maintain a global exercise catalog with Core + Personal exercises.
 - Share workouts as templates and apply them to create new workouts.
 - Choose from bundled sound cues for steps and countdowns.
@@ -37,7 +37,7 @@ Motus separates session timing from data storage:
 ## Using the app
 
 1. **Log in or register** (local mode) or rely on proxy auth (auth-header mode).
-2. **Create workouts** in the Workouts tab. Add sets, pauses, or timed steps.
+2. **Create workouts** in the Workouts tab. Add sets and pauses.
 3. **Select a workout** in Sessions and click Start Session to begin.
 4. **Pause/resume/advance** steps, and use the summary when finished.
 5. **Review history** to inspect per-step target vs. actual timing.
@@ -46,10 +46,9 @@ Motus separates session timing from data storage:
 
 ## Workout steps
 
-- **Set**: a regular exercise block that you complete, then move on.
+- **Set**: a regular exercise block that you complete, then move on. Each exercise inside the set can be rep-based or timed.
 - **Pause**: a rest block; can auto-advance on a countdown.
-- **Timed set**: time-based work like warmups (e.g. 20s per exercise), then advance.
-- **Repeat options**: repeat a set or timed block multiple times with a configurable pause between repeats.
+- **Repeat options**: repeat a set multiple times with a configurable pause between repeats.
 
 Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Session summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
 

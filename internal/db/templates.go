@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 // ListTemplates returns all workout templates.
@@ -73,8 +75,7 @@ func (s *Store) CreateWorkoutFromTemplate(ctx context.Context, templateID, userI
 		Name:   strings.TrimSpace(name),
 		Steps:  cloneSteps(template.Steps),
 	}
-	if workout.Name == "" {
-		workout.Name = template.Name
-	}
+	workout.Name = utils.DefaultIfZero(workout.Name, template.Name)
+
 	return s.insertWorkout(ctx, workout, false)
 }

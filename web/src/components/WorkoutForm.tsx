@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
+import { formatExerciseLine } from "../utils/format";
 import { parseDurationSeconds } from "../utils/time";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
@@ -92,19 +93,29 @@ export function WorkoutForm({
     setSteps(
       (editingWorkout.steps || []).map((s) => ({
         ...s,
+        type: s.type === "pause" ? "pause" : "set",
         pauseOptions: s.pauseOptions,
         duration:
           s.duration || (s.estimatedSeconds ? `${s.estimatedSeconds}s` : ""),
         exercises:
           s.exercises && s.exercises.length
-            ? s.exercises
+            ? s.exercises.map((ex) => ({
+                ...ex,
+                type: ex.type || "rep",
+                reps: ex.reps || "",
+                weight: ex.weight || "",
+                duration: ex.duration || "",
+                exerciseId: ex.exerciseId,
+              }))
             : s.type === "set"
               ? [
                   {
                     name: s.exercises?.[0]?.name || s.name || "",
-                    amount: s.exercises?.[0]?.amount || "",
+                    reps: s.exercises?.[0]?.reps || "",
                     weight: s.exercises?.[0]?.weight || "",
+                    duration: s.exercises?.[0]?.duration || "",
                     exerciseId: s.exercises?.[0]?.exerciseId,
+                    type: "rep",
                   },
                 ]
               : [],
@@ -271,7 +282,14 @@ export function WorkoutForm({
               ...step,
               exercises: [
                 ...(step.exercises || []),
-                { name: "", amount: "", weight: "", exerciseId: "" },
+                {
+                  name: "",
+                  reps: "",
+                  weight: "",
+                  duration: "",
+                  exerciseId: "",
+                  type: "rep",
+                },
               ],
             }
           : step,
@@ -299,7 +317,6 @@ export function WorkoutForm({
     () => ({
       set: "Target time (optional, e.g. 45s)",
       pause: "Duration (Go style, e.g. 45s, 1m30s)",
-      timed: "",
     }),
     [],
   );
@@ -407,197 +424,120 @@ export function WorkoutForm({
     return (
       <div className="stack">
         <div className="label">Exercises</div>
-        {(step.exercises || []).map((ex: Exercise, exIdx) => (
-          <div
-            key={exIdx}
-            className="exercise-row"
-            draggable
-            onDragStart={(e) => {
-              e.stopPropagation();
-              dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              const dragData = dragExerciseRef.current;
-              if (!dragData || dragData.stepIdx !== idx) return;
-              if (dragData.idx === exIdx) return;
-              moveExercise(idx, dragData.idx, exIdx);
-              dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
-            }}
-            onDragEnd={() => {
-              dragExerciseRef.current = null;
-            }}
-          >
-            <div className="field">
-              <label>Exercise</label>
-              <ExerciseSelect
-                catalog={catalog}
-                value={{ exerciseId: ex.exerciseId, name: ex.name }}
-                onSelect={(selected) =>
-                  updateExercise(idx, exIdx, {
-                    name: selected.name,
-                    exerciseId: selected.id,
-                  })
-                }
-                onClear={() =>
-                  updateExercise(idx, exIdx, { name: "", exerciseId: "" })
-                }
-                onAddNew={async () => {
-                  const newName = await promptUser("Exercise name");
-                  if (!newName || !newName.trim()) return;
-                  try {
-                    const created = await onCreateExercise(newName.trim());
+        {(step.exercises || []).map((ex: Exercise, exIdx) => {
+          const kind = ex.type === "timed" ? "timed" : "rep";
+          const amountLabel = kind === "timed" ? "Duration" : "Reps";
+          const amountPlaceholder = kind === "timed" ? "e.g. 45s" : "12";
+          return (
+            <div
+              key={exIdx}
+              className="exercise-row"
+              draggable
+              onDragStart={(e) => {
+                e.stopPropagation();
+                dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                const dragData = dragExerciseRef.current;
+                if (!dragData || dragData.stepIdx !== idx) return;
+                if (dragData.idx === exIdx) return;
+                moveExercise(idx, dragData.idx, exIdx);
+                dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
+              }}
+              onDragEnd={() => {
+                dragExerciseRef.current = null;
+              }}
+            >
+              <div className="field">
+                <label>Exercise</label>
+                <ExerciseSelect
+                  catalog={catalog}
+                  value={{ exerciseId: ex.exerciseId, name: ex.name }}
+                  onSelect={(selected) =>
                     updateExercise(idx, exIdx, {
-                      name: created.name,
-                      exerciseId: created.id,
-                    });
-                  } catch (err: any) {
-                    await notifyUser(
-                      err.message || "Unable to create exercise",
-                    );
+                      name: selected.name,
+                      exerciseId: selected.id,
+                    })
                   }
-                }}
-              />
-            </div>
-            <div className="field">
-              <label>Amount / Reps</label>
-              <input
-                value={ex.amount || ""}
-                onChange={(e) =>
-                  updateExercise(idx, exIdx, { amount: e.target.value })
-                }
-                placeholder="12 reps"
-              />
-            </div>
-            <div className="field">
-              <label>Weight</label>
-              <input
-                value={ex.weight || ""}
-                onChange={(e) =>
-                  updateExercise(idx, exIdx, { weight: e.target.value })
-                }
-                placeholder="50kg"
-              />
-            </div>
-            <div className="field action">
-              <label>Action</label>
-              <button
-                className="btn icon"
-                type="button"
-                onClick={() => removeExercise(idx, exIdx)}
-                title="Remove exercise"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        ))}
-        <div className="btn-group">
-          <button
-            className="btn outline"
-            type="button"
-            onClick={() => addExercise(idx)}
-          >
-            Add Exercise
-          </button>
-          {renderRepeatToggle(idx, step)}
-        </div>
-        {renderRepeatFields(idx, step)}
-      </div>
-    );
-  }
-
-  // renderTimedExercises shows duration/transition inputs for timed sets.
-  function renderTimedExercises(idx: number, step: WorkoutStep) {
-    return (
-      <div className="stack">
-        <div className="label">Timed Exercises</div>
-        {(step.exercises || []).map((ex: Exercise, exIdx) => (
-          <div
-            key={exIdx}
-            className="exercise-row"
-            draggable
-            onDragStart={(e) => {
-              e.stopPropagation();
-              dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              const dragData = dragExerciseRef.current;
-              if (!dragData || dragData.stepIdx !== idx) return;
-              if (dragData.idx === exIdx) return;
-              moveExercise(idx, dragData.idx, exIdx);
-              dragExerciseRef.current = { stepIdx: idx, idx: exIdx };
-            }}
-            onDragEnd={() => {
-              dragExerciseRef.current = null;
-            }}
-          >
-            <div className="field">
-              <label>Exercise</label>
-              <ExerciseSelect
-                catalog={catalog}
-                value={{ exerciseId: ex.exerciseId, name: ex.name }}
-                onSelect={(selected) =>
-                  updateExercise(idx, exIdx, {
-                    name: selected.name,
-                    exerciseId: selected.id,
-                  })
-                }
-                onClear={() =>
-                  updateExercise(idx, exIdx, { name: "", exerciseId: "" })
-                }
-                onAddNew={async () => {
-                  const newName = await promptUser("Exercise name");
-                  if (!newName || !newName.trim()) return;
-                  try {
-                    const created = await onCreateExercise(newName.trim());
+                  onClear={() =>
+                    updateExercise(idx, exIdx, { name: "", exerciseId: "" })
+                  }
+                  onAddNew={async () => {
+                    const newName = await promptUser("Exercise name");
+                    if (!newName || !newName.trim()) return;
+                    try {
+                      const created = await onCreateExercise(newName.trim());
+                      updateExercise(idx, exIdx, {
+                        name: created.name,
+                        exerciseId: created.id,
+                      });
+                    } catch (err: any) {
+                      await notifyUser(
+                        err.message || "Unable to create exercise",
+                      );
+                    }
+                  }}
+                />
+              </div>
+              <div className="field compact">
+                <label>Exercise type</label>
+                <select
+                  value={kind}
+                  onChange={(e) =>
                     updateExercise(idx, exIdx, {
-                      name: created.name,
-                      exerciseId: created.id,
-                    });
-                  } catch (err: any) {
-                    await notifyUser(
-                      err.message || "Unable to create exercise",
-                    );
+                      type: e.target.value === "timed" ? "timed" : "rep",
+                    })
                   }
-                }}
-              />
+                >
+                  <option value="rep">Reps</option>
+                  <option value="timed">Duration</option>
+                </select>
+              </div>
+              <div className="field compact">
+                <label>{amountLabel}</label>
+                <input
+                  value={kind === "timed" ? ex.duration || "" : ex.reps || ""}
+                  onChange={(e) =>
+                    updateExercise(idx, exIdx, {
+                      ...(kind === "timed"
+                        ? { duration: e.target.value }
+                        : { reps: e.target.value }),
+                    })
+                  }
+                  placeholder={amountPlaceholder}
+                />
+              </div>
+              {kind === "rep" && (
+                <div className="field compact">
+                  <label>Weight</label>
+                  <input
+                    value={ex.weight || ""}
+                    onChange={(e) =>
+                      updateExercise(idx, exIdx, { weight: e.target.value })
+                    }
+                    placeholder="10kg"
+                  />
+                </div>
+              )}
+              {kind !== "rep" && (
+                <div className="field compact spacer" aria-hidden="true" />
+              )}
+              <div className="field action compact">
+                <button
+                  className="btn icon mobile-full"
+                  type="button"
+                  onClick={() => removeExercise(idx, exIdx)}
+                  title="Remove exercise"
+                >
+                  <span className="desktop-only">×</span>
+                  <span className="mobile-only">Remove exercise</span>
+                </button>
+              </div>
             </div>
-            <div className="field">
-              <label>Duration</label>
-              <input
-                value={ex.amount || ""}
-                onChange={(e) =>
-                  updateExercise(idx, exIdx, { amount: e.target.value })
-                }
-                placeholder="e.g. 60s"
-              />
-            </div>
-            <div className="field">
-              <label>Transition</label>
-              <input
-                value={ex.weight || ""}
-                onChange={(e) =>
-                  updateExercise(idx, exIdx, { weight: e.target.value })
-                }
-                placeholder="e.g. 10s"
-              />
-            </div>
-            <div className="field action">
-              <button
-                className="btn icon"
-                type="button"
-                onClick={() => removeExercise(idx, exIdx)}
-                title="Remove exercise"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         <div className="btn-group">
           <button
             className="btn outline"
@@ -643,16 +583,28 @@ export function WorkoutForm({
             Boolean(s.repeatRestSeconds) && Boolean(s.repeatRestAutoAdvance),
           exercises:
             s.exercises && s.exercises.length
-              ? s.exercises
+              ? s.exercises.map((ex) => {
+                  const type = ex.type === "timed" ? "timed" : "rep";
+                  return {
+                    ...ex,
+                    type,
+                    reps: type === "rep" ? ex.reps?.trim() || "" : "",
+                    weight: type === "rep" ? ex.weight?.trim() || "" : "",
+                    duration: type === "timed" ? ex.duration?.trim() || "" : "",
+                    exerciseId: ex.exerciseId,
+                  };
+                })
               : s.type === "set"
                 ? [
                     {
                       name: s.name || "Exercise",
-                      amount: "",
+                      reps: "",
                       weight: "",
+                      duration: "",
                       exerciseId: s.name
                         ? catalogByName.get(s.name.toLowerCase())?.id
                         : undefined,
+                      type: "rep",
                     },
                   ]
                 : [],
@@ -801,12 +753,6 @@ export function WorkoutForm({
                 >
                   Pause
                 </option>
-                <option
-                  value="timed"
-                  title="One timed step per exercise plus transitions."
-                >
-                  Timed Set
-                </option>
               </select>
               <button
                 className="btn icon"
@@ -839,22 +785,16 @@ export function WorkoutForm({
             <div className="step-preview">
               <div className="step-title">{step.name}</div>
               <div className="muted small">
-                {step.type !== "timed"
-                  ? step.duration ||
-                    (step.estimatedSeconds
-                      ? `${step.estimatedSeconds}s`
-                      : "open")
-                  : "Timed block"}
+                {step.duration ||
+                  (step.estimatedSeconds
+                    ? `${step.estimatedSeconds}s`
+                    : "open")}
                 {step.repeatCount && step.repeatCount > 1
                   ? ` • repeats ${step.repeatCount}x`
                   : ""}
                 {step.exercises?.length
                   ? ` • ${step.exercises
-                      .map((ex) =>
-                        [ex.name, ex.amount, ex.weight]
-                          .filter(Boolean)
-                          .join(" • "),
-                      )
+                      .map((ex) => formatExerciseLine(ex))
                       .filter(Boolean)
                       .join(" | ")}`
                   : ""}
@@ -871,18 +811,16 @@ export function WorkoutForm({
                     required
                   />
                 </div>
-                {step.type !== "timed" && (
-                  <div className="field">
-                    <label>{durationLabel[step.type]}</label>
-                    <input
-                      value={step.duration || ""}
-                      onChange={(e) =>
-                        updateStep(idx, { duration: e.target.value })
-                      }
-                    />
-                  </div>
-                )}
-                {step.type === "timed" && (
+                <div className="field">
+                  <label>{durationLabel[step.type]}</label>
+                  <input
+                    value={step.duration || ""}
+                    onChange={(e) =>
+                      updateStep(idx, { duration: e.target.value })
+                    }
+                  />
+                </div>
+                {step.type === "set" && (
                   <div className="field">
                     <label>Sound</label>
                     <select
@@ -916,7 +854,6 @@ export function WorkoutForm({
                   />
                 )}
                 {step.type === "set" && renderStandardExercises(idx, step)}
-                {step.type === "timed" && renderTimedExercises(idx, step)}
               </div>
             )}
           </div>

@@ -8,16 +8,27 @@ export function formatMillis(ms: number) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-// formatExerciseLine renders an exercise as "amount × name (weight)".
+// formatExerciseLine renders an exercise based on its type.
 export function formatExerciseLine(ex: Exercise) {
-  const amount = (ex.amount || "").trim();
+  const kind = ex.type || "rep";
+  const reps = (ex.reps || "").trim();
   const name = (ex.name || "").trim();
   const weight = (ex.weight || "").trim();
+  const duration = (ex.duration || "").trim();
+  if (kind === "timed") {
+    const displayName = name || "";
+    if (!displayName && !duration) return "";
+    let base = displayName || duration;
+    if (displayName && duration) {
+      base = `${displayName} ${duration}`;
+    }
+    return base;
+  }
   let base = "";
-  if (amount && name) {
-    base = `${amount} × ${name}`;
+  if (reps && name) {
+    base = `${reps} × ${name}`;
   } else {
-    base = name || amount;
+    base = name || reps;
   }
   if (!base) return "";
   if (weight) {
@@ -37,7 +48,9 @@ export function formatExercises(
   const list = step.exercises || [];
   const parts = list
     // Filter empty entries so the UI doesn't show blank pills.
-    .filter((ex: Exercise) => ex && (ex.name || ex.amount || ex.weight))
+    .filter(
+      (ex: Exercise) => ex && (ex.name || ex.reps || ex.weight || ex.duration),
+    )
     .map((ex: Exercise) => formatExerciseLine(ex))
     .filter(Boolean);
   return parts.join(" | ");

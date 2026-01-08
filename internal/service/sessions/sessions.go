@@ -56,9 +56,11 @@ type SessionStepState struct {
 
 // Exercise describes a single exercise inside a step.
 type Exercise struct {
-	Name   string `json:"name"`
-	Amount string `json:"amount"`
-	Weight string `json:"weight"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Reps     string `json:"reps"`
+	Weight   string `json:"weight"`
+	Duration string `json:"duration"`
 }
 
 // PauseOptions describes pause behavior for session steps.
@@ -128,10 +130,13 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 			// Copy exercise details so session steps are decoupled from workout storage.
 			exercises := make([]Exercise, 0, len(st.Exercises))
 			for _, ex := range st.Exercises {
+				exType := utils.DefaultIfZero(strings.TrimSpace(ex.Type), "rep")
 				exercises = append(exercises, Exercise{
-					Name:   ex.Name,
-					Amount: ex.Amount,
-					Weight: ex.Weight,
+					Name:     ex.Name,
+					Type:     exType,
+					Reps:     ex.Reps,
+					Weight:   ex.Weight,
+					Duration: ex.Duration,
 				})
 			}
 			// Build a stable step id and suffix it when repeats are expanded.

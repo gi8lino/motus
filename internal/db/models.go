@@ -45,6 +45,18 @@ type WorkoutStep struct {
 	CreatedAt             time.Time      `json:"createdAt"`
 }
 
+// NormalizeRepeatSettings clamps and clears repeat rest settings for a step.
+func (w *WorkoutStep) NormalizeRepeatSettings() {
+	w.RepeatCount = max(w.RepeatCount, 1)
+	w.RepeatRestSeconds = max(w.RepeatRestSeconds, 0)
+	if w.RepeatCount <= 1 || w.RepeatRestSeconds == 0 {
+		w.RepeatRestSeconds = 0
+		w.RepeatRestAfterLast = false
+		w.RepeatRestSoundKey = ""
+		w.RepeatRestAutoAdvance = false
+	}
+}
+
 // StepExercise represents a detailed exercise entry for a step.
 type StepExercise struct {
 	ID         string `json:"id"`
@@ -52,8 +64,10 @@ type StepExercise struct {
 	Order      int    `json:"order"`
 	ExerciseID string `json:"exerciseId"`
 	Name       string `json:"name"`
-	Amount     string `json:"amount"`
+	Type       string `json:"type"`
+	Reps       string `json:"reps"`
 	Weight     string `json:"weight"`
+	Duration   string `json:"duration"`
 }
 
 // Exercise represents a reusable exercise catalog entry.

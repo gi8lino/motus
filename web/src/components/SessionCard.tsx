@@ -51,6 +51,10 @@ export function SessionCard({
     (s) => s.elapsedMillis > 0 || s.completed,
   );
   const hasStarted = Boolean(session?.running) || Boolean(hasProgress);
+  const isAutoAdvance =
+    (currentStep?.type === "pause" &&
+      (currentStep as any).pauseOptions?.autoAdvance) ||
+    Boolean((currentStep as any)?.autoAdvance);
   // Decide primary button label based on running state.
   const startLabel = session?.running
     ? "Pause"
@@ -58,10 +62,7 @@ export function SessionCard({
       ? "Continue"
       : "Start";
   const displayMillis =
-    currentStep &&
-    currentStep.type === "pause" &&
-    (currentStep as any).pauseOptions?.autoAdvance &&
-    currentStep.estimatedSeconds
+    currentStep && isAutoAdvance && currentStep.estimatedSeconds
       ? Math.max(
           0,
           currentStep.estimatedSeconds * 1000 - Math.max(0, elapsed - 1000), // add a extra second so the start time is accurate, otherwise you loose the starting second
@@ -71,13 +72,12 @@ export function SessionCard({
   const currentNumber = session ? session.currentIndex + 1 : 0;
 
   useEffect(() => {
-    // Auto-advance when a pause with autoAdvance reaches zero.
+    // Auto-advance when a timed exercise or pause reaches zero.
     if (
       !session ||
       !running ||
       !currentStep ||
-      currentStep.type !== "pause" ||
-      !(currentStep as any).pauseOptions?.autoAdvance ||
+      !isAutoAdvance ||
       !currentStep.estimatedSeconds
     ) {
       return;
@@ -96,6 +96,7 @@ export function SessionCard({
     session?.currentIndex,
     running,
     currentStep,
+    isAutoAdvance,
     elapsed,
     onNext,
   ]);

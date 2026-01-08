@@ -665,13 +665,13 @@ export default function App() {
   }, [restoredFromStorage, session, promptedResume, resumeSuppressed]);
 
   useEffect(() => {
-    // Auto-advance timed or auto-pause steps when their target elapses.
+    // Auto-advance timed exercises or auto-pause steps when their target elapses.
     if (!session || !session.running) return;
     if (!currentStep || !currentStep.estimatedSeconds) return;
-    const isTimed = currentStep.type === "timed";
-    const isAutoPause =
-      currentStep.type === "pause" && currentStep.pauseOptions?.autoAdvance;
-    if (!isTimed && !isAutoPause) return;
+    const isAutoAdvance =
+      (currentStep.type === "pause" && currentStep.pauseOptions?.autoAdvance) ||
+      Boolean(currentStep.autoAdvance);
+    if (!isAutoAdvance) return;
     const threshold = currentStep.estimatedSeconds * 1000;
     if (displayedElapsed >= threshold + 200) {
       const isLast =

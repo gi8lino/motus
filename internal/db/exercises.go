@@ -60,7 +60,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 		if err := existingRows.Scan(&id, &name); err != nil {
 			return err
 		}
-		existing[strings.ToLower(strings.TrimSpace(name))] = id
+		existing[utils.NormalizeToken(name)] = id
 	}
 	if err := existingRows.Err(); err != nil {
 		return err

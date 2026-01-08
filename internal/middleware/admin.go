@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 // adminStore describes the user lookup required by RequireAdmin.
@@ -19,10 +20,7 @@ type adminStore interface {
 func RequireAdmin(store adminStore, authHeader string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := authHeader
-			if header == "" {
-				header = "X-User-ID"
-			}
+			header := utils.DefaultIfZero(authHeader, "X-User-ID")
 
 			userID := strings.TrimSpace(r.Header.Get(header))
 			if userID == "" {

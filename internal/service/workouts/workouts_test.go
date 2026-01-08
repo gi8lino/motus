@@ -22,7 +22,7 @@ func TestNormalizeSteps(t *testing.T) {
 				Duration: "15s",
 				SoundKey: "beep",
 				Exercises: []ExerciseInput{
-					{Name: "Squat", Amount: "10", Weight: ""},
+					{Name: "Squat", Reps: "10", Weight: "", Type: "rep"},
 				},
 			},
 			{
@@ -32,10 +32,12 @@ func TestNormalizeSteps(t *testing.T) {
 				PauseOptions: db.PauseOptions{AutoAdvance: true},
 			},
 			{
-				Type:             "timed",
-				Name:             "Warmup",
-				Duration:         "20s",
-				EstimatedSeconds: 99,
+				Type:     "set",
+				Name:     "Warmup",
+				Duration: "20s",
+				Exercises: []ExerciseInput{
+					{Name: "Jog", Duration: "20s", Type: "timed"},
+				},
 			},
 		}
 
@@ -50,7 +52,7 @@ func TestNormalizeSteps(t *testing.T) {
 		assert.Equal(t, "Squats", setStep.Name)
 		require.Len(t, setStep.Exercises, 1)
 		assert.Equal(t, "Squat", setStep.Exercises[0].Name)
-		assert.Equal(t, "10", setStep.Exercises[0].Amount)
+		assert.Equal(t, "10", setStep.Exercises[0].Reps)
 
 		pauseStep := steps[1]
 		assert.Equal(t, "pause", pauseStep.Type)
@@ -58,8 +60,9 @@ func TestNormalizeSteps(t *testing.T) {
 		assert.Empty(t, pauseStep.Exercises)
 
 		timedStep := steps[2]
-		assert.Equal(t, "timed", timedStep.Type)
-		assert.Equal(t, 0, timedStep.EstimatedSeconds)
+		assert.Equal(t, "set", timedStep.Type)
+		require.Len(t, timedStep.Exercises, 1)
+		assert.Equal(t, "timed", timedStep.Exercises[0].Type)
 	})
 
 	t.Run("Rejects invalid sound", func(t *testing.T) {

@@ -1,4 +1,5 @@
 import type { WorkoutStep } from "../types";
+import { parseDurationSeconds } from "./time";
 
 // ExpandedWorkoutStep adds loop metadata for repeated steps.
 export type ExpandedWorkoutStep = WorkoutStep & {
@@ -19,11 +20,37 @@ export function expandWorkoutSteps(
     const restAutoAdvance = Boolean(step.repeatRestAutoAdvance);
 
     for (let loop = 0; loop < repeatCount; loop += 1) {
-      expanded.push({
-        ...step,
-        loopIndex: repeatCount > 1 ? loop + 1 : undefined,
-        loopTotal: repeatCount > 1 ? repeatCount : undefined,
-      });
+      const loopIndex = repeatCount > 1 ? loop + 1 : undefined;
+      const loopTotal = repeatCount > 1 ? repeatCount : undefined;
+      if (step.type === "set" && step.exercises?.length) {
+        step.exercises.forEach((ex) => {
+          const kind = ex.type === "timed" ? "timed" : "rep";
+          const baseName = ex.name || step.name;
+          const usesStepTarget =
+            kind === "rep" &&
+            (step.exercises?.length || 0) === 1 &&
+            step.estimatedSeconds;
+          expanded.push({
+            ...step,
+            name: baseName,
+            exercises: [ex],
+            estimatedSeconds:
+              kind === "timed"
+                ? parseDurationSeconds(ex.duration)
+                : usesStepTarget
+                  ? step.estimatedSeconds
+                  : undefined,
+            loopIndex,
+            loopTotal,
+          });
+        });
+      } else {
+        expanded.push({
+          ...step,
+          loopIndex,
+          loopTotal,
+        });
+      }
       if (restSeconds > 0 && (loop < repeatCount - 1 || restAfterLast)) {
         expanded.push({
           type: "pause",
@@ -31,6 +58,8 @@ export function expandWorkoutSteps(
           estimatedSeconds: restSeconds,
           soundKey: restSoundKey,
           pauseOptions: restAutoAdvance ? { autoAdvance: true } : undefined,
+          loopIndex,
+          loopTotal,
         });
       }
     }

@@ -42,6 +42,7 @@ function normalizeSession(raw: SessionState): NormalizedState {
   raw.steps.forEach((step, idx) => {
     const normalized: SessionStepState = {
       ...step,
+      type: step.type === "pause" ? "pause" : "set",
       elapsedMillis: step.elapsedMillis || 0,
       completed: Boolean(step.completed || idx < base.currentIndex),
       current: idx === base.currentIndex && !base.done,
@@ -63,39 +64,31 @@ function normalizeSession(raw: SessionState): NormalizedState {
   return base;
 }
 
-// expandTimedSteps converts timed sets into explicit timed/pause steps.
-function expandTimedSteps(state: SessionState): SessionState {
+// expandExerciseSteps expands set exercises into per-exercise steps with timing.
+function expandExerciseSteps(state: SessionState): SessionState {
   const expanded: SessionState = { ...state, steps: [] };
   state.steps.forEach((step) => {
-    if (step.type !== "timed" || !step.exercises?.length) {
+    if (step.type !== "set" || !step.exercises?.length) {
       expanded.steps.push(step);
       return;
     }
     step.exercises.forEach((ex, idx) => {
-      const durSec = parseDurationSeconds(ex.amount);
-      const restSec = parseDurationSeconds(ex.weight);
+      const kind = ex.type === "timed" ? "timed" : "rep";
+      const durSec = kind === "timed" ? parseDurationSeconds(ex.duration) : 0;
       const baseName = ex.name || step.name || `Exercise ${idx + 1}`;
       const stepSound = step.soundKey;
+      const usesStepTarget =
+        kind === "rep" && step.exercises?.length === 1 && step.estimatedSeconds;
       expanded.steps.push({
         ...step,
         id: `${step.id || "step"}-ex-${idx}`,
         name: baseName,
-        estimatedSeconds: durSec,
+        estimatedSeconds:
+          durSec || (usesStepTarget ? step.estimatedSeconds : 0),
         exercises: [ex],
         soundKey: stepSound,
+        autoAdvance: kind === "timed" && durSec > 0,
       });
-      if (restSec > 0) {
-        expanded.steps.push({
-          ...step,
-          id: `${step.id || "step"}-rest-${idx}`,
-          name: `${baseName} - Transition`,
-          type: "pause",
-          estimatedSeconds: restSec,
-          exercises: [],
-          pauseOptions: { autoAdvance: true },
-          soundKey: stepSound,
-        });
-      }
     });
   });
   if (!expanded.steps.length) {
@@ -222,7 +215,7 @@ export function useSessionTimer({
   // startFromState initializes the session from server state.
   const startFromState = useCallback(
     (raw: SessionState) => {
-      const expanded = expandTimedSteps(raw);
+      const expanded = expandExerciseSteps(raw);
       const normalized = normalizeSession(expanded);
       if (!normalized.userId && currentUserId) {
         normalized.userId = currentUserId;
@@ -351,8 +344,9 @@ export function useSessionTimer({
     next.lastUpdatedAt = now();
     const currentStep = next.steps[next.currentIndex];
     if (
-      currentStep?.type === "pause" &&
-      currentStep.pauseOptions?.autoAdvance
+      (currentStep?.type === "pause" &&
+        currentStep.pauseOptions?.autoAdvance) ||
+      currentStep?.autoAdvance
     ) {
       next.currentIndex = Math.min(
         next.currentIndex + 1,

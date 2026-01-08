@@ -43,8 +43,10 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             exercise_order INT NOT NULL,
             exercise_id TEXT NOT NULL DEFAULT '',
             name TEXT NOT NULL,
-            amount TEXT NOT NULL DEFAULT '',
-            weight TEXT NOT NULL DEFAULT ''
+            exercise_type TEXT NOT NULL DEFAULT 'rep',
+            reps TEXT NOT NULL DEFAULT '',
+            weight TEXT NOT NULL DEFAULT '',
+            duration TEXT NOT NULL DEFAULT ''
         )`,
 		`CREATE TABLE IF NOT EXISTS exercises (
             id TEXT PRIMARY KEY,

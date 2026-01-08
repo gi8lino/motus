@@ -3,12 +3,11 @@ package utils
 import (
 	"fmt"
 	"net/mail"
-	"strings"
 )
 
 // NormalizeEmail trims, lowercases, and validates an email address.
 func NormalizeEmail(value string) (string, error) {
-	trimmed := strings.TrimSpace(strings.ToLower(value))
+	trimmed := NormalizeToken(value)
 	if trimmed == "" {
 		return "", fmt.Errorf("email is required")
 	}

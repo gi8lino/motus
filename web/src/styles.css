@@ -432,9 +432,61 @@ select {
 
 .exercise-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns:
+    minmax(220px, 1.8fr)
+    minmax(110px, 0.7fr)
+    minmax(90px, 0.6fr)
+    minmax(90px, 0.6fr)
+    36px;
   gap: 8px;
-  align-items: end;
+  align-items: stretch;
+}
+
+.exercise-row .field {
+  margin-bottom: 0;
+}
+
+.exercise-row .select-dropdown {
+  min-width: 0;
+}
+
+.exercise-row .field.compact input,
+.exercise-row .field.compact select {
+  width: 100%;
+  max-width: 110px;
+}
+
+.exercise-row .field.compact select {
+  max-width: 120px;
+}
+
+.exercise-row .field.action.compact label {
+  display: none;
+}
+
+.exercise-row .field.action.compact {
+  align-self: end;
+  height: 40px;
+  justify-content: center;
+}
+
+.exercise-row .field.action.compact .btn.icon {
+  height: 32px;
+  width: 28px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: inline;
+}
+
+.exercise-row .field.spacer {
+  visibility: hidden;
 }
 
 .exercise-tag {
@@ -581,6 +633,33 @@ select {
 
   .exercise-row {
     grid-template-columns: 1fr;
+  }
+
+  .exercise-row .field.compact input,
+  .exercise-row .field.compact select {
+    max-width: none;
+  }
+
+  .exercise-row .field.action.compact .btn.icon {
+    height: 40px;
+    width: 100%;
+    padding: 0 12px;
+  }
+
+  .exercise-row .btn.icon.mobile-full {
+    justify-content: center;
+  }
+
+  .mobile-only {
+    display: inline;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .exercise-row .field.spacer {
+    display: none;
   }
 
   .actions .btn {

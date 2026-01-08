@@ -43,14 +43,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
-		step.RepeatCount = max(step.RepeatCount, 1)
-		step.RepeatRestSeconds = max(step.RepeatRestSeconds, 0)
-		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
-			step.RepeatRestSeconds = 0
-			step.RepeatRestAfterLast = false
-			step.RepeatRestSoundKey = ""
-			step.RepeatRestAutoAdvance = false
-		}
+		step.NormalizeRepeatSettings()
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -194,7 +187,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	}
 
 	exRows, err := s.pool.Query(ctx, `
-		SELECT e.id, e.step_id, e.exercise_order, e.exercise_id, e.name, e.amount, e.weight
+		SELECT e.id, e.step_id, e.exercise_order, e.exercise_id, e.name, e.exercise_type, e.reps, e.weight, e.duration
 		FROM workout_step_exercises e
 		JOIN workout_steps s ON e.step_id = s.id
 		WHERE s.workout_id=$1
@@ -207,8 +200,21 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	// Attach exercise rows to their parent steps.
 	for exRows.Next() {
 		var ex StepExercise
-		if err := exRows.Scan(&ex.ID, &ex.StepID, &ex.Order, &ex.ExerciseID, &ex.Name, &ex.Amount, &ex.Weight); err != nil {
+		if err := exRows.Scan(
+			&ex.ID,
+			&ex.StepID,
+			&ex.Order,
+			&ex.ExerciseID,
+			&ex.Name,
+			&ex.Type,
+			&ex.Reps,
+			&ex.Weight,
+			&ex.Duration,
+		); err != nil {
 			return nil, err
+		}
+		if ex.Type == "" {
+			ex.Type = "rep"
 		}
 		if idx, ok := index[ex.StepID]; ok {
 			steps[idx].Exercises = append(steps[idx].Exercises, ex)
@@ -279,14 +285,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		step.WorkoutID = w.ID
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
-		step.RepeatCount = max(step.RepeatCount, 1)
-		step.RepeatRestSeconds = max(step.RepeatRestSeconds, 0)
-		if step.RepeatCount <= 1 || step.RepeatRestSeconds == 0 {
-			step.RepeatRestSeconds = 0
-			step.RepeatRestAfterLast = false
-			step.RepeatRestSoundKey = ""
-			step.RepeatRestAutoAdvance = false
-		}
+		step.NormalizeRepeatSettings()
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -360,12 +359,14 @@ func (s *Store) insertStepExercises(ctx context.Context, tx pgx.Tx, stepID strin
 	for idx := range exercises {
 		ex := exercises[idx]
 		name := strings.TrimSpace(ex.Name)
-		if name == "" && strings.TrimSpace(ex.Amount) == "" && strings.TrimSpace(ex.Weight) == "" {
+		if isEmptyStepExercise(ex) {
 			continue
 		}
 		ex.ID = utils.NewID()
 		ex.StepID = stepID
 		ex.Order = idx
+		exType := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), "rep")
+
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_step_exercises(
 				id,
@@ -373,12 +374,23 @@ func (s *Store) insertStepExercises(ctx context.Context, tx pgx.Tx, stepID strin
 				exercise_order,
 				exercise_id,
 				name,
-				amount,
-				weight
+				exercise_type,
+				reps,
+				weight,
+				duration
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		`,
-			ex.ID, ex.StepID, ex.Order, strings.TrimSpace(ex.ExerciseID), name, strings.TrimSpace(ex.Amount), strings.TrimSpace(ex.Weight)); err != nil {
+			ex.ID,
+			ex.StepID,
+			ex.Order,
+			strings.TrimSpace(ex.ExerciseID),
+			name,
+			exType,
+			strings.TrimSpace(ex.Reps),
+			strings.TrimSpace(ex.Weight),
+			strings.TrimSpace(ex.Duration),
+		); err != nil {
 			return err
 		}
 	}
@@ -399,4 +411,11 @@ func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+// isEmptyStepExercise returns true when an exercise row has no meaningful content.
+func isEmptyStepExercise(ex StepExercise) bool {
+	return strings.TrimSpace(ex.Name) == "" &&
+		strings.TrimSpace(ex.Reps) == "" &&
+		strings.TrimSpace(ex.Duration) == ""
 }

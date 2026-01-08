@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 // CreateUser inserts a new user with the provided password hash.
 func (s *Store) CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*User, error) {
 	// Normalize the user identifier and prepare the insert payload.
-	normalized := strings.ToLower(strings.TrimSpace(email))
+	normalized := utils.NormalizeToken(email)
 	user := &User{
 		ID:        normalized,
 		Name:      normalized,
@@ -146,7 +148,7 @@ func (s *Store) UpdateUserName(ctx context.Context, userID, name string) error {
 // UpsertAdminUser ensures the admin user exists with the given password hash.
 func (s *Store) UpsertAdminUser(ctx context.Context, email, passwordHash string) (*User, bool, error) {
 	// Insert or update the bootstrap admin account.
-	normalized := strings.ToLower(strings.TrimSpace(email))
+	normalized := utils.NormalizeToken(email)
 	if normalized == "" {
 		return nil, false, fmt.Errorf("admin email is required")
 	}

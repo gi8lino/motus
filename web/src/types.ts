@@ -2,8 +2,10 @@
 export type Exercise = {
   exerciseId?: string;
   name: string;
-  amount?: string;
+  type?: "rep" | "timed";
+  reps?: string;
   weight?: string;
+  duration?: string;
 };
 
 // PauseOptions configures pause step behavior.
@@ -31,7 +33,7 @@ export type Template = {
 export type WorkoutStep = {
   id?: string;
   order?: number;
-  type: "set" | "pause" | "timed";
+  type: "set" | "pause";
   name: string;
   estimatedSeconds?: number;
   soundKey?: string;
@@ -78,7 +80,7 @@ export type User = {
 export type SessionStepState = {
   id?: string;
   name: string;
-  type: "set" | "pause" | "timed";
+  type: "set" | "pause";
   estimatedSeconds?: number;
   soundUrl?: string;
   soundKey?: string;
@@ -89,6 +91,7 @@ export type SessionStepState = {
   running: boolean;
   soundPlayed?: boolean;
   pauseOptions?: PauseOptions;
+  autoAdvance?: boolean;
   loopIndex?: number;
   loopTotal?: number;
 };

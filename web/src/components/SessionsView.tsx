@@ -8,7 +8,6 @@ import type {
 } from "../types";
 import { formatMillis } from "../utils/format";
 import { resolveMediaUrl } from "../utils/basePath";
-import { parseDurationSeconds } from "../utils/time";
 import { SessionCard } from "./SessionCard";
 import { WorkoutSelect } from "./WorkoutSelect";
 
@@ -174,9 +173,7 @@ export function SessionsView({
     if (!soundUrl) return;
 
     const baseLeadSeconds = soundOpt?.leadSeconds ?? 0;
-    const targetSeconds =
-      currentStep.estimatedSeconds ||
-      parseDurationSeconds((currentStep as any).duration);
+    const targetSeconds = currentStep.estimatedSeconds || 0;
     const targetMs = targetSeconds * 1000;
     if (targetMs <= 0) return;
 
