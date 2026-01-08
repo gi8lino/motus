@@ -1,9 +1,6 @@
 import { useState } from "react";
 
-// isValidEmail checks a basic email pattern for client validation.
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+import { isValidEmail } from "../utils/validation";
 
 // UserForm creates a new user.
 export function UserForm({
@@ -13,6 +10,8 @@ export function UserForm({
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const trimmedEmail = email.trim();
+  const emailInvalid = trimmedEmail !== "" && !isValidEmail(trimmedEmail);
   return (
     <form
       onSubmit={(e) => {
@@ -32,8 +31,12 @@ export function UserForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
+          className={emailInvalid ? "input-error" : undefined}
           required
         />
+        {emailInvalid && (
+          <div className="helper error">Enter a valid email address</div>
+        )}
       </div>
       <div className="field">
         <label>Password</label>
@@ -64,6 +67,8 @@ export function LoginForm({
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const trimmedEmail = email.trim();
+  const emailInvalid = trimmedEmail !== "" && !isValidEmail(trimmedEmail);
   return (
     <form
       onSubmit={(e) => {
@@ -85,8 +90,12 @@ export function LoginForm({
             onClearError?.();
           }}
           placeholder="you@example.com"
+          className={emailInvalid ? "input-error" : undefined}
           required
         />
+        {emailInvalid && (
+          <div className="helper error">Enter a valid email address</div>
+        )}
       </div>
       <div className="field">
         <label>Password</label>

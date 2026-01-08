@@ -298,6 +298,38 @@ main {
   color: var(--muted);
 }
 
+.helper {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.helper.error {
+  color: #e76f51;
+}
+
+.input-error {
+  border-color: #e76f51;
+  animation: input-shake 0.2s ease-in-out;
+}
+
+@keyframes input-shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

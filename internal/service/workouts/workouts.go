@@ -3,6 +3,7 @@ package workouts
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -46,6 +47,8 @@ type ExerciseInput struct {
 	Weight     string `json:"weight"`
 	Duration   string `json:"duration"`
 }
+
+var repRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
 
 // store defines the persistence methods needed by the workouts service.
 type store interface {
@@ -138,8 +141,20 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 				if exType != "rep" && exType != "timed" {
 					return nil, fmt.Errorf("invalid exercise type for %s", name)
 				}
-				if exType == "timed" && strings.TrimSpace(ex.Duration) == "" {
-					continue
+				if exType == "timed" {
+					durationText := strings.TrimSpace(ex.Duration)
+					if durationText == "" {
+						continue
+					}
+					if _, err := time.ParseDuration(durationText); err != nil {
+						return nil, fmt.Errorf("invalid duration for %s", name)
+					}
+				}
+				if exType == "rep" {
+					repsText := strings.TrimSpace(ex.Reps)
+					if repsText != "" && !repRangePattern.MatchString(repsText) {
+						return nil, fmt.Errorf("invalid reps for %s", name)
+					}
 				}
 				if exType == "rep" && isEmptyRepExercise(ex) {
 					continue

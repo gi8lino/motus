@@ -17,6 +17,14 @@ export function parseDurationSeconds(value?: string | number | null): number {
   }
 }
 
+// isGoDuration checks if a value matches Go-style duration syntax.
+export function isGoDuration(value?: string): boolean {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return /^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/i.test(trimmed);
+}
+
 // normalizeTimestamp clears zero or invalid timestamps.
 export function normalizeTimestamp(value?: string | null): string | null {
   if (!value) return null;

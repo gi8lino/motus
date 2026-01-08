@@ -9,7 +9,8 @@ import type {
 import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
 import { formatExerciseLine } from "../utils/format";
-import { parseDurationSeconds } from "../utils/time";
+import { parseDurationSeconds, isGoDuration } from "../utils/time";
+import { isRepRange } from "../utils/validation";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
 
@@ -428,6 +429,14 @@ export function WorkoutForm({
           const kind = ex.type === "timed" ? "timed" : "rep";
           const amountLabel = kind === "timed" ? "Duration" : "Reps";
           const amountPlaceholder = kind === "timed" ? "e.g. 45s" : "12";
+          const repsValue = (ex.reps || "").trim();
+          const durationValue = (ex.duration || "").trim();
+          const repsInvalid =
+            kind === "rep" && repsValue !== "" && !isRepRange(repsValue);
+          const durationInvalid =
+            kind === "timed" &&
+            durationValue !== "" &&
+            !isGoDuration(durationValue);
           return (
             <div
               key={exIdx}
@@ -506,8 +515,19 @@ export function WorkoutForm({
                         : { reps: e.target.value }),
                     })
                   }
+                  className={
+                    repsInvalid || durationInvalid ? "input-error" : undefined
+                  }
                   placeholder={amountPlaceholder}
                 />
+                {repsInvalid && (
+                  <div className="helper error">Use 8 or 8-10</div>
+                )}
+                {durationInvalid && (
+                  <div className="helper error">
+                    Use Go duration like 45s or 1m30s
+                  </div>
+                )}
               </div>
               {kind === "rep" && (
                 <div className="field compact">
