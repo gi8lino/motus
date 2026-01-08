@@ -102,7 +102,7 @@ export function WorkoutForm({
           s.exercises && s.exercises.length
             ? s.exercises.map((ex) => ({
                 ...ex,
-                type: ex.type || "rep",
+                type: (ex.type || "rep") as Exercise["type"],
                 reps: ex.reps || "",
                 weight: ex.weight || "",
                 duration: ex.duration || "",
@@ -116,7 +116,7 @@ export function WorkoutForm({
                     weight: s.exercises?.[0]?.weight || "",
                     duration: s.exercises?.[0]?.duration || "",
                     exerciseId: s.exercises?.[0]?.exerciseId,
-                    type: "rep",
+                    type: "rep" as Exercise["type"],
                   },
                 ]
               : [],
@@ -289,7 +289,7 @@ export function WorkoutForm({
                   weight: "",
                   duration: "",
                   exerciseId: "",
-                  type: "rep",
+                  type: "rep" as Exercise["type"],
                 },
               ],
             }
@@ -496,7 +496,9 @@ export function WorkoutForm({
                   value={kind}
                   onChange={(e) =>
                     updateExercise(idx, exIdx, {
-                      type: e.target.value === "timed" ? "timed" : "rep",
+                      type: (e.target.value === "timed"
+                        ? "timed"
+                        : "rep") as Exercise["type"],
                     })
                   }
                 >
@@ -580,7 +582,8 @@ export function WorkoutForm({
       await notifyUser("Select a user first.");
       return;
     }
-    const cleanSteps = steps
+
+    const cleanSteps: WorkoutStep[] = steps
       .filter((s) => s.name.trim())
       .map((s, idx) => {
         const autoAdvance = s.type === "pause" && s.pauseOptions?.autoAdvance;
@@ -604,7 +607,9 @@ export function WorkoutForm({
           exercises:
             s.exercises && s.exercises.length
               ? s.exercises.map((ex) => {
-                  const type = ex.type === "timed" ? "timed" : "rep";
+                  const type = (
+                    ex.type === "timed" ? "timed" : "rep"
+                  ) as Exercise["type"];
                   return {
                     ...ex,
                     type,
@@ -624,12 +629,13 @@ export function WorkoutForm({
                       exerciseId: s.name
                         ? catalogByName.get(s.name.toLowerCase())?.id
                         : undefined,
-                      type: "rep",
+                      type: "rep" as Exercise["type"],
                     },
                   ]
                 : [],
         };
       });
+
     if (!cleanSteps.length) {
       await notifyUser("Add at least one step.");
       return;

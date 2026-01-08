@@ -30,7 +30,10 @@ export function SelectDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const selected = value ? items.find((item) => item.id === value) : null;
+
+  const selected: SelectItem | null = value
+    ? (items.find((item) => item.id === value) ?? null)
+    : null;
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {

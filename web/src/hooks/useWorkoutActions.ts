@@ -104,7 +104,7 @@ export function useWorkoutActions({
       if (name === null) return;
       try {
         // Share then refresh template list for immediate visibility.
-        await shareTemplate(workoutId, name.trim() || undefined);
+        await shareTemplate(workoutId, name.trim());
         templatesReload();
         await notify("Template shared.");
       } catch (err: any) {
