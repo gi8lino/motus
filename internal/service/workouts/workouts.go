@@ -50,8 +50,8 @@ type ExerciseInput struct {
 
 var repRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
 
-// store defines the persistence methods needed by the workouts service.
-type store interface {
+// Store defines the persistence methods needed by the workouts service.
+type Store interface {
 	// CreateWorkout inserts a workout definition.
 	CreateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error)
 	// UpdateWorkout updates a workout definition.
@@ -66,11 +66,11 @@ type store interface {
 
 // Service coordinates workout operations.
 type Service struct {
-	Store store
+	Store Store
 }
 
 // New creates a new workouts service.
-func New(store store) *Service {
+func New(store Store) *Service {
 	return &Service{Store: store}
 }
 

@@ -12,35 +12,35 @@ import (
 	"github.com/gi8lino/motus/internal/service"
 )
 
-type fakeStore struct {
+type fakeTemplateStore struct {
 	listTemplatesFn           func(context.Context) ([]db.Workout, error)
 	createTemplateFn          func(context.Context, string, string) (*db.Workout, error)
 	workoutWithStepsFn        func(context.Context, string) (*db.Workout, error)
 	createWorkoutFromTemplate func(context.Context, string, string, string) (*db.Workout, error)
 }
 
-func (f *fakeStore) ListTemplates(ctx context.Context) ([]db.Workout, error) {
+func (f *fakeTemplateStore) ListTemplates(ctx context.Context) ([]db.Workout, error) {
 	if f.listTemplatesFn == nil {
 		return nil, nil
 	}
 	return f.listTemplatesFn(ctx)
 }
 
-func (f *fakeStore) CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error) {
+func (f *fakeTemplateStore) CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error) {
 	if f.createTemplateFn == nil {
 		return nil, nil
 	}
 	return f.createTemplateFn(ctx, workoutID, name)
 }
 
-func (f *fakeStore) WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error) {
+func (f *fakeTemplateStore) WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error) {
 	if f.workoutWithStepsFn == nil {
 		return nil, nil
 	}
 	return f.workoutWithStepsFn(ctx, id)
 }
 
-func (f *fakeStore) CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
+func (f *fakeTemplateStore) CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
 	if f.createWorkoutFromTemplate == nil {
 		return nil, nil
 	}
@@ -53,9 +53,11 @@ func TestServiceList(t *testing.T) {
 	t.Run("Internal error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{listTemplatesFn: func(context.Context) ([]db.Workout, error) {
-			return nil, errors.New("boom")
-		}}}
+		svc := &Service{Store: &fakeTemplateStore{
+			listTemplatesFn: func(context.Context) ([]db.Workout, error) {
+				return nil, errors.New("boom")
+			},
+		}}
 		_, err := svc.List(context.Background())
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorInternal))
@@ -68,7 +70,7 @@ func TestServiceCreate(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}}
+		svc := &Service{Store: &fakeTemplateStore{}}
 		_, err := svc.Create(context.Background(), " ", "Name")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -81,9 +83,11 @@ func TestServiceGet(t *testing.T) {
 	t.Run("Not a template", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
-			return &db.Workout{ID: "w1", IsTemplate: false}, nil
-		}}}
+		svc := &Service{Store: &fakeTemplateStore{
+			workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
+				return &db.Workout{ID: "w1", IsTemplate: false}, nil
+			},
+		}}
 		_, err := svc.Get(context.Background(), "w1")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorNotFound))
@@ -96,7 +100,7 @@ func TestServiceApply(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}}
+		svc := &Service{Store: &fakeTemplateStore{}}
 		_, err := svc.Apply(context.Background(), " ", "user", "Name")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -105,9 +109,11 @@ func TestServiceApply(t *testing.T) {
 	t.Run("Creates new workout", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{createWorkoutFromTemplate: func(context.Context, string, string, string) (*db.Workout, error) {
-			return &db.Workout{ID: "new", Name: "Copy"}, nil
-		}}}
+		svc := &Service{Store: &fakeTemplateStore{
+			createWorkoutFromTemplate: func(context.Context, string, string, string) (*db.Workout, error) {
+				return &db.Workout{ID: "new", Name: "Copy"}, nil
+			},
+		}}
 		workout, err := svc.Apply(context.Background(), "tmpl", "user", "Copy")
 		require.NoError(t, err)
 		assert.Equal(t, "new", workout.ID)

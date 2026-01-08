@@ -24,7 +24,7 @@ func (a *API) CreateSession() http.HandlerFunc {
 			return
 		}
 
-		state, err := sessions.CreateState(r.Context(), a.Store, req.WorkoutID, sounds.URLByKey)
+		state, err := sessions.CreateState(r.Context(), a.SessionsStore, req.WorkoutID, sounds.URLByKey)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -48,13 +48,13 @@ func (a *API) ListSessionHistory() http.HandlerFunc {
 			return
 		}
 
-		history, err := a.Store.SessionHistory(r.Context(), resolvedID, 25)
+		history, err := a.SessionsStore.SessionHistory(r.Context(), resolvedID, 25)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
 
-		items, err := sessions.BuildSessionHistory(r.Context(), a.Store, history)
+		items, err := sessions.BuildSessionHistory(r.Context(), a.SessionsStore, history)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -67,7 +67,7 @@ func (a *API) ListSessionHistory() http.HandlerFunc {
 // SessionSteps returns stored step timings for a session.
 func (a *API) SessionSteps() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		steps, err := sessions.FetchStepTimings(r.Context(), a.Store, r.PathValue("id"))
+		steps, err := sessions.FetchStepTimings(r.Context(), a.SessionsStore, r.PathValue("id"))
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -102,7 +102,7 @@ func (a *API) CompleteSession() http.HandlerFunc {
 		}
 		req.UserID = resolvedUserID
 
-		log, err := sessions.RecordSession(r.Context(), a.Store, sessions.CompleteRequest{
+		log, err := sessions.RecordSession(r.Context(), a.SessionsStore, sessions.CompleteRequest{
 			SessionID:   req.SessionID,
 			WorkoutID:   req.WorkoutID,
 			WorkoutName: req.WorkoutName,

@@ -9,10 +9,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type fakeHealthStore struct {
+	pingFn func(context.Context) error
+}
+
+func (f *fakeHealthStore) Ping(ctx context.Context) error {
+	if f.pingFn == nil {
+		return nil
+	}
+	return f.pingFn(ctx)
+}
+
 func TestHealthz(t *testing.T) {
 	t.Run("Returns ok", func(t *testing.T) {
-		store := &fakeStore{pingFn: func(context.Context) error { return nil }}
-		api := &API{Store: store}
+		store := &fakeHealthStore{pingFn: func(context.Context) error { return nil }}
+		api := &API{HealthStore: store}
+
 		h := api.Healthz()
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		rec := httptest.NewRecorder()

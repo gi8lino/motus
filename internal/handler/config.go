@@ -31,7 +31,7 @@ func (a *API) CurrentUser() http.HandlerFunc {
 			return
 		}
 
-		user, err := a.Store.GetUser(r.Context(), userID)
+		user, err := a.UsersStore.GetUser(r.Context(), userID)
 		if err != nil || user == nil {
 			writeJSON(w, http.StatusNotFound, apiError{Error: "user not found"})
 			return

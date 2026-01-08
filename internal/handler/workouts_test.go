@@ -14,12 +14,79 @@ import (
 	"github.com/gi8lino/motus/internal/db"
 )
 
+type fakeWorkoutStore struct {
+	listTemplatesFn           func(context.Context) ([]db.Workout, error)
+	createTemplateFn          func(context.Context, string, string) (*db.Workout, error)
+	createWorkoutFromTemplate func(context.Context, string, string, string) (*db.Workout, error)
+	workoutWithStepsFn        func(context.Context, string) (*db.Workout, error)
+	createWorkoutFn           func(context.Context, *db.Workout) (*db.Workout, error)
+	updateWorkoutFn           func(context.Context, *db.Workout) (*db.Workout, error)
+	workoutsByUserFn          func(context.Context, string) ([]db.Workout, error)
+	deleteWorkoutFn           func(context.Context, string) error
+}
+
+func (f *fakeWorkoutStore) ListTemplates(ctx context.Context) ([]db.Workout, error) {
+	if f.listTemplatesFn == nil {
+		return nil, nil
+	}
+	return f.listTemplatesFn(ctx)
+}
+
+func (f *fakeWorkoutStore) CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error) {
+	if f.createTemplateFn == nil {
+		return nil, nil
+	}
+	return f.createTemplateFn(ctx, workoutID, name)
+}
+
+func (f *fakeWorkoutStore) CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
+	if f.createWorkoutFromTemplate == nil {
+		return nil, nil
+	}
+	return f.createWorkoutFromTemplate(ctx, templateID, userID, name)
+}
+
+func (f *fakeWorkoutStore) WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error) {
+	if f.workoutWithStepsFn == nil {
+		return nil, nil
+	}
+	return f.workoutWithStepsFn(ctx, id)
+}
+
+func (f *fakeWorkoutStore) CreateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error) {
+	if f.createWorkoutFn == nil {
+		return workout, nil
+	}
+	return f.createWorkoutFn(ctx, workout)
+}
+
+func (f *fakeWorkoutStore) UpdateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error) {
+	if f.updateWorkoutFn == nil {
+		return workout, nil
+	}
+	return f.updateWorkoutFn(ctx, workout)
+}
+
+func (f *fakeWorkoutStore) DeleteWorkout(ctx context.Context, id string) error {
+	if f.deleteWorkoutFn == nil {
+		return nil
+	}
+	return f.deleteWorkoutFn(ctx, id)
+}
+
+func (f *fakeWorkoutStore) WorkoutsByUser(ctx context.Context, id string) ([]db.Workout, error) {
+	if f.workoutsByUserFn == nil {
+		return nil, nil
+	}
+	return f.workoutsByUserFn(ctx, id)
+}
+
 func TestWorkoutsHandlers(t *testing.T) {
 	t.Run("List workouts", func(t *testing.T) {
-		store := &fakeStore{workoutsByUserFn: func(context.Context, string) ([]db.Workout, error) {
+		store := &fakeWorkoutStore{workoutsByUserFn: func(context.Context, string) ([]db.Workout, error) {
 			return []db.Workout{{ID: "w1", Name: "Workout"}}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.GetWorkouts()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts", nil)
 		req.SetPathValue("id", "user@example.com")
@@ -36,10 +103,10 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Create workout", func(t *testing.T) {
-		store := &fakeStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
+		store := &fakeWorkoutStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.CreateWorkout()
 		body := strings.NewReader(`{"name":"Workout","steps":[{"type":"set","name":"Step"}]}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts", body)
@@ -56,10 +123,10 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Get workout", func(t *testing.T) {
-		store := &fakeStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
+		store := &fakeWorkoutStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.GetWorkout()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts/w1", nil)
 		req.SetPathValue("id", "w1")
@@ -74,10 +141,10 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Export workout", func(t *testing.T) {
-		store := &fakeStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
+		store := &fakeWorkoutStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.ExportWorkout()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts/w1/export", nil)
 		req.SetPathValue("id", "w1")
@@ -92,10 +159,10 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Import workout", func(t *testing.T) {
-		store := &fakeStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
+		store := &fakeWorkoutStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Imported"}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.ImportWorkout()
 		body := strings.NewReader(`{"userId":"user@example.com","workout":{"name":"Imported","steps":[{"type":"set","name":"Step"}]}}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts/import", body)
@@ -111,10 +178,10 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Update workout", func(t *testing.T) {
-		store := &fakeStore{updateWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
+		store := &fakeWorkoutStore{updateWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Updated"}, nil
 		}}
-		api := &API{Store: store}
+		api := &API{WorkoutsStore: store}
 		h := api.UpdateWorkout()
 		body := strings.NewReader(`{"userId":"user@example.com","name":"Updated","steps":[{"type":"set","name":"Step"}]}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/workouts/w1", body)
@@ -130,8 +197,8 @@ func TestWorkoutsHandlers(t *testing.T) {
 	})
 
 	t.Run("Delete workout", func(t *testing.T) {
-		store := &fakeStore{deleteWorkoutFn: func(context.Context, string) error { return nil }}
-		api := &API{Store: store}
+		store := &fakeWorkoutStore{deleteWorkoutFn: func(context.Context, string) error { return nil }}
+		api := &API{WorkoutsStore: store}
 		h := api.DeleteWorkout()
 		req := httptest.NewRequest(http.MethodDelete, "/api/workouts/w1", nil)
 		req.SetPathValue("id", "w1")

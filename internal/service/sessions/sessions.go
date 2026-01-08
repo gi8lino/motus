@@ -68,18 +68,20 @@ type PauseOptions struct {
 	AutoAdvance bool `json:"autoAdvance"`
 }
 
-// store defines the persistence methods needed by the session helpers.
-type store interface {
+// Store defines the persistence methods needed by the session helpers.
+type Store interface {
 	// SessionStepTimings loads logged steps for a session.
 	SessionStepTimings(ctx context.Context, sessionID string) ([]db.SessionStepLog, error)
 	// WorkoutWithSteps loads a workout and its steps.
 	WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error)
 	// RecordSession stores a completed session and its steps.
 	RecordSession(ctx context.Context, log db.SessionLog, steps []db.SessionStepLog) error
+	// SessionHistory returns completed session logs for a user.
+	SessionHistory(ctx context.Context, userID string, limit int) ([]db.SessionLog, error)
 }
 
 // BuildSessionHistory loads step timings and maps session logs to response items.
-func BuildSessionHistory(ctx context.Context, store store, history []db.SessionLog) ([]SessionHistoryItem, error) {
+func BuildSessionHistory(ctx context.Context, store Store, history []db.SessionLog) ([]SessionHistoryItem, error) {
 	// Collect step timing rows per session to enrich the history payload.
 	stepMap := make(map[string][]db.SessionStepLog, len(history))
 	for _, entry := range history {
@@ -187,7 +189,7 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 }
 
 // CreateState builds a session state from a workout id.
-func CreateState(ctx context.Context, store store, workoutID string, soundURLByKey func(string) string) (SessionState, error) {
+func CreateState(ctx context.Context, store Store, workoutID string, soundURLByKey func(string) string) (SessionState, error) {
 	workoutID = strings.TrimSpace(workoutID)
 	if workoutID == "" {
 		return SessionState{}, service.NewError(service.ErrorValidation, "workoutId is required")
@@ -262,7 +264,7 @@ func BuildSessionLog(req CompleteRequest) (db.SessionLog, []db.SessionStepLog, e
 }
 
 // RecordSession persists a session log and its step timings.
-func RecordSession(ctx context.Context, store store, req CompleteRequest) (db.SessionLog, error) {
+func RecordSession(ctx context.Context, store Store, req CompleteRequest) (db.SessionLog, error) {
 	log, steps, err := BuildSessionLog(req)
 	if err != nil {
 		return db.SessionLog{}, err
@@ -276,7 +278,7 @@ func RecordSession(ctx context.Context, store store, req CompleteRequest) (db.Se
 }
 
 // FetchStepTimings returns stored step timings for a session.
-func FetchStepTimings(ctx context.Context, store store, sessionID string) ([]db.SessionStepLog, error) {
+func FetchStepTimings(ctx context.Context, store Store, sessionID string) ([]db.SessionStepLog, error) {
 	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
 		return nil, service.NewError(service.ErrorValidation, "sessionId is required")

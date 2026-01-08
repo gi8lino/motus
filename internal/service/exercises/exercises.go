@@ -8,8 +8,8 @@ import (
 	"github.com/gi8lino/motus/internal/service"
 )
 
-// store defines the persistence methods needed by the exercises service.
-type store interface {
+// Store defines the persistence methods needed by the exercises service.
+type Store interface {
 	// ListExercises loads core plus user-specific exercises for a user.
 	ListExercises(ctx context.Context, userID string) ([]db.Exercise, error)
 	// GetUser fetches a user by id for permission checks.
@@ -30,11 +30,11 @@ type store interface {
 
 // Service coordinates exercise catalog operations.
 type Service struct {
-	Store store
+	Store Store
 }
 
 // New creates a new exercises service.
-func New(store store) *Service {
+func New(store Store) *Service {
 	return &Service{Store: store}
 }
 
