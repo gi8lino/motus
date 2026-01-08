@@ -74,7 +74,6 @@ func NewRouter(
 	apiMux.Handle("POST /sessions", api.CreateSession())
 	apiMux.Handle("GET /users/{id}/sessions/history", api.ListSessionHistory())
 	apiMux.Handle("POST /sessions/complete", api.CompleteSession())
-	// apiMux.Handle("GET /sessions/{id}/steps", api.SessionSteps())
 
 	// Mount API under /api
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
