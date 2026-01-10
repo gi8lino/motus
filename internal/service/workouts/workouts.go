@@ -37,7 +37,6 @@ type StepInput struct {
 	RepeatRestSoundKey    string          `json:"repeatRestSoundKey"`    // RepeatRestSoundKey plays during repeat rest.
 	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance"` // RepeatRestAutoAdvance skips rests automatically.
 }
-
 // ExerciseInput describes a nested exercise entry in a step.
 type ExerciseInput struct {
 	ExerciseID string `json:"exerciseId"` // ExerciseID links to the catalog.
@@ -406,7 +405,6 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 	}
 	return exercises, nil
 }
-
 func normalizeRepeatRest(
 	repeatCount int,
 	repeatRestSeconds int,
