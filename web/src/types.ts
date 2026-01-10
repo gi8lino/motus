@@ -2,10 +2,11 @@
 export type Exercise = {
   exerciseId?: string;
   name: string;
-  type?: "rep" | "timed";
+  type?: "rep" | "stopwatch" | "countdown" | "timed";
   reps?: string;
   weight?: string;
   duration?: string;
+  soundKey?: string;
 };
 
 // PauseOptions configures pause step behavior.
@@ -13,40 +14,54 @@ export type PauseOptions = {
   autoAdvance?: boolean;
 };
 
-// CatalogExercise represents an exercise in the shared catalog.
-export type CatalogExercise = {
-  id: string;
+// WorkoutSubset represents a logical subset inside a set step.
+export type WorkoutSubset = {
+  id?: string;
   name: string;
-  isCore?: boolean;
-  ownerUserId?: string;
-  createdAt?: string;
-};
-
-// Template describes a reusable workout template.
-export type Template = {
-  id: string;
-  name: string;
-  steps: WorkoutStep[];
+  duration?: string;
+  estimatedSeconds?: number;
+  soundKey?: string;
+  superset?: boolean;
+  exercises?: Exercise[];
 };
 
 // WorkoutStep defines a single step inside a workout.
+import type { StepType } from "./utils/step";
+
 export type WorkoutStep = {
   id?: string;
   order?: number;
-  type: "set" | "pause";
+  type: StepType;
   name: string;
+  duration?: string;
   estimatedSeconds?: number;
   soundKey?: string;
   soundUrl?: string;
-  duration?: string;
   exercises?: Exercise[];
+  subsets?: WorkoutSubset[];
   pauseOptions?: PauseOptions;
+  autoAdvance?: boolean;
   repeatCount?: number;
   repeatRestSeconds?: number;
   repeatRestAfterLast?: boolean;
   repeatRestSoundKey?: string;
   repeatRestAutoAdvance?: boolean;
+  loopIndex?: number;
+  loopTotal?: number;
 };
+
+// Workout represents a full workout with steps.
+export type Workout = {
+  id: string;
+  userId: string;
+  name: string;
+  createdAt?: string;
+  isTemplate?: boolean;
+  steps: WorkoutStep[];
+};
+
+// Template describes a reusable workout template.
+export type Template = Workout;
 
 // View represents the active app section.
 export type View =
@@ -59,15 +74,6 @@ export type View =
   | "templates"
   | "admin";
 
-// Workout represents a full workout with steps.
-export type Workout = {
-  id: string;
-  userId: string;
-  name: string;
-  createdAt?: string;
-  steps: WorkoutStep[];
-};
-
 // User describes a Motus account.
 export type User = {
   id: string;
@@ -77,23 +83,23 @@ export type User = {
 };
 
 // SessionStepState captures a live session step.
-export type SessionStepState = {
+export type SessionStepState = WorkoutStep & {
   id?: string;
-  name: string;
-  type: "set" | "pause";
-  estimatedSeconds?: number;
-  soundUrl?: string;
-  soundKey?: string;
-  exercises?: Exercise[];
   elapsedMillis: number;
   completed: boolean;
   current: boolean;
   running: boolean;
+  soundUrl?: string;
+  soundKey?: string;
   soundPlayed?: boolean;
   pauseOptions?: PauseOptions;
+  subsetId?: string;
+  subsetLabel?: string;
+  hasMultipleSubsets?: boolean;
+  superset?: boolean;
+  setName?: string;
+  subsetEstimatedSeconds?: number;
   autoAdvance?: boolean;
-  loopIndex?: number;
-  loopTotal?: number;
 };
 
 // SessionStepLog stores a completed step timing.
@@ -141,4 +147,18 @@ export type SoundOption = {
   label: string;
   file: string;
   leadSeconds?: number;
+};
+
+export type CatalogExercise = {
+  id: string;
+  name: string;
+  ownerUserId?: string;
+  isCore?: boolean;
+  createdAt?: string;
+};
+
+export type AskConfirmOptions = {
+  title?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
 };

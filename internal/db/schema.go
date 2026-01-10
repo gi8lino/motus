@@ -3,8 +3,8 @@ package db
 import "context"
 
 // EnsureSchema creates required tables.
+// Apply the latest schema definitions and additive migrations.
 func (s *Store) EnsureSchema(ctx context.Context) error {
-	// Apply the latest schema definitions and additive migrations.
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -37,17 +37,30 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             repeat_rest_auto_advance BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS workout_step_exercises (
+		`CREATE TABLE IF NOT EXISTS workout_subsets (
             id TEXT PRIMARY KEY,
             step_id TEXT NOT NULL REFERENCES workout_steps(id) ON DELETE CASCADE,
+            subset_order INT NOT NULL,
+            name TEXT NOT NULL,
+            estimated_seconds INT NOT NULL,
+            sound_key TEXT NOT NULL DEFAULT '',
+            superset BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL
+        )`,
+
+		`CREATE TABLE IF NOT EXISTS workout_subset_exercises (
+            id TEXT PRIMARY KEY,
+            subset_id TEXT NOT NULL REFERENCES workout_subsets(id) ON DELETE CASCADE,
             exercise_order INT NOT NULL,
             exercise_id TEXT NOT NULL DEFAULT '',
             name TEXT NOT NULL,
             exercise_type TEXT NOT NULL DEFAULT 'rep',
             reps TEXT NOT NULL DEFAULT '',
             weight TEXT NOT NULL DEFAULT '',
-            duration TEXT NOT NULL DEFAULT ''
+            duration TEXT NOT NULL DEFAULT '',
+            sound_key TEXT NOT NULL DEFAULT ''
         )`,
+
 		`CREATE TABLE IF NOT EXISTS exercises (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
@@ -72,7 +85,10 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             estimated_seconds INT NOT NULL,
             elapsed_millis BIGINT NOT NULL DEFAULT 0
         )`,
+		`ALTER TABLE workout_subset_exercises
+        ADD COLUMN IF NOT EXISTS sound_key TEXT NOT NULL DEFAULT ''`,
 	}
+
 	// Apply each schema statement in order.
 	for _, stmt := range stmts {
 		if _, err := s.pool.Exec(ctx, stmt); err != nil {

@@ -24,7 +24,9 @@ export function SelectDropdown({
   onSelect: (item: SelectItem) => void;
   onClear?: () => void;
   renderRight?: (item: SelectItem) => React.ReactNode;
-  renderSelectedRight?: (item: SelectItem | null) => React.ReactNode;
+  renderSelectedRight?: (
+    item: SelectItem | null | undefined,
+  ) => React.ReactNode;
   addLabel?: string;
   onAddNew?: () => void | Promise<void>;
 }) {
@@ -57,7 +59,7 @@ export function SelectDropdown({
         <span className={`select-dropdown-label ${selected ? "" : "muted"}`}>
           {selected ? selected.label : placeholder}
         </span>
-        {renderSelectedRight?.(selected)}
+        {renderSelectedRight?.(selected ?? null)}
         <span className="select-dropdown-chevron">{open ? "▼" : "▶"}</span>
       </button>
       {open && (

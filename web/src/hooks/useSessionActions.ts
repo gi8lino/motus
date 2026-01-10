@@ -1,5 +1,5 @@
 import { startSession as startSessionApi } from "../api";
-import type { SessionState } from "../types";
+import type { AskConfirmOptions, SessionState } from "../types";
 import { buildSummary } from "../utils/summary";
 
 // UseSessionActionsArgs describes dependencies for session actions.
@@ -17,7 +17,10 @@ type UseSessionActionsArgs = {
     session?: SessionState;
   } | null>;
   historyReload: () => void;
-  askConfirm: (message: string) => Promise<boolean>;
+  askConfirm: (
+    message: string,
+    options?: AskConfirmOptions,
+  ) => Promise<boolean>;
   notify: (message: string) => Promise<void>;
 };
 
@@ -46,6 +49,7 @@ export function useSessionActions({
     if (session && !session.done) {
       const resume = await askConfirm(
         "You have an active session. Resume it instead?",
+        { confirmLabel: "Resume", cancelLabel: "New session" },
       );
       if (resume) {
         setSessionsView();

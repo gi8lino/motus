@@ -1,4 +1,6 @@
 import type { Exercise, WorkoutStep } from "../types";
+import { isDurationExercise } from "./exercise";
+import { STEP_TYPE_PAUSE } from "./step";
 
 // Format milliseconds into m:ss for clocks and labels.
 export function formatMillis(ms: number) {
@@ -15,7 +17,7 @@ export function formatExerciseLine(ex: Exercise) {
   const name = (ex.name || "").trim();
   const weight = (ex.weight || "").trim();
   const duration = (ex.duration || "").trim();
-  if (kind === "timed") {
+  if (isDurationExercise(kind)) {
     const displayName = name || "";
     if (!displayName && !duration) return "";
     let base = displayName || duration;
@@ -44,7 +46,7 @@ export function formatExercises(
     | (WorkoutStep & { elapsedMillis?: number; exercises?: any }),
 ) {
   // Pause steps never show exercise details.
-  if (step.type === "pause") return "";
+  if (step.type === STEP_TYPE_PAUSE) return "";
   const list = step.exercises || [];
   const parts = list
     // Filter empty entries so the UI doesn't show blank pills.

@@ -1,5 +1,12 @@
 import type { WorkoutStep } from "../types";
 import { parseDurationSeconds } from "./time";
+import {
+  EXERCISE_TYPE_COUNTDOWN,
+  EXERCISE_TYPE_REP,
+  EXERCISE_TYPE_STOPWATCH,
+  normalizeExerciseType,
+} from "./exercise";
+import { STEP_TYPE_SET } from "./step";
 
 // ExpandedWorkoutStep adds loop metadata for repeated steps.
 export type ExpandedWorkoutStep = WorkoutStep & {
@@ -22,26 +29,30 @@ export function expandWorkoutSteps(
     for (let loop = 0; loop < repeatCount; loop += 1) {
       const loopIndex = repeatCount > 1 ? loop + 1 : undefined;
       const loopTotal = repeatCount > 1 ? repeatCount : undefined;
-      if (step.type === "set" && step.exercises?.length) {
+      if (step.type === STEP_TYPE_SET && step.exercises?.length) {
         step.exercises.forEach((ex) => {
-          const kind = ex.type === "timed" ? "timed" : "rep";
+          const kind = normalizeExerciseType(ex.type);
           const baseName = ex.name || step.name;
           const usesStepTarget =
-            kind === "rep" &&
+            kind === EXERCISE_TYPE_REP &&
             (step.exercises?.length || 0) === 1 &&
             step.estimatedSeconds;
+          const durationSeconds = parseDurationSeconds(ex.duration);
+          const isDurationExercise =
+            kind === EXERCISE_TYPE_STOPWATCH ||
+            kind === EXERCISE_TYPE_COUNTDOWN;
           expanded.push({
             ...step,
             name: baseName,
             exercises: [ex],
-            estimatedSeconds:
-              kind === "timed"
-                ? parseDurationSeconds(ex.duration)
-                : usesStepTarget
-                  ? step.estimatedSeconds
-                  : undefined,
+            estimatedSeconds: isDurationExercise
+              ? durationSeconds
+              : usesStepTarget
+                ? step.estimatedSeconds
+                : undefined,
             loopIndex,
             loopTotal,
+            autoAdvance: kind === EXERCISE_TYPE_COUNTDOWN,
           });
         });
       } else {

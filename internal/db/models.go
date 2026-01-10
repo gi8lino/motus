@@ -28,21 +28,22 @@ type PauseOptions struct {
 
 // WorkoutStep defines a single part of the workout.
 type WorkoutStep struct {
-	ID                    string         `json:"id"`
-	WorkoutID             string         `json:"workoutId"`
-	Order                 int            `json:"order"`
-	Type                  string         `json:"type"`
-	Name                  string         `json:"name"`
-	EstimatedSeconds      int            `json:"estimatedSeconds"`
-	SoundKey              string         `json:"soundKey"`
-	Exercises             []StepExercise `json:"exercises"`
-	PauseOptions          PauseOptions   `json:"pauseOptions,omitempty"`
-	RepeatCount           int            `json:"repeatCount,omitempty"`
-	RepeatRestSeconds     int            `json:"repeatRestSeconds,omitempty"`
-	RepeatRestAfterLast   bool           `json:"repeatRestAfterLast,omitempty"`
-	RepeatRestSoundKey    string         `json:"repeatRestSoundKey,omitempty"`
-	RepeatRestAutoAdvance bool           `json:"repeatRestAutoAdvance,omitempty"`
-	CreatedAt             time.Time      `json:"createdAt"`
+	ID                    string          `json:"id"`
+	WorkoutID             string          `json:"workoutId"`
+	Order                 int             `json:"order"`
+	Type                  string          `json:"type"`
+	Name                  string          `json:"name"`
+	EstimatedSeconds      int             `json:"estimatedSeconds"`
+	SoundKey              string          `json:"soundKey"`
+	Subsets               []WorkoutSubset `json:"subsets"`
+	PauseOptions          PauseOptions    `json:"pauseOptions,omitempty"`
+	RepeatCount           int             `json:"repeatCount,omitempty"`
+	RepeatRestSeconds     int             `json:"repeatRestSeconds,omitempty"`
+	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast,omitempty"`
+	RepeatRestSoundKey    string          `json:"repeatRestSoundKey,omitempty"`
+	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance,omitempty"`
+
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // NormalizeRepeatSettings clamps and clears repeat rest settings for a step.
@@ -57,10 +58,21 @@ func (w *WorkoutStep) NormalizeRepeatSettings() {
 	}
 }
 
-// StepExercise represents a detailed exercise entry for a step.
-type StepExercise struct {
+type WorkoutSubset struct {
+	ID               string           `json:"id"`
+	StepID           string           `json:"stepId"`
+	Order            int              `json:"order"`
+	Name             string           `json:"name"`
+	EstimatedSeconds int              `json:"estimatedSeconds"`
+	SoundKey         string           `json:"soundKey"`
+	Superset         bool             `json:"superset"`
+	Exercises        []SubsetExercise `json:"exercises"`
+	CreatedAt        time.Time        `json:"createdAt"`
+}
+
+type SubsetExercise struct {
 	ID         string `json:"id"`
-	StepID     string `json:"stepId"`
+	SubsetID   string `json:"subsetId"`
 	Order      int    `json:"order"`
 	ExerciseID string `json:"exerciseId"`
 	Name       string `json:"name"`
@@ -68,6 +80,7 @@ type StepExercise struct {
 	Reps       string `json:"reps"`
 	Weight     string `json:"weight"`
 	Duration   string `json:"duration"`
+	SoundKey   string `json:"soundKey"`
 }
 
 // Exercise represents a reusable exercise catalog entry.

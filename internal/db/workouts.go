@@ -44,6 +44,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
 		step.NormalizeRepeatSettings()
+
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -80,7 +81,8 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 		); err != nil {
 			return nil, err
 		}
-		if err := s.insertStepExercises(ctx, tx, step.ID, step.Exercises); err != nil {
+
+		if err := s.insertStepSubsets(ctx, tx, step.ID, step.Subsets); err != nil {
 			return nil, err
 		}
 	}
@@ -151,8 +153,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 	defer rows.Close()
 
 	var steps []WorkoutStep
-	index := make(map[string]int)
-	// Collect step rows and index them for exercise hydration.
+	// Collect step rows.
 	for rows.Next() {
 		var st WorkoutStep
 		if err := rows.Scan(
@@ -177,7 +178,6 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			st.RepeatCount = 1
 		}
 		steps = append(steps, st)
-		index[st.ID] = len(steps) - 1
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -186,44 +186,99 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 		return steps, nil
 	}
 
-	exRows, err := s.pool.Query(ctx, `
-		SELECT e.id, e.step_id, e.exercise_order, e.exercise_id, e.name, e.exercise_type, e.reps, e.weight, e.duration
-		FROM workout_step_exercises e
-		JOIN workout_steps s ON e.step_id = s.id
-		WHERE s.workout_id=$1
-		ORDER BY s.step_order, e.exercise_order
-	`, workoutID)
+	stepIDs := make([]string, 0, len(steps))
+	for _, step := range steps {
+		stepIDs = append(stepIDs, step.ID)
+	}
+
+	type subsetBuilder struct {
+		subset    WorkoutSubset
+		exercises []SubsetExercise
+	}
+	stepSubsets := make(map[string][]*subsetBuilder)
+	subsetByID := make(map[string]*subsetBuilder)
+	subsetRows, err := s.pool.Query(ctx, `
+		SELECT id, step_id, subset_order, name, estimated_seconds, sound_key, superset, created_at
+		FROM workout_subsets
+		WHERE step_id = ANY($1)
+		ORDER BY step_id, subset_order ASC
+	`, stepIDs)
 	if err != nil {
 		return nil, err
 	}
-	defer exRows.Close()
-	// Attach exercise rows to their parent steps.
-	for exRows.Next() {
-		var ex StepExercise
-		if err := exRows.Scan(
-			&ex.ID,
-			&ex.StepID,
-			&ex.Order,
-			&ex.ExerciseID,
-			&ex.Name,
-			&ex.Type,
-			&ex.Reps,
-			&ex.Weight,
-			&ex.Duration,
+	defer subsetRows.Close()
+	for subsetRows.Next() {
+		var b subsetBuilder
+		if err := subsetRows.Scan(
+			&b.subset.ID,
+			&b.subset.StepID,
+			&b.subset.Order,
+			&b.subset.Name,
+			&b.subset.EstimatedSeconds,
+			&b.subset.SoundKey,
+			&b.subset.Superset,
+			&b.subset.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
-		if ex.Type == "" {
-			ex.Type = "rep"
-		}
-		if idx, ok := index[ex.StepID]; ok {
-			steps[idx].Exercises = append(steps[idx].Exercises, ex)
-		}
+		stepSubsets[b.subset.StepID] = append(stepSubsets[b.subset.StepID], &b)
+		subsetByID[b.subset.ID] = &b
 	}
-	if err := exRows.Err(); err != nil {
+	if err := subsetRows.Err(); err != nil {
 		return nil, err
 	}
-	// Pause auto-advance is loaded from the dedicated column.
+
+	if len(subsetByID) > 0 {
+		subsetIDs := make([]string, 0, len(subsetByID))
+		for id := range subsetByID {
+			subsetIDs = append(subsetIDs, id)
+		}
+		exRows, err := s.pool.Query(ctx, `
+			SELECT id, subset_id, exercise_order, exercise_id, name, exercise_type, reps, weight, duration, sound_key
+			FROM workout_subset_exercises
+			WHERE subset_id = ANY($1)
+			ORDER BY subset_id, exercise_order
+		`, subsetIDs)
+		if err != nil {
+			return nil, err
+		}
+		defer exRows.Close()
+		for exRows.Next() {
+			var ex SubsetExercise
+			if err := exRows.Scan(
+				&ex.ID,
+				&ex.SubsetID,
+				&ex.Order,
+				&ex.ExerciseID,
+				&ex.Name,
+				&ex.Type,
+				&ex.Reps,
+				&ex.Weight,
+				&ex.Duration,
+				&ex.SoundKey,
+			); err != nil {
+				return nil, err
+			}
+			ex.Type = utils.NormalizeExerciseType(ex.Type)
+			if builder, ok := subsetByID[ex.SubsetID]; ok {
+				builder.exercises = append(builder.exercises, ex)
+			}
+		}
+		if err := exRows.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	for idx := range steps {
+		if builders, ok := stepSubsets[steps[idx].ID]; ok {
+			steps[idx].Subsets = make([]WorkoutSubset, len(builders))
+			for i, builder := range builders {
+				builder.subset.Exercises = builder.exercises
+				steps[idx].Subsets[i] = builder.subset
+			}
+		}
+	}
+
 	return steps, nil
 }
 
@@ -267,17 +322,12 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		return nil, err
 	}
 	if _, err := tx.Exec(ctx, `
-		DELETE FROM workout_step_exercises
-		WHERE step_id IN (SELECT id FROM workout_steps WHERE workout_id=$1)
-	`, w.ID); err != nil {
-		return nil, err
-	}
-	if _, err := tx.Exec(ctx, `
 		DELETE FROM workout_steps
 		WHERE workout_id=$1
 	`, w.ID); err != nil {
 		return nil, err
 	}
+
 	// Recreate steps after clearing previous definitions.
 	for idx := range w.Steps {
 		step := &w.Steps[idx]
@@ -286,6 +336,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		step.Order = idx
 		step.CreatedAt = time.Now().UTC()
 		step.NormalizeRepeatSettings()
+
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workout_steps(
 				id,
@@ -322,7 +373,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 		); err != nil {
 			return nil, err
 		}
-		if err := s.insertStepExercises(ctx, tx, step.ID, step.Exercises); err != nil {
+		if err := s.insertStepSubsets(ctx, tx, step.ID, step.Subsets); err != nil {
 			return nil, err
 		}
 	}
@@ -335,66 +386,24 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 
 // cloneSteps copies workout steps for template/workout reuse.
 func cloneSteps(src []WorkoutStep) []WorkoutStep {
-	// Deep-copy steps so templates can be reused safely.
 	result := make([]WorkoutStep, len(src))
-	// Deep-copy step and exercise slices.
 	for i := range src {
 		result[i] = src[i]
 		result[i].ID = ""
-		result[i].Exercises = make([]StepExercise, len(src[i].Exercises))
-		// Copy nested exercises for each step.
-		for j := range src[i].Exercises {
-			result[i].Exercises[j] = src[i].Exercises[j]
-			result[i].Exercises[j].ID = ""
-			result[i].Exercises[j].StepID = ""
+		result[i].Subsets = make([]WorkoutSubset, len(src[i].Subsets))
+		for j := range src[i].Subsets {
+			result[i].Subsets[j] = src[i].Subsets[j]
+			result[i].Subsets[j].ID = ""
+			result[i].Subsets[j].StepID = ""
+			result[i].Subsets[j].Exercises = make([]SubsetExercise, len(src[i].Subsets[j].Exercises))
+			for k := range src[i].Subsets[j].Exercises {
+				result[i].Subsets[j].Exercises[k] = src[i].Subsets[j].Exercises[k]
+				result[i].Subsets[j].Exercises[k].ID = ""
+				result[i].Subsets[j].Exercises[k].SubsetID = ""
+			}
 		}
 	}
 	return result
-}
-
-// insertStepExercises saves the exercise rows for a workout step.
-func (s *Store) insertStepExercises(ctx context.Context, tx pgx.Tx, stepID string, exercises []StepExercise) error {
-	// Insert normalized exercise rows for a step.
-	// Insert each exercise row for the step.
-	for idx := range exercises {
-		ex := exercises[idx]
-		name := strings.TrimSpace(ex.Name)
-		if isEmptyStepExercise(ex) {
-			continue
-		}
-		ex.ID = utils.NewID()
-		ex.StepID = stepID
-		ex.Order = idx
-		exType := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), "rep")
-
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO workout_step_exercises(
-				id,
-				step_id,
-				exercise_order,
-				exercise_id,
-				name,
-				exercise_type,
-				reps,
-				weight,
-				duration
-			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		`,
-			ex.ID,
-			ex.StepID,
-			ex.Order,
-			strings.TrimSpace(ex.ExerciseID),
-			name,
-			exType,
-			strings.TrimSpace(ex.Reps),
-			strings.TrimSpace(ex.Weight),
-			strings.TrimSpace(ex.Duration),
-		); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // DeleteWorkout removes a workout and cascades its steps.
@@ -413,9 +422,101 @@ func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
 	return nil
 }
 
-// isEmptyStepExercise returns true when an exercise row has no meaningful content.
-func isEmptyStepExercise(ex StepExercise) bool {
+// insertStepSubsets saves subset rows for a workout step.
+func (s *Store) insertStepSubsets(ctx context.Context, tx pgx.Tx, stepID string, subsets []WorkoutSubset) error {
+	for idx := range subsets {
+		sub := subsets[idx]
+		name := strings.TrimSpace(sub.Name)
+		sub.ID = utils.NewID()
+		sub.StepID = stepID
+		sub.Order = idx
+		sub.Name = name
+		sub.EstimatedSeconds = max(sub.EstimatedSeconds, 0)
+		sub.CreatedAt = time.Now().UTC()
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO workout_subsets(
+				id,
+				step_id,
+				subset_order,
+				name,
+				estimated_seconds,
+				sound_key,
+				superset,
+				created_at
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`,
+			sub.ID,
+			sub.StepID,
+			sub.Order,
+			sub.Name,
+			sub.EstimatedSeconds,
+			sub.SoundKey,
+			sub.Superset,
+			sub.CreatedAt,
+		); err != nil {
+			return err
+		}
+		if err := s.insertSubsetExercises(ctx, tx, sub.ID, sub.Exercises); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// insertSubsetExercises saves the exercise rows for a workout subset.
+func (s *Store) insertSubsetExercises(ctx context.Context, tx pgx.Tx, subsetID string, exercises []SubsetExercise) error {
+	for idx := range exercises {
+		ex := exercises[idx]
+		name := strings.TrimSpace(ex.Name)
+		if isEmptySubsetExercise(ex) && name == "" {
+			continue
+		}
+		ex.ID = utils.NewID()
+		ex.SubsetID = subsetID
+		ex.Order = idx
+		token := utils.NormalizeToken(ex.Type)
+		if token == "" {
+			token = utils.ExerciseTypeRep
+		}
+		exType := utils.NormalizeExerciseType(token)
+
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO workout_subset_exercises(
+				id,
+				subset_id,
+				exercise_order,
+				exercise_id,
+				name,
+				exercise_type,
+				reps,
+				weight,
+				duration,
+				sound_key
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`,
+			ex.ID,
+			ex.SubsetID,
+			ex.Order,
+			strings.TrimSpace(ex.ExerciseID),
+			name,
+			exType,
+			strings.TrimSpace(ex.Reps),
+			strings.TrimSpace(ex.Weight),
+			strings.TrimSpace(ex.Duration),
+			strings.TrimSpace(ex.SoundKey),
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// isEmptySubsetExercise returns true when an exercise row has no meaningful content.
+func isEmptySubsetExercise(ex SubsetExercise) bool {
 	return strings.TrimSpace(ex.Name) == "" &&
 		strings.TrimSpace(ex.Reps) == "" &&
+		strings.TrimSpace(ex.Weight) == "" &&
 		strings.TrimSpace(ex.Duration) == ""
 }

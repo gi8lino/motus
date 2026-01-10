@@ -39,19 +39,28 @@ type SessionState struct {
 
 // SessionStepState describes a single step in a running session.
 type SessionStepState struct {
-	ID               string       `json:"id"`
-	Name             string       `json:"name"`
-	Type             string       `json:"type"`
-	EstimatedSeconds int          `json:"estimatedSeconds"`
-	SoundURL         string       `json:"soundUrl"`
-	Running          bool         `json:"running"`
-	Completed        bool         `json:"completed"`
-	Current          bool         `json:"current"`
-	ElapsedMillis    int64        `json:"elapsedMillis"`
-	Exercises        []Exercise   `json:"exercises"`
-	PauseOptions     PauseOptions `json:"pauseOptions"`
-	LoopIndex        int          `json:"loopIndex,omitempty"`
-	LoopTotal        int          `json:"loopTotal,omitempty"`
+	ID                     string       `json:"id"`
+	Name                   string       `json:"name"`
+	Type                   string       `json:"type"`
+	EstimatedSeconds       int          `json:"estimatedSeconds"`
+	SoundURL               string       `json:"soundUrl"`
+	SoundKey               string       `json:"soundKey,omitempty"`
+	SubsetEstimatedSeconds int          `json:"subsetEstimatedSeconds,omitempty"`
+	Running                bool         `json:"running"`
+	Completed              bool         `json:"completed"`
+	Current                bool         `json:"current"`
+	ElapsedMillis          int64        `json:"elapsedMillis"`
+	Exercises              []Exercise   `json:"exercises"`
+	PauseOptions           PauseOptions `json:"pauseOptions"`
+	AutoAdvance            bool         `json:"autoAdvance"`
+	LoopIndex              int          `json:"loopIndex,omitempty"`
+	LoopTotal              int          `json:"loopTotal,omitempty"`
+
+	SubsetID           string `json:"subsetId,omitempty"`
+	Superset           bool   `json:"superset,omitempty"`
+	SubsetLabel        string `json:"subsetLabel,omitempty"`
+	HasMultipleSubsets bool   `json:"hasMultipleSubsets,omitempty"`
+	SetName            string `json:"setName,omitempty"`
 }
 
 // Exercise describes a single exercise inside a step.
@@ -61,6 +70,7 @@ type Exercise struct {
 	Reps     string `json:"reps"`
 	Weight   string `json:"weight"`
 	Duration string `json:"duration"`
+	SoundKey string `json:"soundKey,omitempty"`
 }
 
 // PauseOptions describes pause behavior for session steps.
@@ -126,66 +136,173 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 	}
 
 	for _, st := range workout.Steps {
-		// Guard: repeat count defaults to a single iteration.
 		repeatCount := max(st.RepeatCount, 1)
+		hasMultipleSubsets := len(st.Subsets) > 1
 		for loopIdx := range repeatCount {
-			// Copy exercise details so session steps are decoupled from workout storage.
-			exercises := make([]Exercise, 0, len(st.Exercises))
-			for _, ex := range st.Exercises {
-				exType := utils.DefaultIfZero(strings.TrimSpace(ex.Type), "rep")
-				exercises = append(exercises, Exercise{
-					Name:     ex.Name,
-					Type:     exType,
-					Reps:     ex.Reps,
-					Weight:   ex.Weight,
-					Duration: ex.Duration,
-				})
-			}
-			// Build a stable step id and suffix it when repeats are expanded.
-			stepID := st.ID
+			idBase := st.ID
 			if repeatCount > 1 {
-				stepID = fmt.Sprintf("%s-r%d", st.ID, loopIdx+1)
+				idBase = fmt.Sprintf("%s-r%d", st.ID, loopIdx+1)
 			}
-			stepState := SessionStepState{
-				ID:               stepID,
-				Name:             st.Name,
-				Type:             st.Type,
-				EstimatedSeconds: st.EstimatedSeconds,
-				SoundURL:         soundURLByKey(st.SoundKey),
-				Exercises:        exercises,
-				Current:          len(state.Steps) == 0,
-			}
-			// Attach round metadata so the UI can show "round x/y".
-			if repeatCount > 1 {
-				stepState.LoopIndex = loopIdx + 1
-				stepState.LoopTotal = repeatCount
-			}
-			// Preserve pause auto-advance signals from stored steps.
-			autoAdvance := st.Type == "pause" && st.PauseOptions.AutoAdvance
-			if autoAdvance {
-				stepState.PauseOptions = PauseOptions{AutoAdvance: true}
-			}
-			state.Steps = append(state.Steps, stepState)
 
-			// Inject a repeat rest pause after each loop (and optionally after the last).
+			if st.Type == utils.StepTypePause.String() {
+				pauseState := SessionStepState{
+					ID:               idBase,
+					Name:             st.Name,
+					Type:             utils.StepTypePause.String(),
+					EstimatedSeconds: st.EstimatedSeconds,
+					SoundURL:         soundURLByKey(st.SoundKey),
+					Current:          len(state.Steps) == 0,
+					SetName:          st.Name,
+				}
+				if st.PauseOptions.AutoAdvance {
+					pauseState.PauseOptions = PauseOptions{AutoAdvance: true}
+				}
+				if repeatCount > 1 {
+					pauseState.LoopIndex = loopIdx + 1
+					pauseState.LoopTotal = repeatCount
+				}
+				state.Steps = append(state.Steps, pauseState)
+				continue
+			}
+
+			for subsetIdx := range st.Subsets {
+				sub := st.Subsets[subsetIdx]
+				subsetID := sub.ID
+				subsetBase := fmt.Sprintf("%s-sub-%d", idBase, subsetIdx+1)
+				subsetLabel := strings.TrimSpace(sub.Name)
+				if sub.Superset {
+					stepState := SessionStepState{
+						ID:                     fmt.Sprintf("%s", subsetBase),
+						Name:                   sub.Name,
+						Type:                   st.Type,
+						EstimatedSeconds:       sub.EstimatedSeconds,
+						SoundURL:               soundURLByKey(sub.SoundKey),
+						SoundKey:               sub.SoundKey,
+						Exercises:              mapExercises(sub.Exercises),
+						Current:                len(state.Steps) == 0,
+						Superset:               true,
+						SubsetID:               subsetID,
+						SubsetLabel:            subsetLabel,
+						HasMultipleSubsets:     hasMultipleSubsets,
+						SetName:                st.Name,
+						SubsetEstimatedSeconds: sub.EstimatedSeconds,
+					}
+					if repeatCount > 1 {
+						stepState.LoopIndex = loopIdx + 1
+						stepState.LoopTotal = repeatCount
+					}
+					state.Steps = append(state.Steps, stepState)
+					continue
+				}
+
+				for exIdx, ex := range sub.Exercises {
+					stepID := fmt.Sprintf("%s-ex-%d", subsetBase, exIdx+1)
+					estimatedSeconds, autoAdvance := deriveExerciseDuration(ex, sub)
+					stepState := SessionStepState{
+						ID:                     stepID,
+						Name:                   ex.Name,
+						Type:                   st.Type,
+						EstimatedSeconds:       estimatedSeconds,
+						SoundURL:               soundURLByKey(sub.SoundKey),
+						SoundKey:               sub.SoundKey,
+						Exercises:              []Exercise{mapExercise(ex)},
+						Current:                len(state.Steps) == 0,
+						SubsetID:               subsetID,
+						SubsetLabel:            subsetLabel,
+						HasMultipleSubsets:     hasMultipleSubsets,
+						SetName:                st.Name,
+						SubsetEstimatedSeconds: sub.EstimatedSeconds,
+						AutoAdvance:            autoAdvance,
+					}
+					if repeatCount > 1 {
+						stepState.LoopIndex = loopIdx + 1
+						stepState.LoopTotal = repeatCount
+					}
+					state.Steps = append(state.Steps, stepState)
+				}
+			}
+
 			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
 				restState := SessionStepState{
 					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
 					Name:             "Pause",
-					Type:             "pause",
+					Type:             utils.StepTypePause.String(),
 					EstimatedSeconds: st.RepeatRestSeconds,
 					SoundURL:         soundURLByKey(st.RepeatRestSoundKey),
 					Current:          len(state.Steps) == 0,
+					SetName:          "Pause",
 				}
-				// Repeat rests can auto-advance independently of the main step.
 				if st.RepeatRestAutoAdvance {
 					restState.PauseOptions = PauseOptions{AutoAdvance: true}
+				}
+				if repeatCount > 1 {
+					restState.LoopIndex = loopIdx + 1
+					restState.LoopTotal = repeatCount
 				}
 				state.Steps = append(state.Steps, restState)
 			}
 		}
 	}
 	return state
+}
+
+func mapExercises(exercises []db.SubsetExercise) []Exercise {
+	if len(exercises) == 0 {
+		return nil
+	}
+	result := make([]Exercise, len(exercises))
+	for i, ex := range exercises {
+		result[i] = mapExercise(ex)
+	}
+	return result
+}
+
+func mapExercise(ex db.SubsetExercise) Exercise {
+	return Exercise{
+		Name:     ex.Name,
+		Type:     utils.NormalizeExerciseType(ex.Type),
+		Reps:     ex.Reps,
+		Weight:   ex.Weight,
+		Duration: ex.Duration,
+		SoundKey: ex.SoundKey,
+	}
+}
+
+func deriveExerciseDuration(
+	ex db.SubsetExercise,
+	subset db.WorkoutSubset,
+) (seconds int, autoAdvance bool) {
+	exType := utils.NormalizeExerciseType(ex.Type)
+	if exType == utils.ExerciseTypeCountdown || exType == utils.ExerciseTypeStopwatch {
+		dur := parseDurationSeconds(ex.Duration)
+		if dur <= 0 && subset.EstimatedSeconds > 0 {
+			dur = subset.EstimatedSeconds
+		}
+		return dur, exType == utils.ExerciseTypeCountdown && dur > 0
+	}
+	if exType == utils.ExerciseTypeRep && len(subset.Exercises) == 1 && subset.EstimatedSeconds > 0 {
+		return subset.EstimatedSeconds, false
+	}
+	return 0, false
+}
+
+func parseDurationSeconds(value string) int {
+	if trimmed := strings.TrimSpace(value); trimmed != "" {
+		if dur, err := time.ParseDuration(trimmed); err == nil {
+			if dur < 0 {
+				return 0
+			}
+			return int(dur / time.Second)
+		}
+	}
+	return 0
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // CreateState builds a session state from a workout id.

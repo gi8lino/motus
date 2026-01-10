@@ -108,7 +108,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		}}
 		api := &API{WorkoutsStore: store}
 		h := api.CreateWorkout()
-		body := strings.NewReader(`{"name":"Workout","steps":[{"type":"set","name":"Step"}]}`)
+		body := strings.NewReader(`{"name":"Workout","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts", body)
 		req.SetPathValue("id", "user@example.com")
 		req.Header.Set("X-User-ID", "user@example.com")
@@ -164,7 +164,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		}}
 		api := &API{WorkoutsStore: store}
 		h := api.ImportWorkout()
-		body := strings.NewReader(`{"userId":"user@example.com","workout":{"name":"Imported","steps":[{"type":"set","name":"Step"}]}}`)
+		body := strings.NewReader(`{"userId":"user@example.com","workout":{"name":"Imported","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts/import", body)
 		req.Header.Set("X-User-ID", "user@example.com")
 		rec := httptest.NewRecorder()
@@ -183,7 +183,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		}}
 		api := &API{WorkoutsStore: store}
 		h := api.UpdateWorkout()
-		body := strings.NewReader(`{"userId":"user@example.com","name":"Updated","steps":[{"type":"set","name":"Step"}]}`)
+		body := strings.NewReader(`{"userId":"user@example.com","name":"Updated","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/workouts/w1", body)
 		req.SetPathValue("id", "w1")
 		rec := httptest.NewRecorder()

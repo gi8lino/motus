@@ -24,6 +24,7 @@ type Options struct {
 	OverriddenValues  map[string]any    // Overridden values from environment
 	AdminEmail        string            // AdminEmail is the email address of the site admin
 	AdminPassword     string            // AdminPassword is the password for the site admin
+	CoreExercisesFile string            // Optional JSON file with core exercises to import
 }
 
 // ParseFlags parses flags and environment variables.
@@ -68,6 +69,10 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	tf.BoolVar(&opts.AutoCreateUsers, "auto-create-users", false, "Auto-create users when auth-header is enabled").
+		Value()
+
+	tf.StringVar(&opts.CoreExercisesFile, "core-exercises-file", "", "Path to a JSON file describing core exercises to seed at startup").
+		Placeholder("FILE").
 		Value()
 
 	// If set, the admin email and password are used to create a user on startup.

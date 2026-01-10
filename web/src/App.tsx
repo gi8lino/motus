@@ -32,6 +32,7 @@ import { useTemplateActions } from "./hooks/useTemplateActions";
 import { useProfileActions } from "./hooks/useProfileActions";
 import { useWorkoutFormActions } from "./hooks/useWorkoutFormActions";
 import { useSessionActions } from "./hooks/useSessionActions";
+import { STEP_TYPE_PAUSE } from "./utils/step";
 import type {
   CatalogExercise,
   SessionHistoryItem,
@@ -211,6 +212,8 @@ export default function App() {
     title?: string;
     defaultValue?: string;
     placeholder?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
     resolve: (value: any) => void;
   } | null>(null);
   const [dialogValue, setDialogValue] = useState("");
@@ -439,12 +442,21 @@ export default function App() {
   );
 
   // askConfirm shows a confirmation dialog.
+  type ConfirmDialogOptions = {
+    title?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+  };
+
   const askConfirm = useCallback(
-    (message: string) =>
+    (message: string, options?: ConfirmDialogOptions) =>
       new Promise<boolean>((resolve) => {
         setDialog({
           type: "confirm",
           message,
+          title: options?.title,
+          confirmLabel: options?.confirmLabel,
+          cancelLabel: options?.cancelLabel,
           resolve: (val: boolean) => {
             resolve(val);
             setDialog(null);
@@ -669,7 +681,8 @@ export default function App() {
     if (!session || !session.running) return;
     if (!currentStep || !currentStep.estimatedSeconds) return;
     const isAutoAdvance =
-      (currentStep.type === "pause" && currentStep.pauseOptions?.autoAdvance) ||
+      (currentStep.type === STEP_TYPE_PAUSE &&
+        currentStep.pauseOptions?.autoAdvance) ||
       Boolean(currentStep.autoAdvance);
     if (!isAutoAdvance) return;
     const threshold = currentStep.estimatedSeconds * 1000;
@@ -1013,7 +1026,7 @@ export default function App() {
                     setDialog(null);
                   }}
                 >
-                  Cancel
+                  {dialog.cancelLabel || "Cancel"}
                 </button>
               )}
               <button
@@ -1029,11 +1042,12 @@ export default function App() {
                   setDialog(null);
                 }}
               >
-                {dialog.type === "confirm"
-                  ? "Confirm"
-                  : dialog.type === "prompt"
-                    ? "Save"
-                    : "OK"}
+                {dialog.confirmLabel ||
+                  (dialog.type === "confirm"
+                    ? "Confirm"
+                    : dialog.type === "prompt"
+                      ? "Save"
+                      : "OK")}
               </button>
             </div>
           </div>
