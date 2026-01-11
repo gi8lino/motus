@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	domainworkouts "github.com/gi8lino/motus/internal/domain/workouts"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
@@ -16,16 +17,16 @@ func TestNormalizeSteps(t *testing.T) {
 	t.Run("Normalizes steps", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := []StepInput{
+		inputs := []domainworkouts.StepInput{
 			{
 				Type: " set ",
 				Name: "  Squats ",
-				Subsets: []SubsetInput{
+				Subsets: []domainworkouts.SubsetInput{
 					{
 						Name:     "Main",
 						Duration: "15s",
 						SoundKey: "beep",
-						Exercises: []ExerciseInput{
+						Exercises: []domainworkouts.ExerciseInput{
 							{Name: "Squat", Reps: "10", Weight: "", Type: "rep"},
 						},
 					},
@@ -40,11 +41,11 @@ func TestNormalizeSteps(t *testing.T) {
 			{
 				Type: "set",
 				Name: "Warmup",
-				Subsets: []SubsetInput{
+				Subsets: []domainworkouts.SubsetInput{
 					{
 						Name:     "Jog",
 						Duration: "20s",
-						Exercises: []ExerciseInput{
+						Exercises: []domainworkouts.ExerciseInput{
 							{Name: "Jog", Duration: "20s", Type: "stopwatch"},
 						},
 					},
@@ -52,7 +53,7 @@ func TestNormalizeSteps(t *testing.T) {
 			},
 		}
 
-		steps, err := NormalizeSteps(inputs, func(key string) bool {
+		steps, err := domainworkouts.NormalizeSteps(inputs, func(key string) bool {
 			return key == "beep" || key == ""
 		})
 		require.NoError(t, err)
@@ -84,14 +85,14 @@ func TestNormalizeSteps(t *testing.T) {
 	t.Run("Rejects invalid sound", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NormalizeSteps([]StepInput{{
+		_, err := domainworkouts.NormalizeSteps([]domainworkouts.StepInput{{
 			Type:     "set",
 			Name:     "Lift",
 			SoundKey: "nope",
-			Subsets: []SubsetInput{
+			Subsets: []domainworkouts.SubsetInput{
 				{
 					Name: "Lift",
-					Exercises: []ExerciseInput{
+					Exercises: []domainworkouts.ExerciseInput{
 						{Name: "Lift", Reps: "5"},
 					},
 				},
@@ -105,14 +106,14 @@ func TestNormalizeSteps(t *testing.T) {
 	t.Run("Rejects invalid duration", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NormalizeSteps([]StepInput{{
+		_, err := domainworkouts.NormalizeSteps([]domainworkouts.StepInput{{
 			Type:     "set",
 			Name:     "Lift",
 			Duration: "nope",
-			Subsets: []SubsetInput{
+			Subsets: []domainworkouts.SubsetInput{
 				{
 					Name: "Lift",
-					Exercises: []ExerciseInput{
+					Exercises: []domainworkouts.ExerciseInput{
 						{Name: "Lift", Reps: "5"},
 					},
 				},

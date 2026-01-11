@@ -85,7 +85,7 @@ func TestServiceList(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}}
+		svc := New(&fakeStore{})
 		_, err := svc.List(context.Background(), " ")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -98,9 +98,11 @@ func TestServiceCreate(t *testing.T) {
 	t.Run("User not found", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{getUserFn: func(context.Context, string) (*db.User, error) {
-			return nil, nil
-		}}}
+		svc := New(&fakeStore{
+			getUserFn: func(context.Context, string) (*db.User, error) {
+				return nil, nil
+			},
+		})
 		_, err := svc.Create(context.Background(), "user", "Burpee", false)
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorNotFound))
@@ -110,7 +112,7 @@ func TestServiceCreate(t *testing.T) {
 		t.Parallel()
 
 		called := false
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user", IsAdmin: false}, nil
 			},
@@ -118,7 +120,7 @@ func TestServiceCreate(t *testing.T) {
 				called = true
 				return nil, nil
 			},
-		}}
+		})
 		_, err := svc.Create(context.Background(), "user", "Burpee", true)
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -132,11 +134,11 @@ func TestServiceUpdate(t *testing.T) {
 	t.Run("Requires admin", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user", IsAdmin: false}, nil
 			},
-		}}
+		})
 		_, err := svc.Update(context.Background(), "user", "core", "Burpee")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -145,7 +147,7 @@ func TestServiceUpdate(t *testing.T) {
 	t.Run("Admin can rename", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "admin", IsAdmin: true}, nil
 			},
@@ -155,7 +157,7 @@ func TestServiceUpdate(t *testing.T) {
 			renameExerciseFn: func(context.Context, string, string) (*db.Exercise, error) {
 				return &db.Exercise{ID: "ex", Name: "Burpee 2"}, nil
 			},
-		}}
+		})
 		updated, err := svc.Update(context.Background(), "admin", "ex", "Burpee 2")
 		require.NoError(t, err)
 		assert.Equal(t, "Burpee 2", updated.Name)
@@ -168,11 +170,11 @@ func TestServiceDelete(t *testing.T) {
 	t.Run("Requires admin", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user", IsAdmin: false}, nil
 			},
-		}}
+		})
 		err := svc.Delete(context.Background(), "user", "core")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -181,7 +183,7 @@ func TestServiceDelete(t *testing.T) {
 	t.Run("Admin can delete", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "admin", IsAdmin: true}, nil
 			},
@@ -191,7 +193,7 @@ func TestServiceDelete(t *testing.T) {
 			deleteExerciseFn: func(context.Context, string) error {
 				return nil
 			},
-		}}
+		})
 		err := svc.Delete(context.Background(), "admin", "ex")
 		require.NoError(t, err)
 	})
@@ -203,9 +205,9 @@ func TestServiceBackfill(t *testing.T) {
 	t.Run("Internal error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{backfillExercisesFn: func(context.Context) error {
+		svc := New(&fakeStore{backfillExercisesFn: func(context.Context) error {
 			return errors.New("boom")
-		}}}
+		}})
 		err := svc.Backfill(context.Background())
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorInternal))

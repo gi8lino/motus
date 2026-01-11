@@ -9,6 +9,7 @@ import type {
 import { formatMillis } from "../utils/format";
 import { resolveMediaUrl } from "../utils/basePath";
 import { parseDurationSeconds } from "../utils/time";
+import { logTimerEvent } from "../utils/timerLogger";
 import { SessionCard } from "./SessionCard";
 import { WorkoutSelect } from "./WorkoutSelect";
 
@@ -284,7 +285,9 @@ export function SessionsView({
     const allowStepSound = !currentStep.soundPlayed;
 
     if (hasSubsetTarget && currentStep.subsetId && subsetSoundUrl) {
-      const subsetInstanceId = `${currentStep.subsetId}-${currentStep.loopIndex ?? 0}`;
+      const subsetInstanceId = `${currentStep.subsetId}-${
+        currentStep.loopIndex ?? 0
+      }`;
       if (!subsetSoundPlayedRef.current.has(subsetInstanceId)) {
         const subsetTargetMs = subsetTargetSeconds * 1000;
         const leadMs = Math.min(
@@ -299,7 +302,16 @@ export function SessionsView({
           schedule.targetMs !== subsetTargetMs ||
           schedule.soundUrl !== subsetSoundUrl
         ) {
+          const subsetLogBase = {
+            sessionId: session?.sessionId,
+            stepId: currentStep.id,
+            subsetId: currentStep.subsetId,
+            loopIndex: currentStep.loopIndex ?? 0,
+            targetMs: subsetTargetMs,
+            soundUrl: subsetSoundUrl,
+          };
           if (subsetSoundTimerRef.current) {
+            logTimerEvent("subset-sound-cancelled", subsetLogBase);
             clearTimeout(subsetSoundTimerRef.current);
             subsetSoundTimerRef.current = null;
           }
@@ -328,6 +340,7 @@ export function SessionsView({
           const remaining = triggerMs - subsetElapsedMs;
           const triggerAt = Date.now() + Math.max(remaining, 0);
           const play = () => {
+            logTimerEvent("subset-sound-fired", subsetLogBase);
             new Audio(subsetSoundUrl).play().catch(() => {});
             subsetSoundTimerRef.current = null;
             subsetSoundPlayedRef.current.add(subsetInstanceId);
@@ -337,6 +350,11 @@ export function SessionsView({
           } else {
             subsetSoundTimerRef.current = window.setTimeout(play, remaining);
             subsetSoundScheduleRef.current.triggerAt = triggerAt;
+            logTimerEvent("subset-sound-scheduled", {
+              ...subsetLogBase,
+              remainingMs: remaining,
+              triggerAt,
+            });
           }
         }
       }
@@ -353,6 +371,13 @@ export function SessionsView({
         currentStep.id || `${session.sessionId}-${session.currentIndex}`;
       const schedule = stepSoundScheduleRef.current;
       const nowTs = Date.now();
+      const stepLogBase = {
+        sessionId: session?.sessionId,
+        stepId: currentStep.id,
+        soundUrl: exerciseSoundUrl,
+        targetMs: stepTargetMs,
+        loopIndex: currentStep.loopIndex ?? 0,
+      };
       if (
         !stepSoundTimerRef.current ||
         schedule.key !== scheduleKey ||
@@ -366,6 +391,7 @@ export function SessionsView({
             schedule.triggerAt > 0 &&
             schedule.triggerAt <= nowTs + 150;
           if (!shouldKeep) {
+            logTimerEvent("step-sound-cancelled", stepLogBase);
             clearTimeout(stepSoundTimerRef.current);
             stepSoundTimerRef.current = null;
           }
@@ -379,6 +405,7 @@ export function SessionsView({
         const remaining = triggerMs - elapsedRef.current;
         const triggerAt = nowTs + Math.max(remaining, 0);
         const play = () => {
+          logTimerEvent("step-sound-fired", stepLogBase);
           new Audio(exerciseSoundUrl).play().catch(() => {});
           stepSoundTimerRef.current = null;
           markSoundPlayed();
@@ -386,8 +413,15 @@ export function SessionsView({
         if (remaining <= 0) {
           play();
         } else {
-          stepSoundTimerRef.current = window.setTimeout(play, remaining);
+          stepSoundTimerRef.current = window.setTimeout(() => {
+            play();
+          }, remaining);
           stepSoundScheduleRef.current.triggerAt = triggerAt;
+          logTimerEvent("step-sound-scheduled", {
+            ...stepLogBase,
+            remainingMs: remaining,
+            triggerAt,
+          });
         }
       }
     }

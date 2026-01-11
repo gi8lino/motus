@@ -1,96 +1,34 @@
 package templates
 
 import (
-	"context"
-	"strings"
-
-	"github.com/gi8lino/motus/internal/db"
-	"github.com/gi8lino/motus/internal/service"
+	domain "github.com/gi8lino/motus/internal/domain/templates"
+	servicepkg "github.com/gi8lino/motus/internal/service"
 )
 
-// Store defines the persistence methods needed by the templates service.
-type Store interface {
-	// ListTemplates returns all shared workout templates.
-	ListTemplates(ctx context.Context) ([]db.Workout, error)
-	// CreateTemplateFromWorkout stores a workout as a template.
-	CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error)
-	// WorkoutWithSteps loads a workout and its steps.
-	WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error)
-	// CreateWorkoutFromTemplate clones a template for a user.
-	CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error)
-}
+type Store = domain.Store
 
-// Service coordinates template operations.
+// Service orchestrates template use cases.
 type Service struct {
-	Store Store
+	manager *domain.Manager
 }
 
-// New creates a new templates service.
+// New builds a template service.
 func New(store Store) *Service {
-	return &Service{Store: store}
+	return &Service{manager: domain.NewManager(store)}
 }
 
-// List returns all shared templates.
-func (s *Service) List(ctx context.Context) ([]db.Workout, error) {
-	templates, err := s.Store.ListTemplates(ctx)
-	if err != nil {
-		return nil, service.NewError(service.ErrorInternal, err.Error())
-	}
-
-	return templates, nil
-}
-
-// Create marks a workout as a template.
-func (s *Service) Create(ctx context.Context, workoutID, name string) (*db.Workout, error) {
-	workoutID = strings.TrimSpace(workoutID)
-	if workoutID == "" {
-		return nil, service.NewError(service.ErrorValidation, "workoutId is required")
-	}
-
-	// Convert the workout into a reusable template.
-	template, err := s.Store.CreateTemplateFromWorkout(ctx, workoutID, name)
-	if err != nil {
-		return nil, service.NewError(service.ErrorValidation, err.Error())
-	}
-
-	return template, nil
-}
-
-// Get returns a template by id.
-func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return nil, service.NewError(service.ErrorValidation, "template id is required")
-	}
-
-	template, err := s.Store.WorkoutWithSteps(ctx, id)
-	if err != nil || !template.IsTemplate {
-		if err == nil {
-			return nil, service.NewError(service.ErrorNotFound, "template not found")
+// mapError translates domain errors into service errors for templates.
+func (s *Service) mapError(err error) error {
+	return servicepkg.MapDomainError(err, func(kind int) (servicepkg.ErrorKind, bool) {
+		switch domain.ErrorKind(kind) {
+		case domain.KindValidation:
+			return servicepkg.ErrorValidation, true
+		case domain.KindNotFound:
+			return servicepkg.ErrorNotFound, true
+		case domain.KindInternal:
+			return servicepkg.ErrorInternal, true
+		default:
+			return servicepkg.ErrorInternal, false
 		}
-		return nil, service.NewError(service.ErrorNotFound, err.Error())
-	}
-
-	return template, nil
-}
-
-// Apply clones a template into a new workout.
-func (s *Service) Apply(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
-	templateID = strings.TrimSpace(templateID)
-	if templateID == "" {
-		return nil, service.NewError(service.ErrorValidation, "template id is required")
-	}
-
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
-		return nil, service.NewError(service.ErrorValidation, "userId is required")
-	}
-
-	name = strings.TrimSpace(name)
-	workout, err := s.Store.CreateWorkoutFromTemplate(ctx, templateID, userID, name)
-	if err != nil {
-		return nil, service.NewError(service.ErrorValidation, err.Error())
-	}
-
-	return workout, nil
+	})
 }
