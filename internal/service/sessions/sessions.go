@@ -246,6 +246,7 @@ func SessionStateFromWorkout(workout *db.Workout, soundURLByKey func(string) str
 	return state
 }
 
+// mapExercises maps a slice of SubsetExercises to a slice of Exercises.
 func mapExercises(exercises []db.SubsetExercise) []Exercise {
 	if len(exercises) == 0 {
 		return nil
@@ -257,6 +258,7 @@ func mapExercises(exercises []db.SubsetExercise) []Exercise {
 	return result
 }
 
+// mapExercise converts a subset exercise row to the session API model.
 func mapExercise(ex db.SubsetExercise) Exercise {
 	return Exercise{
 		Name:     ex.Name,
@@ -268,6 +270,7 @@ func mapExercise(ex db.SubsetExercise) Exercise {
 	}
 }
 
+// deriveExerciseDuration determines the expected duration of an exercise and whether it auto-advances.
 func deriveExerciseDuration(
 	ex db.SubsetExercise,
 	subset db.WorkoutSubset,
@@ -286,6 +289,7 @@ func deriveExerciseDuration(
 	return 0, false
 }
 
+// parseDurationSeconds converts a duration string into seconds, rejecting negatives.
 func parseDurationSeconds(value string) int {
 	if trimmed := strings.TrimSpace(value); trimmed != "" {
 		if dur, err := time.ParseDuration(trimmed); err == nil {

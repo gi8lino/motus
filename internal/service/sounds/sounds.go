@@ -31,7 +31,7 @@ var lookup = func() map[string]Option {
 	return m
 }()
 
-// soundURLByKey resolves a sound key to its file path.
+// URLByKey resolves a sound key to its file path.
 func URLByKey(key string) string {
 	if opt, ok := lookup[key]; ok {
 		return opt.File
