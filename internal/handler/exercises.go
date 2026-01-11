@@ -8,7 +8,7 @@ import (
 
 // ListExercises returns the exercise catalog for the current user.
 func (a *API) ListExercises() http.HandlerFunc {
-	svc := exercises.New(a.Store)
+	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
@@ -28,7 +28,7 @@ func (a *API) ListExercises() http.HandlerFunc {
 
 // CreateExercise adds a new exercise to the catalog.
 func (a *API) CreateExercise() http.HandlerFunc {
-	svc := exercises.New(a.Store)
+	svc := exercises.New(a.ExercisesStore)
 	type createExerciseRequest struct {
 		Name   string `json:"name"`
 		IsCore bool   `json:"isCore"`
@@ -58,7 +58,7 @@ func (a *API) CreateExercise() http.HandlerFunc {
 
 // UpdateExercise renames an exercise or creates a personal copy.
 func (a *API) UpdateExercise() http.HandlerFunc {
-	svc := exercises.New(a.Store)
+	svc := exercises.New(a.ExercisesStore)
 	type updateExerciseRequest struct {
 		Name string `json:"name"`
 	}
@@ -89,7 +89,7 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 
 // DeleteExercise removes an exercise from the catalog.
 func (a *API) DeleteExercise() http.HandlerFunc {
-	svc := exercises.New(a.Store)
+	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
@@ -110,7 +110,7 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 
 // BackfillExercises rebuilds core exercises from workout data.
 func (a *API) BackfillExercises() http.HandlerFunc {
-	svc := exercises.New(a.Store)
+	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := svc.Backfill(r.Context()); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})

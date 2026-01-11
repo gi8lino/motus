@@ -9,7 +9,7 @@ import (
 // GetUsers lists all users.
 func (a *API) GetUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := a.Store.ListUsers(r.Context())
+		users, err := a.UsersStore.ListUsers(r.Context())
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
@@ -21,7 +21,7 @@ func (a *API) GetUsers() http.HandlerFunc {
 
 // CreateUser registers a new local user.
 func (a *API) CreateUser() http.HandlerFunc {
-	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	svc := users.New(a.UsersStore, a.AuthHeader, a.AllowRegistration)
 	type createUserRequest struct {
 		Email     string `json:"email"`
 		AvatarURL string `json:"avatarUrl"`
@@ -46,7 +46,7 @@ func (a *API) CreateUser() http.HandlerFunc {
 
 // UpdateUserRole toggles admin access.
 func (a *API) UpdateUserRole() http.HandlerFunc {
-	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	svc := users.New(a.UsersStore, a.AuthHeader, a.AllowRegistration)
 	type updateUserRoleRequest struct {
 		IsAdmin bool `json:"isAdmin"`
 	}
@@ -70,7 +70,7 @@ func (a *API) UpdateUserRole() http.HandlerFunc {
 
 // Login validates credentials when using local authentication.
 func (a *API) Login() http.HandlerFunc {
-	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	svc := users.New(a.UsersStore, a.AuthHeader, a.AllowRegistration)
 	type loginRequest struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -94,7 +94,7 @@ func (a *API) Login() http.HandlerFunc {
 
 // ChangePassword updates the password for the current user.
 func (a *API) ChangePassword() http.HandlerFunc {
-	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	svc := users.New(a.UsersStore, a.AuthHeader, a.AllowRegistration)
 	type changePasswordRequest struct {
 		CurrentPassword string `json:"currentPassword"`
 		NewPassword     string `json:"newPassword"`
@@ -123,7 +123,7 @@ func (a *API) ChangePassword() http.HandlerFunc {
 
 // UpdateUserName updates the current user's display name.
 func (a *API) UpdateUserName() http.HandlerFunc {
-	svc := users.New(a.Store, a.AuthHeader, a.AllowRegistration)
+	svc := users.New(a.UsersStore, a.AuthHeader, a.AllowRegistration)
 	type updateUserNameRequest struct {
 		Name string `json:"name"`
 	}

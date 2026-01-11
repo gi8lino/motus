@@ -353,6 +353,12 @@ main {
   cursor: pointer;
 }
 
+.btn.key-cooldown {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .btn.primary {
   border-color: var(--primary);
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -437,8 +443,22 @@ select {
 .step-top {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
+}
+
+.step-top .btn.icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-top .trash-icon {
+  width: 32px;
+  height: 32px;
 }
 
 .chevron {
@@ -469,6 +489,7 @@ select {
     minmax(110px, 0.7fr)
     minmax(90px, 0.6fr)
     minmax(90px, 0.6fr)
+    minmax(32px, 0.2fr)
     36px;
   gap: 8px;
   align-items: stretch;
@@ -504,9 +525,150 @@ select {
 
 .exercise-row .field.action.compact .btn.icon {
   height: 32px;
-  width: 28px;
+  width: 32px;
   padding: 0;
   border-radius: 8px;
+  margin-top: 6px;
+}
+
+.exercise-row .field.action.compact.sound {
+  position: relative;
+}
+
+.exercise-row .field.action.compact .btn.icon,
+.exercise-row .field.action.compact .btn.icon:hover,
+.exercise-row .field.action.compact .btn.icon:focus {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn.icon.delete {
+  color: var(--muted);
+}
+
+.btn.icon.delete:hover,
+.btn.icon.delete:focus {
+  color: var(--text);
+}
+
+.btn.icon.delete.icon-only {
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  height: auto;
+}
+
+.subset-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exercise-row .field.action.compact .btn.tiny {
+  padding: 4px 6px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.exercise-sound-button {
+  position: relative;
+  width: 24px;
+  min-width: 0;
+  height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+  text-align: center;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exercise-sound-button .sound-icon {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+.exercise-sound-button.is-override {
+  color: var(--primary);
+}
+
+.trash-icon {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+.exercise-row .btn.icon .trash-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.exercise-sound-button::after {
+  content: attr(data-label);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  z-index: 40;
+}
+
+.exercise-sound-button:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sound-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  z-index: 30;
+}
+
+.sound-popover-title {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.sound-popover-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sound-popover-option:hover {
+  background: var(--step-bg);
 }
 
 .mobile-only {
@@ -944,4 +1106,118 @@ select {
   max-height: 90vh;
   overflow: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+/* --- Session: replace row list with set cards --- */
+
+.session-steps-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Each step becomes a card */
+.set-card {
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  border-left: 1px solid var(--outline);
+}
+
+/* Current step highlight */
+.set-card.current {
+  border-color: var(--primary);
+  background: rgba(76, 201, 240, 0.08);
+  border-left: 6px solid var(--primary);
+}
+
+/* Pause card slightly muted */
+.set-card.pause {
+  opacity: 0.92;
+}
+
+/* Header line should be ONLY set name (with optional badges) */
+.set-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.set-header strong {
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+
+/* Subcard holds meta + pills */
+.exercise-pills-container {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exercise-pills-container .subset-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.exercise-pills-container.is-superset {
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(76, 201, 240, 0.04);
+}
+
+.exercise-pills-container.is-normal {
+  padding-top: 4px;
+}
+
+/* Compact pills like your example */
+.exercise-pills.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Header = exactly what you want */
+.set-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.set-header strong {
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+
+/* Badges */
+.set-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid var(--outline);
+  background: rgba(255, 255, 255, 0.03);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.set-badge.superset {
+  border-color: rgba(76, 201, 240, 0.55);
+  background: rgba(76, 201, 240, 0.12);
+}
+
+.set-badge.pause {
+  color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.12);
 }

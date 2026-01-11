@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 func TestNormalizeSteps(t *testing.T) {
@@ -17,12 +18,17 @@ func TestNormalizeSteps(t *testing.T) {
 
 		inputs := []StepInput{
 			{
-				Type:     " set ",
-				Name:     "  Squats ",
-				Duration: "15s",
-				SoundKey: "beep",
-				Exercises: []ExerciseInput{
-					{Name: "Squat", Reps: "10", Weight: "", Type: "rep"},
+				Type: " set ",
+				Name: "  Squats ",
+				Subsets: []SubsetInput{
+					{
+						Name:     "Main",
+						Duration: "15s",
+						SoundKey: "beep",
+						Exercises: []ExerciseInput{
+							{Name: "Squat", Reps: "10", Weight: "", Type: "rep"},
+						},
+					},
 				},
 			},
 			{
@@ -32,11 +38,16 @@ func TestNormalizeSteps(t *testing.T) {
 				PauseOptions: db.PauseOptions{AutoAdvance: true},
 			},
 			{
-				Type:     "set",
-				Name:     "Warmup",
-				Duration: "20s",
-				Exercises: []ExerciseInput{
-					{Name: "Jog", Duration: "20s", Type: "timed"},
+				Type: "set",
+				Name: "Warmup",
+				Subsets: []SubsetInput{
+					{
+						Name:     "Jog",
+						Duration: "20s",
+						Exercises: []ExerciseInput{
+							{Name: "Jog", Duration: "20s", Type: "stopwatch"},
+						},
+					},
 				},
 			},
 		}
@@ -48,27 +59,44 @@ func TestNormalizeSteps(t *testing.T) {
 		require.Len(t, steps, 3)
 
 		setStep := steps[0]
-		assert.Equal(t, "set", setStep.Type)
+		require.Len(t, setStep.Subsets, 1)
+		assert.Equal(t, string(utils.StepTypeSet), setStep.Type)
 		assert.Equal(t, "Squats", setStep.Name)
-		require.Len(t, setStep.Exercises, 1)
-		assert.Equal(t, "Squat", setStep.Exercises[0].Name)
-		assert.Equal(t, "10", setStep.Exercises[0].Reps)
+		sub := setStep.Subsets[0]
+		assert.Equal(t, "Main", sub.Name)
+		require.Len(t, sub.Exercises, 1)
+		assert.Equal(t, "Squat", sub.Exercises[0].Name)
+		assert.Equal(t, "10", sub.Exercises[0].Reps)
 
 		pauseStep := steps[1]
-		assert.Equal(t, "pause", pauseStep.Type)
+		assert.Equal(t, string(utils.StepTypePause), pauseStep.Type)
 		assert.True(t, pauseStep.PauseOptions.AutoAdvance)
-		assert.Empty(t, pauseStep.Exercises)
+		assert.Empty(t, pauseStep.Subsets)
 
-		timedStep := steps[2]
-		assert.Equal(t, "set", timedStep.Type)
-		require.Len(t, timedStep.Exercises, 1)
-		assert.Equal(t, "timed", timedStep.Exercises[0].Type)
+		warmupStep := steps[2]
+		assert.Equal(t, string(utils.StepTypeSet), warmupStep.Type)
+		require.Len(t, warmupStep.Subsets, 1)
+		assert.Equal(t, "Jog", warmupStep.Subsets[0].Name)
+		require.Len(t, warmupStep.Subsets[0].Exercises, 1)
+		assert.Equal(t, "stopwatch", warmupStep.Subsets[0].Exercises[0].Type)
 	})
 
 	t.Run("Rejects invalid sound", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NormalizeSteps([]StepInput{{Type: "set", Name: "Lift", SoundKey: "nope"}}, func(key string) bool {
+		_, err := NormalizeSteps([]StepInput{{
+			Type:     "set",
+			Name:     "Lift",
+			SoundKey: "nope",
+			Subsets: []SubsetInput{
+				{
+					Name: "Lift",
+					Exercises: []ExerciseInput{
+						{Name: "Lift", Reps: "5"},
+					},
+				},
+			},
+		}}, func(key string) bool {
 			return key == "beep"
 		})
 		require.Error(t, err)
@@ -77,7 +105,19 @@ func TestNormalizeSteps(t *testing.T) {
 	t.Run("Rejects invalid duration", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NormalizeSteps([]StepInput{{Type: "set", Name: "Lift", Duration: "nope"}}, func(key string) bool { return true })
+		_, err := NormalizeSteps([]StepInput{{
+			Type:     "set",
+			Name:     "Lift",
+			Duration: "nope",
+			Subsets: []SubsetInput{
+				{
+					Name: "Lift",
+					Exercises: []ExerciseInput{
+						{Name: "Lift", Reps: "5"},
+					},
+				},
+			},
+		}}, func(key string) bool { return true })
 		require.Error(t, err)
 	})
 }

@@ -3,7 +3,7 @@ import {
   getWorkout,
   updateWorkout as updateWorkoutApi,
 } from "../api";
-import type { Workout, WorkoutStep } from "../types";
+import type { AskConfirmOptions, Workout, WorkoutStep } from "../types";
 
 // UseWorkoutFormActionsArgs describes dependencies for workout form actions.
 type UseWorkoutFormActionsArgs = {
@@ -15,7 +15,10 @@ type UseWorkoutFormActionsArgs = {
   setShowWorkoutForm: (show: boolean) => void;
   setWorkouts: (updater: (prev: Workout[] | null) => Workout[] | null) => void;
   reloadWorkouts?: () => void;
-  askConfirm: (message: string) => Promise<boolean>;
+  askConfirm: (
+    message: string,
+    options?: AskConfirmOptions,
+  ) => Promise<boolean>;
 };
 
 // useWorkoutFormActions centralizes create/update/close workflow for workouts.

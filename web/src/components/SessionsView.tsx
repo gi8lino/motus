@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 
 import type {
   SessionState,
@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { formatMillis } from "../utils/format";
 import { resolveMediaUrl } from "../utils/basePath";
+import { parseDurationSeconds } from "../utils/time";
 import { SessionCard } from "./SessionCard";
 import { WorkoutSelect } from "./WorkoutSelect";
 
@@ -60,10 +61,29 @@ export function SessionsView({
   const nextOverrunMsRef = useRef<number | null>(null);
   const overrunTimeoutRef = useRef<number | null>(null);
   const overrunIntervalRef = useRef<number | null>(null);
-  const soundTimerRef = useRef<number | null>(null);
+  const stepSoundTimerRef = useRef<number | null>(null);
+  const subsetSoundTimerRef = useRef<number | null>(null);
+  const stepSoundScheduleRef = useRef<{
+    key: string | null;
+    targetMs: number;
+    soundUrl: string;
+    triggerAt: number;
+  }>({ key: null, targetMs: 0, soundUrl: "", triggerAt: 0 });
+  const subsetSoundScheduleRef = useRef<{
+    key: string | null;
+    targetMs: number;
+    soundUrl: string;
+    triggerAt: number;
+  }>({ key: null, targetMs: 0, soundUrl: "", triggerAt: 0 });
+  const subsetSoundPlayedRef = useRef(new Set<string>());
+  const sessionIdRef = useRef<string | null>(null);
   const hiddenPauseNotifiedRef = useRef(false);
+  const keyCooldownRef = useRef<Record<string, number>>({});
+  const buttonCooldownTimersRef = useRef<Record<string, number | null>>({});
+  const elapsedRef = useRef(0);
+  const runButtonRef = useRef<HTMLButtonElement>(null!);
+  const nextActionButtonRef = useRef<HTMLButtonElement>(null!);
 
-  // clearOverrunTimers stops any pending overrun timers.
   const clearOverrunTimers = useCallback(() => {
     if (overrunTimeoutRef.current) {
       clearTimeout(overrunTimeoutRef.current);
@@ -75,42 +95,101 @@ export function SessionsView({
     }
   }, []);
 
-  // handleOverrunPostpone delays the overrun modal by 30 seconds.
+  const resetOverrunState = useCallback(() => {
+    clearOverrunTimers();
+    setOverrunModal(null);
+    setOverrunCountdown(0);
+  }, [clearOverrunTimers]);
+
   const handleOverrunPostpone = useCallback(() => {
     if (!session?.running) return;
     nextOverrunMsRef.current = elapsed + 30000;
-    setOverrunModal(null);
-    setOverrunCountdown(0);
-    clearOverrunTimers();
-  }, [session?.running, elapsed, clearOverrunTimers]);
+    resetOverrunState();
+  }, [session?.running, elapsed, resetOverrunState]);
 
-  // handleOverrunPause pauses the session from the overrun prompt.
   const handleOverrunPause = useCallback(() => {
-    clearOverrunTimers();
     onPause();
-    setOverrunModal(null);
-    setOverrunCountdown(0);
-  }, [onPause, clearOverrunTimers]);
+    resetOverrunState();
+  }, [onPause, resetOverrunState]);
 
-  useEffect(() => () => clearOverrunTimers(), [clearOverrunTimers]);
+  useEffect(() => () => resetOverrunState(), [resetOverrunState]);
 
-  // Cleanup any pending sound timer on unmount.
+  useEffect(() => {
+    const currentSessionId = session?.sessionId || null;
+    if (sessionIdRef.current !== currentSessionId) {
+      sessionIdRef.current = currentSessionId;
+      subsetSoundPlayedRef.current = new Set();
+    }
+  }, [session?.sessionId]);
+
+  useEffect(() => {
+    elapsedRef.current = elapsed;
+  }, [elapsed]);
+
+  const tryConsumeKey = useCallback(
+    (code: string, button?: HTMLButtonElement | null) => {
+      const now = Date.now();
+      const last = keyCooldownRef.current[code];
+      if (last && now - last < 2000) {
+        return false;
+      }
+      keyCooldownRef.current[code] = now;
+      if (button) {
+        button.classList.add("key-cooldown");
+        const existing = buttonCooldownTimersRef.current[code];
+        if (existing) {
+          window.clearTimeout(existing);
+        }
+        buttonCooldownTimersRef.current[code] = window.setTimeout(() => {
+          button.classList.remove("key-cooldown");
+          buttonCooldownTimersRef.current[code] = null;
+        }, 2000);
+      }
+      return true;
+    },
+    [],
+  );
+
   useEffect(() => {
     return () => {
-      if (soundTimerRef.current) {
-        clearTimeout(soundTimerRef.current);
-        soundTimerRef.current = null;
+      Object.values(buttonCooldownTimersRef.current).forEach((timer) => {
+        if (timer) {
+          window.clearTimeout(timer);
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (stepSoundTimerRef.current) {
+        clearTimeout(stepSoundTimerRef.current);
+        stepSoundTimerRef.current = null;
       }
+      if (subsetSoundTimerRef.current) {
+        clearTimeout(subsetSoundTimerRef.current);
+        subsetSoundTimerRef.current = null;
+      }
+      stepSoundScheduleRef.current = {
+        key: null,
+        targetMs: 0,
+        soundUrl: "",
+        triggerAt: 0,
+      };
+      subsetSoundScheduleRef.current = {
+        key: null,
+        targetMs: 0,
+        soundUrl: "",
+        triggerAt: 0,
+      };
     };
   }, []);
 
   useEffect(() => {
     if (!session?.running) {
-      clearOverrunTimers();
-      setOverrunModal(null);
-      setOverrunCountdown(0);
+      resetOverrunState();
     }
-  }, [session?.running, clearOverrunTimers]);
+  }, [session?.running, resetOverrunState]);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -133,10 +212,7 @@ export function SessionsView({
   }, [session?.running, onPause, onToast]);
 
   useEffect(() => {
-    // Reset overrun scheduling when step/session changes.
-    clearOverrunTimers();
-    setOverrunModal(null);
-    setOverrunCountdown(0);
+    resetOverrunState();
     const estimateMs = currentStep?.estimatedSeconds
       ? currentStep.estimatedSeconds * 1000
       : null;
@@ -145,79 +221,195 @@ export function SessionsView({
     session?.sessionId,
     session?.currentIndex,
     currentStep?.id,
-    clearOverrunTimers,
+    resetOverrunState,
     currentStep?.estimatedSeconds,
   ]);
 
   useEffect(() => {
-    if (soundTimerRef.current) {
-      clearTimeout(soundTimerRef.current);
-      soundTimerRef.current = null;
-    }
-    // Guard: nothing to play when no active, running step.
-    if (!currentStep || !session?.running) return;
-    // Guard: only fire once per step.
-    if (currentStep.soundPlayed) return;
-    // Guard: skip when no sound is configured.
-    if (!currentStep.soundKey && !currentStep.soundUrl) return;
-
-    const soundOpt =
-      sounds.find((s) => s.key === currentStep.soundKey) ||
-      sounds.find((s) => s.file === currentStep.soundUrl);
-    // Wait until we know the sound to preserve leadSeconds.
-    if (currentStep.soundKey && !soundOpt && !currentStep.soundUrl) return;
-
-    const soundUrl = resolveMediaUrl(
-      currentStep.soundUrl || soundOpt?.file || "",
-    );
-    if (!soundUrl) return;
-
-    const baseLeadSeconds = soundOpt?.leadSeconds ?? 0;
-    const targetSeconds = currentStep.estimatedSeconds || 0;
-    const targetMs = targetSeconds * 1000;
-    if (targetMs <= 0) return;
-
-    const leadMs = Math.min(
-      targetMs,
-      Math.max(0, (baseLeadSeconds || 0) * 1000),
-    );
-    const triggerMs = Math.max(0, targetMs - leadMs);
-    const remaining = triggerMs - elapsed;
-
-    // play triggers the sound once and marks the step as played.
-    const play = () => {
-      new Audio(soundUrl).play().catch(() => {});
-      markSoundPlayed();
-    };
-
-    if (remaining <= 0) {
-      play();
+    if (!currentStep || !session?.running) {
+      if (stepSoundTimerRef.current) {
+        clearTimeout(stepSoundTimerRef.current);
+        stepSoundTimerRef.current = null;
+      }
+      if (subsetSoundTimerRef.current) {
+        clearTimeout(subsetSoundTimerRef.current);
+        subsetSoundTimerRef.current = null;
+      }
+      stepSoundScheduleRef.current = {
+        key: null,
+        targetMs: 0,
+        soundUrl: "",
+        triggerAt: 0,
+      };
+      subsetSoundScheduleRef.current = {
+        key: null,
+        targetMs: 0,
+        soundUrl: "",
+        triggerAt: 0,
+      };
       return;
     }
+    const subsetSoundKey = currentStep.soundKey || "";
+    const exerciseSoundKey =
+      currentStep.exercises?.length === 1
+        ? currentStep.exercises[0]?.soundKey || ""
+        : "";
+    const subsetSoundOpt = subsetSoundKey
+      ? sounds.find((sound) => sound.key === subsetSoundKey)
+      : sounds.find((sound) => sound.file === currentStep.soundUrl);
+    const subsetSoundUrl = resolveMediaUrl(
+      currentStep.soundUrl || subsetSoundOpt?.file || "",
+    );
+    const exerciseSoundOpt = exerciseSoundKey
+      ? sounds.find((sound) => sound.key === exerciseSoundKey)
+      : undefined;
+    const exerciseSoundUrl =
+      exerciseSoundKey && exerciseSoundOpt
+        ? resolveMediaUrl(exerciseSoundOpt.file || "")
+        : subsetSoundUrl;
+    if (!subsetSoundUrl && !exerciseSoundUrl) return;
 
-    soundTimerRef.current = window.setTimeout(play, remaining);
-    return () => {
-      if (soundTimerRef.current) {
-        clearTimeout(soundTimerRef.current);
-        soundTimerRef.current = null;
+    const subsetLeadSeconds = subsetSoundOpt?.leadSeconds ?? 0;
+    const exerciseLeadSeconds = exerciseSoundKey
+      ? (exerciseSoundOpt?.leadSeconds ?? 0)
+      : subsetLeadSeconds;
+    const subsetTargetSeconds = currentStep.subsetEstimatedSeconds ?? 0;
+    const hasSubsetTarget = subsetTargetSeconds > 0;
+    const exerciseTargetSeconds =
+      currentStep.estimatedSeconds ||
+      parseDurationSeconds((currentStep as any).duration) ||
+      parseDurationSeconds(currentStep.exercises?.[0]?.duration) ||
+      0;
+
+    const allowStepSound = !currentStep.soundPlayed;
+
+    if (hasSubsetTarget && currentStep.subsetId && subsetSoundUrl) {
+      const subsetInstanceId = `${currentStep.subsetId}-${currentStep.loopIndex ?? 0}`;
+      if (!subsetSoundPlayedRef.current.has(subsetInstanceId)) {
+        const subsetTargetMs = subsetTargetSeconds * 1000;
+        const leadMs = Math.min(
+          subsetTargetMs,
+          Math.max(0, subsetLeadSeconds * 1000),
+        );
+        const triggerMs = Math.max(0, subsetTargetMs - leadMs);
+        const schedule = subsetSoundScheduleRef.current;
+        if (
+          !subsetSoundTimerRef.current ||
+          schedule.key !== subsetInstanceId ||
+          schedule.targetMs !== subsetTargetMs ||
+          schedule.soundUrl !== subsetSoundUrl
+        ) {
+          if (subsetSoundTimerRef.current) {
+            clearTimeout(subsetSoundTimerRef.current);
+            subsetSoundTimerRef.current = null;
+          }
+          subsetSoundScheduleRef.current = {
+            key: subsetInstanceId,
+            targetMs: subsetTargetMs,
+            soundUrl: subsetSoundUrl,
+            triggerAt: 0,
+          };
+          const subsetElapsedMs = (() => {
+            const currentElapsed = elapsedRef.current;
+            const targetLoop = currentStep.loopIndex ?? 0;
+            return session.steps.reduce((acc, step, idx) => {
+              if (step.subsetId !== currentStep.subsetId) return acc;
+              const stepLoop = step.loopIndex ?? 0;
+              if (stepLoop !== targetLoop) return acc;
+              if (idx < session.currentIndex) {
+                return acc + (step.elapsedMillis || 0);
+              }
+              if (idx === session.currentIndex) {
+                return acc + currentElapsed;
+              }
+              return acc;
+            }, 0);
+          })();
+          const remaining = triggerMs - subsetElapsedMs;
+          const triggerAt = Date.now() + Math.max(remaining, 0);
+          const play = () => {
+            new Audio(subsetSoundUrl).play().catch(() => {});
+            subsetSoundTimerRef.current = null;
+            subsetSoundPlayedRef.current.add(subsetInstanceId);
+          };
+          if (remaining <= 0) {
+            play();
+          } else {
+            subsetSoundTimerRef.current = window.setTimeout(play, remaining);
+            subsetSoundScheduleRef.current.triggerAt = triggerAt;
+          }
+        }
       }
-    };
+    }
+
+    if (allowStepSound && exerciseTargetSeconds > 0 && exerciseSoundUrl) {
+      const stepTargetMs = exerciseTargetSeconds * 1000;
+      const leadMs = Math.min(
+        stepTargetMs,
+        Math.max(0, exerciseLeadSeconds * 1000),
+      );
+      const triggerMs = Math.max(0, stepTargetMs - leadMs);
+      const scheduleKey =
+        currentStep.id || `${session.sessionId}-${session.currentIndex}`;
+      const schedule = stepSoundScheduleRef.current;
+      const nowTs = Date.now();
+      if (
+        !stepSoundTimerRef.current ||
+        schedule.key !== scheduleKey ||
+        schedule.targetMs !== stepTargetMs ||
+        schedule.soundUrl !== exerciseSoundUrl
+      ) {
+        if (stepSoundTimerRef.current) {
+          const shouldKeep =
+            schedule.key &&
+            schedule.key !== scheduleKey &&
+            schedule.triggerAt > 0 &&
+            schedule.triggerAt <= nowTs + 150;
+          if (!shouldKeep) {
+            clearTimeout(stepSoundTimerRef.current);
+            stepSoundTimerRef.current = null;
+          }
+        }
+        stepSoundScheduleRef.current = {
+          key: scheduleKey,
+          targetMs: stepTargetMs,
+          soundUrl: exerciseSoundUrl,
+          triggerAt: 0,
+        };
+        const remaining = triggerMs - elapsedRef.current;
+        const triggerAt = nowTs + Math.max(remaining, 0);
+        const play = () => {
+          new Audio(exerciseSoundUrl).play().catch(() => {});
+          stepSoundTimerRef.current = null;
+          markSoundPlayed();
+        };
+        if (remaining <= 0) {
+          play();
+        } else {
+          stepSoundTimerRef.current = window.setTimeout(play, remaining);
+          stepSoundScheduleRef.current.triggerAt = triggerAt;
+        }
+      }
+    }
   }, [
     currentStep?.id,
     currentStep?.soundKey,
     currentStep?.soundUrl,
     currentStep?.estimatedSeconds,
+    currentStep?.subsetEstimatedSeconds,
     (currentStep as any)?.duration,
+    currentStep?.exercises?.[0]?.duration,
+    currentStep?.exercises?.[0]?.soundKey,
+    currentStep?.subsetId,
+    currentStep?.loopIndex,
     session?.sessionId,
     session?.currentIndex,
     session?.running,
     sounds,
     markSoundPlayed,
-    elapsed,
   ]);
 
   useEffect(() => {
-    // Show overrun modal when elapsed passes target + 30s.
     if (
       !session?.running ||
       !currentStep?.estimatedSeconds ||
@@ -248,7 +440,6 @@ export function SessionsView({
   ]);
 
   useEffect(() => {
-    // Maintain countdown while overrun modal is visible.
     if (!overrunModal?.show) {
       clearOverrunTimers();
       setOverrunCountdown(0);
@@ -259,7 +450,6 @@ export function SessionsView({
   }, [overrunModal?.show, overrunModal?.deadline, clearOverrunTimers]);
 
   useEffect(() => {
-    // Keyboard shortcuts for pause/resume and next/finish.
     const handler = (e: KeyboardEvent) => {
       if (overrunModal?.show) {
         if (e.code === "Enter") {
@@ -273,18 +463,23 @@ export function SessionsView({
       }
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
       if (e.code === "Space") {
         e.preventDefault();
         if (!session) return;
+        if (!tryConsumeKey(e.code, runButtonRef.current)) return;
         if (session.running) {
           onPause();
           return;
         }
         onStartStep();
+        return;
       }
+
       if (e.code === "Enter") {
         e.preventDefault();
         if (!session || session.done || !session.startedAt) return;
+        if (!tryConsumeKey(e.code, nextActionButtonRef.current)) return;
         const isLast =
           session.currentIndex >=
           (session.steps?.length ? session.steps.length - 1 : 0);
@@ -308,50 +503,79 @@ export function SessionsView({
     onPause,
     onNext,
     onFinishSession,
+    tryConsumeKey,
   ]);
 
-  // handleFinish triggers session completion and opens the summary modal.
   const handleFinish = async () => {
     const summary = await onFinishSession();
     if (summary) setFinishSummary(summary);
   };
 
+  const headerStatus = useMemo(() => {
+    if (!session) return null;
+
+    const total = session.steps?.length || 0;
+    const current =
+      typeof session.currentIndex === "number" ? session.currentIndex + 1 : 0;
+
+    if (session.done) return `Finished • ${total} steps`;
+    if (!session.startedAt) return `Ready • ${total} steps`;
+    if (session.running) return `Running • step ${current}/${total}`;
+    return `Paused • step ${current}/${total}`;
+  }, [session]);
+
   return (
     <>
       <section className="panel">
         <div className="panel-header">
-          <div>
-            <p className="label">Workout</p>
-            {/* Workout picker */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h3 style={{ margin: 0 }}>Train</h3>
+            <div className="muted small">
+              {headerStatus ? (
+                <>
+                  <strong>{workoutName || "Workout"}</strong>
+                  {" • "}
+                  {headerStatus}
+                  {" • "}
+                  {formatMillis(elapsed)}
+                </>
+              ) : (
+                <span>Select a workout to start.</span>
+              )}
+            </div>
+          </div>
+
+          <div className="btn-group">
             <WorkoutSelect
               workouts={workouts}
               value={selectedWorkoutId}
               onSelect={onSelectWorkout}
               onClear={() => onSelectWorkout("")}
             />
+            <button
+              className="btn primary"
+              onClick={onStartSession}
+              disabled={startDisabled}
+              title={startTitle}
+            >
+              Start
+            </button>
           </div>
-          <button
-            className="btn primary"
-            onClick={onStartSession}
-            disabled={startDisabled}
-            title={startTitle}
-          >
-            Start training
-          </button>
         </div>
-        {/* Live session card */}
+
         <SessionCard
           session={session}
           currentStep={currentStep}
           elapsed={elapsed}
-          workoutName={workoutName}
           onStart={onStartStep}
           onPause={onPause}
           onNext={onNext}
           onFinish={handleFinish}
+          runButtonRef={runButtonRef}
+          nextButtonRef={nextActionButtonRef}
         />
       </section>
-      {/* Finish summary modal */}
+
       {finishSummary && (
         <div className="modal-overlay" onClick={() => setFinishSummary(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -386,7 +610,7 @@ export function SessionsView({
           </div>
         </div>
       )}
-      {/* Overrun modal */}
+
       {overrunModal?.show && (
         <div className="modal-overlay" onClick={handleOverrunPause}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

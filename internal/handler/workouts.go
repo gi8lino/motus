@@ -18,7 +18,7 @@ func (a *API) GetWorkouts() http.HandlerFunc {
 			return
 		}
 
-		workouts, err := a.Store.WorkoutsByUser(r.Context(), resolvedID)
+		workouts, err := a.WorkoutsStore.WorkoutsByUser(r.Context(), resolvedID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
@@ -30,7 +30,7 @@ func (a *API) GetWorkouts() http.HandlerFunc {
 
 // CreateWorkout stores a new workout for the current user.
 func (a *API) CreateWorkout() http.HandlerFunc {
-	svc := workouts.New(a.Store)
+	svc := workouts.New(a.WorkoutsStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("id")
 
@@ -62,7 +62,7 @@ func (a *API) GetWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		workout, err := workouts.New(a.Store).Get(r.Context(), id)
+		workout, err := workouts.New(a.WorkoutsStore).Get(r.Context(), id)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -77,7 +77,7 @@ func (a *API) ExportWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		workout, err := workouts.New(a.Store).Export(r.Context(), id)
+		workout, err := workouts.New(a.WorkoutsStore).Export(r.Context(), id)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -89,7 +89,7 @@ func (a *API) ExportWorkout() http.HandlerFunc {
 
 // ImportWorkout creates a new workout from exported JSON.
 func (a *API) ImportWorkout() http.HandlerFunc {
-	svc := workouts.New(a.Store)
+	svc := workouts.New(a.WorkoutsStore)
 	type importWorkoutRequest struct {
 		UserID  string     `json:"userId"`
 		Workout db.Workout `json:"workout"`
@@ -120,7 +120,7 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 
 // UpdateWorkout replaces a workout and its steps.
 func (a *API) UpdateWorkout() http.HandlerFunc {
-	svc := workouts.New(a.Store)
+	svc := workouts.New(a.WorkoutsStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
@@ -138,7 +138,7 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 			}
 			req.UserID = resolvedUserID
 		} else if req.UserID == "" {
-			current, err := a.Store.WorkoutWithSteps(r.Context(), id)
+			current, err := a.WorkoutsStore.WorkoutWithSteps(r.Context(), id)
 			if err != nil {
 				writeJSON(w, http.StatusNotFound, apiError{Error: err.Error()})
 				return
@@ -161,7 +161,7 @@ func (a *API) DeleteWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		if err := workouts.New(a.Store).Delete(r.Context(), id); err != nil {
+		if err := workouts.New(a.WorkoutsStore).Delete(r.Context(), id); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}

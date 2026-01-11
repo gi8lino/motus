@@ -20,6 +20,15 @@ type fakeStore struct {
 	getUserWithPassFn func(context.Context, string) (*db.User, string, error)
 	updateUserPassFn  func(context.Context, string, string) error
 	updateUserNameFn  func(context.Context, string, string) error
+	getUserFn         func(context.Context, string) (*db.User, error)
+	listUsersFn       func(context.Context) ([]db.User, error)
+}
+
+func (f *fakeStore) ListUsers(ctx context.Context) ([]db.User, error) {
+	if f.listUsersFn == nil {
+		return nil, nil
+	}
+	return f.listUsersFn(ctx)
 }
 
 func (f *fakeStore) CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error) {
@@ -55,6 +64,15 @@ func (f *fakeStore) UpdateUserName(ctx context.Context, id, name string) error {
 		return nil
 	}
 	return f.updateUserNameFn(ctx, id, name)
+}
+
+// GetUser is required by the users.Store interface.
+// Adjust the parameter name/type here only if your Store.GetUser signature differs.
+func (f *fakeStore) GetUser(ctx context.Context, id string) (*db.User, error) {
+	if f.getUserFn == nil {
+		return nil, nil
+	}
+	return f.getUserFn(ctx, id)
 }
 
 func TestCreate(t *testing.T) {

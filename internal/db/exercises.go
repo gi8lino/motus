@@ -6,67 +6,102 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/gi8lino/motus/internal/utils"
 )
 
 // BackfillCoreExercises creates core exercises from existing workout data and links them.
 func (s *Store) BackfillCoreExercises(ctx context.Context) error {
-	// Build core exercises from distinct names in existing workouts.
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 
-	nameRows, err := tx.Query(ctx, `
-		SELECT DISTINCT name FROM workout_step_exercises WHERE name <> ''`)
+	names, err := s.collectDistinctExerciseNames(tx)
 	if err != nil {
-		return err
-	}
-	defer nameRows.Close()
-
-	var names []string
-	// Gather distinct exercise names from existing workouts.
-	for nameRows.Next() {
-		var name string
-		if err := nameRows.Scan(&name); err != nil {
-			return err
-		}
-		trimmed := strings.TrimSpace(name)
-		if trimmed != "" {
-			names = append(names, trimmed)
-		}
-	}
-	if err := nameRows.Err(); err != nil {
 		return err
 	}
 	if len(names) == 0 {
 		return tx.Commit(ctx)
 	}
 
-	existingRows, err := tx.Query(ctx, `
+	existing, err := s.collectExistingExercises(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	if err := s.insertMissingCoreExercises(ctx, tx, names, existing); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE workout_subset_exercises wse
+		SET exercise_id = e.id
+		FROM exercises e
+		WHERE wse.exercise_id = ''
+		AND wse.name <> ''
+		AND LOWER(wse.name) = LOWER(e.name)`); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// collectDistinctExerciseNames returns a list of trimmed, unique exercise names from subsets.
+func (s *Store) collectDistinctExerciseNames(tx pgx.Tx) ([]string, error) {
+	rows, err := tx.Query(context.Background(), `
+		SELECT DISTINCT name FROM workout_subset_exercises WHERE name <> ''`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var unique []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		trimmed := strings.TrimSpace(name)
+		if trimmed != "" {
+			unique = append(unique, trimmed)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return unique, nil
+}
+
+// collectExistingExercises loads existing exercise IDs keyed by normalized name.
+func (s *Store) collectExistingExercises(ctx context.Context, tx pgx.Tx) (map[string]string, error) {
+	rows, err := tx.Query(ctx, `
 		SELECT id, name
 		FROM exercises
 	`)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer existingRows.Close()
+	defer rows.Close()
 
 	existing := make(map[string]string)
-	// Load existing exercise names to avoid duplicates.
-	for existingRows.Next() {
+	for rows.Next() {
 		var id, name string
-		if err := existingRows.Scan(&id, &name); err != nil {
-			return err
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
 		}
 		existing[utils.NormalizeToken(name)] = id
 	}
-	if err := existingRows.Err(); err != nil {
-		return err
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
+	return existing, nil
+}
 
-	// Insert any missing core exercise rows.
+// insertMissingCoreExercises inserts any names that are not already present in the catalog.
+func (s *Store) insertMissingCoreExercises(ctx context.Context, tx pgx.Tx, names []string, existing map[string]string) error {
 	for _, name := range names {
 		key := strings.ToLower(name)
 		if key == "" || existing[key] != "" {
@@ -81,19 +116,10 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 		}
 		existing[key] = "inserted"
 	}
-
-	if _, err := tx.Exec(ctx, `
-		UPDATE workout_step_exercises wse
-		SET exercise_id = e.id
-		FROM exercises e
-		WHERE wse.exercise_id = ''
-		AND wse.name <> ''
-		AND LOWER(wse.name) = LOWER(e.name)`); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return nil
 }
+
+// BackfillCoreExercises creates core exercises from existing workout data and links them.
 
 // ListExercises returns core exercises plus user-owned exercises.
 func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {
@@ -189,7 +215,7 @@ func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise,
 		return nil, err
 	}
 	if _, err := tx.Exec(ctx, `
-		UPDATE workout_step_exercises
+		UPDATE workout_subset_exercises
 		SET name=$1
 		WHERE exercise_id=$2
 	`, trimmed, strings.TrimSpace(id)); err != nil {
@@ -205,12 +231,13 @@ func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise,
 func (s *Store) ReplaceExerciseForUser(ctx context.Context, userID, fromID, toID, toName string) error {
 	// Swap exercise references for a user's workouts.
 	_, err := s.pool.Exec(ctx, `
-		UPDATE workout_step_exercises
+		UPDATE workout_subset_exercises
 		SET exercise_id=$1, name=$2
 		WHERE exercise_id=$3
-		AND step_id IN (
-			SELECT ws.id
-			FROM workout_steps ws
+		AND subset_id IN (
+			SELECT su.id
+			FROM workout_subsets su
+			JOIN workout_steps ws ON su.step_id = ws.id
 			JOIN workouts w ON ws.workout_id = w.id
 			WHERE w.user_id=$4
 		)`, strings.TrimSpace(toID), strings.TrimSpace(toName), strings.TrimSpace(fromID), strings.TrimSpace(userID))
@@ -226,7 +253,7 @@ func (s *Store) DeleteExercise(ctx context.Context, id string) error {
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 	if _, err := tx.Exec(ctx, `
-		UPDATE workout_step_exercises
+		UPDATE workout_subset_exercises
 		SET exercise_id=''
 		WHERE exercise_id=$1
 	`, strings.TrimSpace(id)); err != nil {

@@ -61,6 +61,13 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 		return fmt.Errorf("ensure admin user: %w", err)
 	}
 
+	// Load extra core exercises if the CLI flag was set.
+	if opts.CoreExercisesFile != "" {
+		if err := bootstrap.SeedCoreExercises(ctx, store, logger, opts.CoreExercisesFile); err != nil {
+			return fmt.Errorf("load core exercises: %w", err)
+		}
+	}
+
 	// Build the API handler with runtime configuration.
 	api := handler.NewAPI(
 		store,

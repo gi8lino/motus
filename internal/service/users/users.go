@@ -11,8 +11,12 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-// store defines the persistence methods needed by the users service.
-type store interface {
+// Store defines the persistence methods needed by the users service.
+type Store interface {
+	// ListUsers returns all user records.
+	ListUsers(ctx context.Context) ([]db.User, error)
+	// GetUser returns a user by id.
+	GetUser(ctx context.Context, id string) (*db.User, error)
 	// CreateUser inserts a new user for local registration.
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
 	// UpdateUserAdmin toggles admin access for a user.
@@ -27,13 +31,13 @@ type store interface {
 
 // Service coordinates user operations.
 type Service struct {
-	Store             store
+	Store             Store
 	AuthHeader        string
 	AllowRegistration bool
 }
 
 // New creates a new users service.
-func New(store store, authHeader string, allowRegistration bool) *Service {
+func New(store Store, authHeader string, allowRegistration bool) *Service {
 	return &Service{Store: store, AuthHeader: authHeader, AllowRegistration: allowRegistration}
 }
 

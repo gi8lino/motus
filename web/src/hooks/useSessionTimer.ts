@@ -2,6 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logSessionCompletion } from "../api";
 import type { SessionState, SessionStepState } from "../types";
 import { normalizeTimestamp, parseDurationSeconds } from "../utils/time";
+import {
+  STEP_TYPE_PAUSE,
+  STEP_TYPE_SET,
+  normalizeStepType,
+} from "../utils/step";
+import {
+  EXERCISE_TYPE_COUNTDOWN,
+  EXERCISE_TYPE_STOPWATCH,
+  normalizeExerciseType,
+} from "../utils/exercise";
 
 // STORAGE_KEY stores the persisted session payload.
 const STORAGE_KEY = "motus:session";
@@ -33,16 +43,17 @@ function normalizeSession(raw: SessionState): NormalizedState {
     lastUpdatedAt: now(),
     steps: [],
   };
+  const rawSteps = Array.isArray(raw.steps) ? raw.steps : [];
   const currentIndex =
     typeof raw.currentIndex === "number" ? raw.currentIndex : 0;
   base.currentIndex = Math.min(
     Math.max(currentIndex, 0),
-    Math.max(raw.steps.length - 1, 0),
+    Math.max(rawSteps.length - 1, 0),
   );
-  raw.steps.forEach((step, idx) => {
+  rawSteps.forEach((step, idx) => {
     const normalized: SessionStepState = {
       ...step,
-      type: step.type === "pause" ? "pause" : "set",
+      type: normalizeStepType(step.type),
       elapsedMillis: step.elapsedMillis || 0,
       completed: Boolean(step.completed || idx < base.currentIndex),
       current: idx === base.currentIndex && !base.done,
@@ -67,27 +78,37 @@ function normalizeSession(raw: SessionState): NormalizedState {
 // expandExerciseSteps expands set exercises into per-exercise steps with timing.
 function expandExerciseSteps(state: SessionState): SessionState {
   const expanded: SessionState = { ...state, steps: [] };
-  state.steps.forEach((step) => {
-    if (step.type !== "set" || !step.exercises?.length) {
+  const sourceSteps = Array.isArray(state.steps) ? state.steps : [];
+  sourceSteps.forEach((step) => {
+    const shouldExpand =
+      step.type === STEP_TYPE_SET &&
+      (step.exercises?.length || 0) > 1 &&
+      !step.superset;
+    if (!shouldExpand) {
       expanded.steps.push(step);
       return;
     }
-    step.exercises.forEach((ex, idx) => {
-      const kind = ex.type === "timed" ? "timed" : "rep";
-      const durSec = kind === "timed" ? parseDurationSeconds(ex.duration) : 0;
+    step.exercises?.forEach((ex, idx) => {
+      const kind = normalizeExerciseType(ex.type);
+      const durSec = parseDurationSeconds(ex.duration);
       const baseName = ex.name || step.name || `Exercise ${idx + 1}`;
       const stepSound = step.soundKey;
       const usesStepTarget =
         kind === "rep" && step.exercises?.length === 1 && step.estimatedSeconds;
+      const isDurationExercise =
+        kind === EXERCISE_TYPE_STOPWATCH || kind === EXERCISE_TYPE_COUNTDOWN;
       expanded.steps.push({
         ...step,
         id: `${step.id || "step"}-ex-${idx}`,
         name: baseName,
-        estimatedSeconds:
-          durSec || (usesStepTarget ? step.estimatedSeconds : 0),
+        estimatedSeconds: isDurationExercise
+          ? durSec
+          : usesStepTarget
+            ? step.estimatedSeconds
+            : undefined,
         exercises: [ex],
         soundKey: stepSound,
-        autoAdvance: kind === "timed" && durSec > 0,
+        autoAdvance: kind === EXERCISE_TYPE_COUNTDOWN && durSec > 0,
       });
     });
   });
@@ -267,6 +288,10 @@ export function useSessionTimer({
     update((next) => {
       const currentIdx = next.currentIndex;
       const current = next.steps[currentIdx];
+      const skipSubsetId =
+        current && current.superset && current.subsetId
+          ? current.subsetId
+          : null;
       if (current) {
         const delta = next.lastUpdatedAt ? now() - next.lastUpdatedAt : 0;
         if (delta > 0) {
@@ -276,7 +301,19 @@ export function useSessionTimer({
         current.running = false;
         current.current = false;
       }
-      const nextIdx = currentIdx + 1;
+
+      let nextIdx = currentIdx + 1;
+      if (skipSubsetId) {
+        while (nextIdx < next.steps.length) {
+          const candidate = next.steps[nextIdx];
+          if (candidate?.subsetId === skipSubsetId) {
+            nextIdx += 1;
+            continue;
+          }
+          break;
+        }
+      }
+
       if (nextIdx >= next.steps.length) {
         ensureStartedAt(next);
         next.done = true;
@@ -344,7 +381,7 @@ export function useSessionTimer({
     next.lastUpdatedAt = now();
     const currentStep = next.steps[next.currentIndex];
     if (
-      (currentStep?.type === "pause" &&
+      (currentStep?.type === STEP_TYPE_PAUSE &&
         currentStep.pauseOptions?.autoAdvance) ||
       currentStep?.autoAdvance
     ) {

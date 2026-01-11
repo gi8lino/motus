@@ -7,6 +7,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// HealthChecker is the minimal interface needed for health checks.
+type HealthChecker interface {
+	Ping(ctx context.Context) error
+}
+
 // Store wraps all database access.
 type Store struct {
 	pool   *pgxpool.Pool

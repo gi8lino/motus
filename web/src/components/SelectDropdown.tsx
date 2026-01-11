@@ -24,13 +24,18 @@ export function SelectDropdown({
   onSelect: (item: SelectItem) => void;
   onClear?: () => void;
   renderRight?: (item: SelectItem) => React.ReactNode;
-  renderSelectedRight?: (item: SelectItem | null) => React.ReactNode;
+  renderSelectedRight?: (
+    item: SelectItem | null | undefined,
+  ) => React.ReactNode;
   addLabel?: string;
   onAddNew?: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const selected = value ? items.find((item) => item.id === value) : null;
+
+  const selected: SelectItem | null = value
+    ? (items.find((item) => item.id === value) ?? null)
+    : null;
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -54,7 +59,7 @@ export function SelectDropdown({
         <span className={`select-dropdown-label ${selected ? "" : "muted"}`}>
           {selected ? selected.label : placeholder}
         </span>
-        {renderSelectedRight?.(selected)}
+        {renderSelectedRight?.(selected ?? null)}
         <span className="select-dropdown-chevron">{open ? "▼" : "▶"}</span>
       </button>
       {open && (

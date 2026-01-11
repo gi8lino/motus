@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { deleteWorkout, shareTemplate } from "../api";
-import type { Workout } from "../types";
+import type { AskConfirmOptions, Workout } from "../types";
 
 // UseWorkoutActionsArgs wires workout list actions.
 type UseWorkoutActionsArgs = {
@@ -12,7 +12,10 @@ type UseWorkoutActionsArgs = {
   setShowWorkoutForm: (open: boolean) => void;
   setSelectedWorkoutId: (id: string | null) => void;
   setWorkouts: (updater: (prev: Workout[] | null) => Workout[] | null) => void;
-  askConfirm: (message: string) => Promise<boolean>;
+  askConfirm: (
+    message: string,
+    options?: AskConfirmOptions,
+  ) => Promise<boolean>;
   askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
   notify: (message: string) => Promise<void>;
   templatesReload: () => void;
@@ -104,7 +107,7 @@ export function useWorkoutActions({
       if (name === null) return;
       try {
         // Share then refresh template list for immediate visibility.
-        await shareTemplate(workoutId, name.trim() || undefined);
+        await shareTemplate(workoutId, name.trim());
         templatesReload();
         await notify("Template shared.");
       } catch (err: any) {

@@ -2,14 +2,17 @@ import { useCallback } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { createExercise, deleteExercise, updateExercise } from "../api";
-import type { CatalogExercise } from "../types";
+import type { AskConfirmOptions, CatalogExercise } from "../types";
 
 // UseExerciseActionsArgs wires exercise management actions.
 type UseExerciseActionsArgs = {
   isAdmin: boolean;
   setExerciseCatalog: Dispatch<SetStateAction<CatalogExercise[]>>;
   askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
-  askConfirm: (message: string) => Promise<boolean>;
+  askConfirm: (
+    message: string,
+    options?: AskConfirmOptions,
+  ) => Promise<boolean>;
   notify: (message: string) => Promise<void>;
   showToast: (message: string) => void;
 };

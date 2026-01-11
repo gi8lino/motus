@@ -16,8 +16,8 @@ import (
 // localAuthHeader is the fallback header for local auth.
 const localAuthHeader = "X-User-ID"
 
-// store defines the persistence methods needed by auth helpers.
-type store interface {
+// Store defines the persistence methods needed by auth helpers.
+type Store interface {
 	// GetUser returns a user by id for auth lookups.
 	GetUser(ctx context.Context, email string) (*db.User, error)
 	// CreateUser inserts a new user for auto-provisioning.
@@ -25,7 +25,7 @@ type store interface {
 }
 
 // ResolveUserID selects the user id from auth header or request payload.
-func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUsers bool, fallback string) (string, error) {
+func ResolveUserID(r *http.Request, store Store, authHeader string, autoCreateUsers bool, fallback string) (string, error) {
 	// Prefer proxy auth header when configured.
 	if authHeader != "" {
 		id := strings.TrimSpace(r.Header.Get(authHeader))
@@ -71,7 +71,7 @@ func ResolveUserID(r *http.Request, store store, authHeader string, autoCreateUs
 }
 
 // ensureUser creates a user if it does not already exist.
-func ensureUser(ctx context.Context, store store, email string) error {
+func ensureUser(ctx context.Context, store Store, email string) error {
 	// Short-circuit when the user already exists.
 	user, err := store.GetUser(ctx, email)
 	if err == nil && user != nil {

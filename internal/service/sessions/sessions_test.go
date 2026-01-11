@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 func TestSessionStateFromWorkout(t *testing.T) {
@@ -23,7 +24,7 @@ func TestSessionStateFromWorkout(t *testing.T) {
 			Steps: []db.WorkoutStep{
 				{
 					ID:               "s1",
-					Type:             "pause",
+					Type:             string(utils.StepTypePause),
 					Name:             "Pause",
 					EstimatedSeconds: 10,
 					SoundKey:         "beep",
@@ -57,7 +58,7 @@ func TestBuildSessionLog(t *testing.T) {
 			CompletedAt: completed,
 			Steps: []SessionStepState{{
 				Name:          "Step 1",
-				Type:          "set",
+				Type:          string(utils.StepTypeSet),
 				ElapsedMillis: 1200,
 			}},
 		})

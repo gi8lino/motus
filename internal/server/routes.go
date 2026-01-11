@@ -48,7 +48,11 @@ func NewRouter(
 	apiMux.Handle("PUT /me/name", api.UpdateUserName())
 	apiMux.Handle("GET /users", api.GetUsers())
 	apiMux.Handle("POST /users", api.CreateUser())
-	apiMux.Handle("PUT /users/{id}/admin", middleware.Chain(api.UpdateUserRole(), middleware.RequireAdmin(api.Store, api.AuthHeader)))
+	apiMux.Handle("PUT /users/{id}/admin",
+		middleware.Chain(api.UpdateUserRole(),
+			middleware.RequireAdmin(api.UsersStore, api.AuthHeader),
+		),
+	)
 
 	apiMux.Handle("GET /users/{id}/workouts", api.GetWorkouts())
 	apiMux.Handle("POST /users/{id}/workouts", api.CreateWorkout())
@@ -67,14 +71,18 @@ func NewRouter(
 	apiMux.Handle("POST /exercises", api.CreateExercise())
 	apiMux.Handle("PUT /exercises/{id}", api.UpdateExercise())
 	apiMux.Handle("DELETE /exercises/{id}", api.DeleteExercise())
-	apiMux.Handle("POST /exercises/backfill", middleware.Chain(api.BackfillExercises(), middleware.RequireAdmin(api.Store, api.AuthHeader)))
+	apiMux.Handle("POST /exercises/backfill",
+		middleware.Chain(
+			api.BackfillExercises(),
+			middleware.RequireAdmin(api.ExercisesStore, api.AuthHeader),
+		),
+	)
 
 	apiMux.Handle("GET /sounds", api.ListSounds())
 
 	apiMux.Handle("POST /sessions", api.CreateSession())
 	apiMux.Handle("GET /users/{id}/sessions/history", api.ListSessionHistory())
 	apiMux.Handle("POST /sessions/complete", api.CompleteSession())
-	// apiMux.Handle("GET /sessions/{id}/steps", api.SessionSteps())
 
 	// Mount API under /api
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))

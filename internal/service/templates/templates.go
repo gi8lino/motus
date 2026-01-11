@@ -8,8 +8,8 @@ import (
 	"github.com/gi8lino/motus/internal/service"
 )
 
-// store defines the persistence methods needed by the templates service.
-type store interface {
+// Store defines the persistence methods needed by the templates service.
+type Store interface {
 	// ListTemplates returns all shared workout templates.
 	ListTemplates(ctx context.Context) ([]db.Workout, error)
 	// CreateTemplateFromWorkout stores a workout as a template.
@@ -22,11 +22,11 @@ type store interface {
 
 // Service coordinates template operations.
 type Service struct {
-	Store store
+	Store Store
 }
 
 // New creates a new templates service.
-func New(store store) *Service {
+func New(store Store) *Service {
 	return &Service{Store: store}
 }
 
