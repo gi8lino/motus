@@ -12,7 +12,7 @@ func NormalizeExerciseType(value string) string {
 	switch NormalizeToken(value) {
 	case ExerciseTypeCountdown:
 		return ExerciseTypeCountdown
-	case ExerciseTypeStopwatch, "timed":
+	case ExerciseTypeStopwatch:
 		return ExerciseTypeStopwatch
 	default:
 		return ExerciseTypeRep

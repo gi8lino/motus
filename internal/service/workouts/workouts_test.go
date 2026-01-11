@@ -45,7 +45,7 @@ func TestNormalizeSteps(t *testing.T) {
 						Name:     "Jog",
 						Duration: "20s",
 						Exercises: []ExerciseInput{
-							{Name: "Jog", Duration: "20s", Type: "timed"},
+							{Name: "Jog", Duration: "20s", Type: "stopwatch"},
 						},
 					},
 				},
@@ -73,12 +73,12 @@ func TestNormalizeSteps(t *testing.T) {
 		assert.True(t, pauseStep.PauseOptions.AutoAdvance)
 		assert.Empty(t, pauseStep.Subsets)
 
-		timedStep := steps[2]
-		assert.Equal(t, string(utils.StepTypeSet), timedStep.Type)
-		require.Len(t, timedStep.Subsets, 1)
-		assert.Equal(t, "Jog", timedStep.Subsets[0].Name)
-		require.Len(t, timedStep.Subsets[0].Exercises, 1)
-		assert.Equal(t, "stopwatch", timedStep.Subsets[0].Exercises[0].Type)
+		warmupStep := steps[2]
+		assert.Equal(t, string(utils.StepTypeSet), warmupStep.Type)
+		require.Len(t, warmupStep.Subsets, 1)
+		assert.Equal(t, "Jog", warmupStep.Subsets[0].Name)
+		require.Len(t, warmupStep.Subsets[0].Exercises, 1)
+		assert.Equal(t, "stopwatch", warmupStep.Subsets[0].Exercises[0].Type)
 	})
 
 	t.Run("Rejects invalid sound", func(t *testing.T) {

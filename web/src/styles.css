@@ -1107,43 +1107,6 @@ select {
   overflow: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
-/* Add to your CSS (or merge into existing styles). */
-
-/* Superset wrapper */
-.superset-block {
-  border: 2px solid var(--border);
-  border-left: 6px solid var(--accent);
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 10px;
-  background: var(--panel);
-}
-
-.superset-block.current {
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
-}
-
-.superset-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.superset-badge {
-  font-weight: 600;
-  font-size: 12px;
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.03);
-}
-
-.superset-body {
-  display: grid;
-  gap: 10px;
-}
-
 /* --- Session: replace row list with set cards --- */
 
 .session-steps-cards {

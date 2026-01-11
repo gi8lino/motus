@@ -17,45 +17,45 @@ import (
 
 // WorkoutRequest captures the payload for creating or updating workouts.
 type WorkoutRequest struct {
-	UserID string      `json:"userId"`
-	Name   string      `json:"name"`
-	Steps  []StepInput `json:"steps"`
+	UserID string      `json:"userId"` // UserID owns the workout.
+	Name   string      `json:"name"`   // Name is the workout title.
+	Steps  []StepInput `json:"steps"`  // Steps defines the workout flow.
 }
 
 // StepInput describes a workout step in an incoming request.
 type StepInput struct {
-	Type                  string          `json:"type"`
-	Name                  string          `json:"name"`
-	Duration              string          `json:"duration"`
-	EstimatedSeconds      int             `json:"estimatedSeconds"`
-	SoundKey              string          `json:"soundKey"`
-	Subsets               []SubsetInput   `json:"subsets"`
-	PauseOptions          db.PauseOptions `json:"pauseOptions"`
-	RepeatCount           int             `json:"repeatCount"`
-	RepeatRestSeconds     int             `json:"repeatRestSeconds"`
-	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast"`
-	RepeatRestSoundKey    string          `json:"repeatRestSoundKey"`
-	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance"`
+	Type                  string          `json:"type"`                  // Type is set or pause.
+	Name                  string          `json:"name"`                  // Name is the step label.
+	Duration              string          `json:"duration"`              // Duration is the pause target text.
+	EstimatedSeconds      int             `json:"estimatedSeconds"`      // EstimatedSeconds stores a parsed target time.
+	SoundKey              string          `json:"soundKey"`              // SoundKey plays on step completion.
+	Subsets               []SubsetInput   `json:"subsets"`               // Subsets hold exercises for set steps.
+	PauseOptions          db.PauseOptions `json:"pauseOptions"`          // PauseOptions configure pause behavior.
+	RepeatCount           int             `json:"repeatCount"`           // RepeatCount repeats the step group.
+	RepeatRestSeconds     int             `json:"repeatRestSeconds"`     // RepeatRestSeconds is rest duration between repeats.
+	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast"`   // RepeatRestAfterLast includes a rest after the last repeat.
+	RepeatRestSoundKey    string          `json:"repeatRestSoundKey"`    // RepeatRestSoundKey plays during repeat rest.
+	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance"` // RepeatRestAutoAdvance skips rests automatically.
 }
 
 // ExerciseInput describes a nested exercise entry in a step.
 type ExerciseInput struct {
-	ExerciseID string `json:"exerciseId"`
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Reps       string `json:"reps"`
-	Weight     string `json:"weight"`
-	Duration   string `json:"duration"`
-	SoundKey   string `json:"soundKey"`
+	ExerciseID string `json:"exerciseId"` // ExerciseID links to the catalog.
+	Name       string `json:"name"`       // Name is the exercise label.
+	Type       string `json:"type"`       // Type is rep, stopwatch, or countdown.
+	Reps       string `json:"reps"`       // Reps is the repetition text.
+	Weight     string `json:"weight"`     // Weight is optional load text.
+	Duration   string `json:"duration"`   // Duration is a stopwatch/countdown value.
+	SoundKey   string `json:"soundKey"`   // SoundKey overrides the subset sound.
 }
 
 // SubsetInput describes a logical subset inside a set step.
 type SubsetInput struct {
-	Name      string          `json:"name"`
-	Duration  string          `json:"duration"`
-	SoundKey  string          `json:"soundKey"`
-	Superset  bool            `json:"superset"`
-	Exercises []ExerciseInput `json:"exercises"`
+	Name      string          `json:"name"`      // Name is an optional subset label.
+	Duration  string          `json:"duration"`  // Duration sets the subset target time.
+	SoundKey  string          `json:"soundKey"`  // SoundKey plays at the subset target.
+	Superset  bool            `json:"superset"`  // Superset skips to the next subset on Next.
+	Exercises []ExerciseInput `json:"exercises"` // Exercises belong to the subset.
 }
 
 var repRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
@@ -351,7 +351,7 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 			token = utils.ExerciseTypeRep
 		}
 		switch token {
-		case utils.ExerciseTypeRep, utils.ExerciseTypeStopwatch, utils.ExerciseTypeCountdown, "timed":
+		case utils.ExerciseTypeRep, utils.ExerciseTypeStopwatch, utils.ExerciseTypeCountdown:
 		default:
 			return nil, fmt.Errorf("invalid exercise type for %s", name)
 		}

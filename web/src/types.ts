@@ -2,7 +2,7 @@
 export type Exercise = {
   exerciseId?: string;
   name: string;
-  type?: "rep" | "stopwatch" | "countdown" | "timed";
+  type?: "rep" | "stopwatch" | "countdown";
   reps?: string;
   weight?: string;
   duration?: string;

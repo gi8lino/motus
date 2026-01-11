@@ -1,3 +1,4 @@
+// TrashIcon renders the shared delete icon.
 export function TrashIcon() {
   return (
     <svg

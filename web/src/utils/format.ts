@@ -1,6 +1,5 @@
-import type { Exercise, WorkoutStep } from "../types";
+import type { Exercise } from "../types";
 import { isDurationExercise } from "./exercise";
-import { STEP_TYPE_PAUSE } from "./step";
 
 // Format milliseconds into m:ss for clocks and labels.
 export function formatMillis(ms: number) {
@@ -37,23 +36,4 @@ export function formatExerciseLine(ex: Exercise) {
     return `${base} (${weight})`;
   }
   return base;
-}
-
-// Render exercises of a step as a compact string.
-export function formatExercises(
-  step:
-    | WorkoutStep
-    | (WorkoutStep & { elapsedMillis?: number; exercises?: any }),
-) {
-  // Pause steps never show exercise details.
-  if (step.type === STEP_TYPE_PAUSE) return "";
-  const list = step.exercises || [];
-  const parts = list
-    // Filter empty entries so the UI doesn't show blank pills.
-    .filter(
-      (ex: Exercise) => ex && (ex.name || ex.reps || ex.weight || ex.duration),
-    )
-    .map((ex: Exercise) => formatExerciseLine(ex))
-    .filter(Boolean);
-  return parts.join(" | ");
 }

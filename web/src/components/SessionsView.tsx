@@ -260,9 +260,9 @@ export function SessionsView({
     const subsetSoundUrl = resolveMediaUrl(
       currentStep.soundUrl || subsetSoundOpt?.file || "",
     );
-    const exerciseSoundOpt =
-      exerciseSoundKey &&
-      sounds.find((sound) => sound.key === exerciseSoundKey);
+    const exerciseSoundOpt = exerciseSoundKey
+      ? sounds.find((sound) => sound.key === exerciseSoundKey)
+      : undefined;
     const exerciseSoundUrl =
       exerciseSoundKey && exerciseSoundOpt
         ? resolveMediaUrl(exerciseSoundOpt.file || "")

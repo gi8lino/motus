@@ -13,69 +13,69 @@ import (
 
 // SessionHistoryItem is the API payload for a completed session.
 type SessionHistoryItem struct {
-	ID          string              `json:"id"`
-	SessionID   string              `json:"sessionId"`
-	WorkoutID   string              `json:"workoutId"`
-	WorkoutName string              `json:"workoutName"`
-	UserID      string              `json:"userId"`
-	StartedAt   *time.Time          `json:"startedAt,omitempty"`
-	CompletedAt *time.Time          `json:"completedAt,omitempty"`
-	Steps       []db.SessionStepLog `json:"steps,omitempty"`
+	ID          string              `json:"id"`                    // ID is the history item identifier.
+	SessionID   string              `json:"sessionId"`             // SessionID links to the completed session.
+	WorkoutID   string              `json:"workoutId"`             // WorkoutID references the workout definition.
+	WorkoutName string              `json:"workoutName"`           // WorkoutName is the display name at completion time.
+	UserID      string              `json:"userId"`                // UserID owns the session.
+	StartedAt   *time.Time          `json:"startedAt,omitempty"`   // StartedAt is when the session began.
+	CompletedAt *time.Time          `json:"completedAt,omitempty"` // CompletedAt is when the session finished.
+	Steps       []db.SessionStepLog `json:"steps,omitempty"`       // Steps contains logged timings when available.
 }
 
 // SessionState mirrors the JSON contract with the SPA.
 type SessionState struct {
-	SessionID    string             `json:"sessionId"`
-	WorkoutID    string             `json:"workoutId"`
-	UserID       string             `json:"userId"`
-	WorkoutName  string             `json:"workoutName"`
-	CurrentIndex int                `json:"currentIndex"`
-	Running      bool               `json:"running"`
-	Done         bool               `json:"done"`
-	StartedAt    time.Time          `json:"startedAt"`
-	CompletedAt  time.Time          `json:"completedAt"`
-	Steps        []SessionStepState `json:"steps"`
+	SessionID    string             `json:"sessionId"`    // SessionID is the runtime identifier.
+	WorkoutID    string             `json:"workoutId"`    // WorkoutID identifies the workout template.
+	UserID       string             `json:"userId"`       // UserID owns the session.
+	WorkoutName  string             `json:"workoutName"`  // WorkoutName is used for display.
+	CurrentIndex int                `json:"currentIndex"` // CurrentIndex points to the active step.
+	Running      bool               `json:"running"`      // Running reports whether the timer is active.
+	Done         bool               `json:"done"`         // Done is true when the session is complete.
+	StartedAt    time.Time          `json:"startedAt"`    // StartedAt records when the session started.
+	CompletedAt  time.Time          `json:"completedAt"`  // CompletedAt records when the session finished.
+	Steps        []SessionStepState `json:"steps"`        // Steps contains the ordered session steps.
 }
 
 // SessionStepState describes a single step in a running session.
 type SessionStepState struct {
-	ID                     string       `json:"id"`
-	Name                   string       `json:"name"`
-	Type                   string       `json:"type"`
-	EstimatedSeconds       int          `json:"estimatedSeconds"`
-	SoundURL               string       `json:"soundUrl"`
-	SoundKey               string       `json:"soundKey,omitempty"`
-	SubsetEstimatedSeconds int          `json:"subsetEstimatedSeconds,omitempty"`
-	Running                bool         `json:"running"`
-	Completed              bool         `json:"completed"`
-	Current                bool         `json:"current"`
-	ElapsedMillis          int64        `json:"elapsedMillis"`
-	Exercises              []Exercise   `json:"exercises"`
-	PauseOptions           PauseOptions `json:"pauseOptions"`
-	AutoAdvance            bool         `json:"autoAdvance"`
-	LoopIndex              int          `json:"loopIndex,omitempty"`
-	LoopTotal              int          `json:"loopTotal,omitempty"`
+	ID                     string       `json:"id"`                               // ID is the unique session step id.
+	Name                   string       `json:"name"`                             // Name is the step or exercise label.
+	Type                   string       `json:"type"`                             // Type is the step kind (set or pause).
+	EstimatedSeconds       int          `json:"estimatedSeconds"`                 // EstimatedSeconds is the per-step target time.
+	SoundURL               string       `json:"soundUrl"`                         // SoundURL is the resolved audio path.
+	SoundKey               string       `json:"soundKey,omitempty"`               // SoundKey references a bundled sound.
+	SubsetEstimatedSeconds int          `json:"subsetEstimatedSeconds,omitempty"` // SubsetEstimatedSeconds targets the whole subset.
+	Running                bool         `json:"running"`                          // Running reports whether this step is active.
+	Completed              bool         `json:"completed"`                        // Completed reports whether this step finished.
+	Current                bool         `json:"current"`                          // Current marks the active step.
+	ElapsedMillis          int64        `json:"elapsedMillis"`                    // ElapsedMillis stores elapsed time for this step.
+	Exercises              []Exercise   `json:"exercises"`                        // Exercises lists per-step exercises.
+	PauseOptions           PauseOptions `json:"pauseOptions"`                     // PauseOptions configures pause behavior.
+	AutoAdvance            bool         `json:"autoAdvance"`                      // AutoAdvance is true for timed auto-advance steps.
+	LoopIndex              int          `json:"loopIndex,omitempty"`              // LoopIndex is the repeat cycle index.
+	LoopTotal              int          `json:"loopTotal,omitempty"`              // LoopTotal is the repeat cycle count.
 
-	SubsetID           string `json:"subsetId,omitempty"`
-	Superset           bool   `json:"superset,omitempty"`
-	SubsetLabel        string `json:"subsetLabel,omitempty"`
-	HasMultipleSubsets bool   `json:"hasMultipleSubsets,omitempty"`
-	SetName            string `json:"setName,omitempty"`
+	SubsetID           string `json:"subsetId,omitempty"`           // SubsetID links the step to a subset definition.
+	Superset           bool   `json:"superset,omitempty"`           // Superset marks subset blocks that skip to next subset.
+	SubsetLabel        string `json:"subsetLabel,omitempty"`        // SubsetLabel is the subset display label.
+	HasMultipleSubsets bool   `json:"hasMultipleSubsets,omitempty"` // HasMultipleSubsets flags grouped subsets.
+	SetName            string `json:"setName,omitempty"`            // SetName is the parent set name.
 }
 
 // Exercise describes a single exercise inside a step.
 type Exercise struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Reps     string `json:"reps"`
-	Weight   string `json:"weight"`
-	Duration string `json:"duration"`
-	SoundKey string `json:"soundKey,omitempty"`
+	Name     string `json:"name"`               // Name is the exercise name.
+	Type     string `json:"type"`               // Type is the exercise kind.
+	Reps     string `json:"reps"`               // Reps is the repetition count for rep exercises.
+	Weight   string `json:"weight"`             // Weight is optional load text.
+	Duration string `json:"duration"`           // Duration holds stopwatch/countdown text.
+	SoundKey string `json:"soundKey,omitempty"` // SoundKey overrides the subset sound.
 }
 
 // PauseOptions describes pause behavior for session steps.
 type PauseOptions struct {
-	AutoAdvance bool `json:"autoAdvance"`
+	AutoAdvance bool `json:"autoAdvance"` // AutoAdvance skips to the next step on completion.
 }
 
 // Store defines the persistence methods needed by the session helpers.
@@ -320,13 +320,13 @@ func CreateState(ctx context.Context, store Store, workoutID string, soundURLByK
 
 // CompleteRequest captures the payload for logging a finished session.
 type CompleteRequest struct {
-	SessionID   string             `json:"sessionId"`
-	WorkoutID   string             `json:"workoutId"`
-	WorkoutName string             `json:"workoutName"`
-	UserID      string             `json:"userId"`
-	StartedAt   time.Time          `json:"startedAt"`
-	CompletedAt time.Time          `json:"completedAt"`
-	Steps       []SessionStepState `json:"steps"`
+	SessionID   string             `json:"sessionId"`   // SessionID identifies the session.
+	WorkoutID   string             `json:"workoutId"`   // WorkoutID identifies the workout.
+	WorkoutName string             `json:"workoutName"` // WorkoutName is the display name at completion time.
+	UserID      string             `json:"userId"`      // UserID owns the session.
+	StartedAt   time.Time          `json:"startedAt"`   // StartedAt records when the session began.
+	CompletedAt time.Time          `json:"completedAt"` // CompletedAt records when the session finished.
+	Steps       []SessionStepState `json:"steps"`       // Steps includes timing details.
 }
 
 // BuildSessionLog validates and maps a completion payload to a log and step entries.

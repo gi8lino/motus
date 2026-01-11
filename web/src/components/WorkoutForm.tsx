@@ -138,6 +138,7 @@ export function WorkoutForm({
   };
 
   useEffect(() => {
+    // Close the exercise sound popover when clicking outside.
     if (!exerciseSoundPicker) return;
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
