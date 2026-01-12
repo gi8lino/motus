@@ -12,6 +12,7 @@ import {
   EXERCISE_TYPE_STOPWATCH,
   normalizeExerciseType,
 } from "../utils/exercise";
+import { logTimerEvent } from "../utils/timerLogger";
 
 // STORAGE_KEY stores the persisted session payload.
 const STORAGE_KEY = "motus:session";
@@ -209,6 +210,24 @@ export function useSessionTimer({
     () => initialSession,
   );
   const rafRef = useRef<number | null>(null);
+  const sessionRef = useRef<NormalizedState | null>(initialSession);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const timerDetails = (extra?: Record<string, unknown>) => {
+    const current = sessionRef.current;
+    const index = current?.currentIndex ?? 0;
+    const step = current?.steps?.[index];
+    return {
+      sessionId: current?.sessionId,
+      currentIndex: index,
+      stepId: step?.id || step?.name,
+      elapsedMs: step?.elapsedMillis ?? 0,
+      ...extra,
+    };
+  };
 
   useEffect(() => {
     persistSession(session);
@@ -250,6 +269,7 @@ export function useSessionTimer({
 
   // startCurrentStep begins or resumes the current step.
   const startCurrentStep = useCallback(() => {
+    logTimerEvent("start-current-step", timerDetails());
     update((next) => {
       next.running = true;
       next.runningSince = now();
@@ -266,6 +286,7 @@ export function useSessionTimer({
 
   // pause stops the timer without completing the step.
   const pause = useCallback(() => {
+    logTimerEvent("pause-step", timerDetails());
     update((next) => {
       const current = next.steps[next.currentIndex];
       if (current && next.running) {
@@ -285,6 +306,14 @@ export function useSessionTimer({
 
   // nextStep completes the current step and advances to the next one.
   const nextStep = useCallback(() => {
+    const currentSession = sessionRef.current;
+    const currentStepDetail =
+      currentSession?.steps?.[currentSession.currentIndex ?? 0];
+    const autoAdvanceTriggered = Boolean(
+      currentStepDetail?.autoAdvance ||
+        currentStepDetail?.pauseOptions?.autoAdvance,
+    );
+    logTimerEvent("advance-step", timerDetails({ autoAdvance: autoAdvanceTriggered }));
     update((next) => {
       const currentIdx = next.currentIndex;
       const current = next.steps[currentIdx];
@@ -345,6 +374,7 @@ export function useSessionTimer({
 
   // finishAndLog completes the session and sends it to the backend.
   const finishAndLog = useCallback(async () => {
+    logTimerEvent("finish-session", timerDetails());
     const current = session || loadPersistedSession();
     if (!current) return { ok: false, error: "no session" };
 

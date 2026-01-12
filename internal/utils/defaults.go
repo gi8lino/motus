@@ -11,7 +11,7 @@ func DefaultIfZero[T comparable](value, fallback T) T {
 	return value
 }
 
-// NormalizeToken normalizes a token to lowercase and trimmed
+// NormalizeToken normalizes a token to lowercase and trims it.
 func NormalizeToken(token string) string {
 	return strings.TrimSpace(strings.ToLower(token))
 }

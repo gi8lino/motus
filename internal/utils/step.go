@@ -4,7 +4,9 @@ package utils
 type StepType string
 
 const (
-	StepTypeSet   StepType = "set"
+	// StepTypeSet describes a set step.
+	StepTypeSet StepType = "set"
+	// StepTypePause describes a pause step.
 	StepTypePause StepType = "pause"
 )
 

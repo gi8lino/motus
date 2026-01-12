@@ -53,11 +53,11 @@ func TestServiceList(t *testing.T) {
 	t.Run("Internal error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeTemplateStore{
+		svc := New(&fakeTemplateStore{
 			listTemplatesFn: func(context.Context) ([]db.Workout, error) {
 				return nil, errors.New("boom")
 			},
-		}}
+		})
 		_, err := svc.List(context.Background())
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorInternal))
@@ -70,7 +70,7 @@ func TestServiceCreate(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeTemplateStore{}}
+		svc := New(&fakeTemplateStore{})
 		_, err := svc.Create(context.Background(), " ", "Name")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -83,11 +83,11 @@ func TestServiceGet(t *testing.T) {
 	t.Run("Not a template", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeTemplateStore{
+		svc := New(&fakeTemplateStore{
 			workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 				return &db.Workout{ID: "w1", IsTemplate: false}, nil
 			},
-		}}
+		})
 		_, err := svc.Get(context.Background(), "w1")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorNotFound))
@@ -100,7 +100,7 @@ func TestServiceApply(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeTemplateStore{}}
+		svc := New(&fakeTemplateStore{})
 		_, err := svc.Apply(context.Background(), " ", "user", "Name")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -109,11 +109,11 @@ func TestServiceApply(t *testing.T) {
 	t.Run("Creates new workout", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeTemplateStore{
+		svc := New(&fakeTemplateStore{
 			createWorkoutFromTemplate: func(context.Context, string, string, string) (*db.Workout, error) {
 				return &db.Workout{ID: "new", Name: "Copy"}, nil
 			},
-		}}
+		})
 		workout, err := svc.Apply(context.Background(), "tmpl", "user", "Copy")
 		require.NoError(t, err)
 		assert.Equal(t, "new", workout.ID)

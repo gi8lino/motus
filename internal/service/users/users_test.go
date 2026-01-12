@@ -81,7 +81,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Registration disabled", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}, AuthHeader: "", AllowRegistration: false}
+		svc := New(&fakeStore{}, "", false)
 		_, err := svc.Create(context.Background(), "user@example.com", "", "secret")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -90,7 +90,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Password required", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}, AuthHeader: "", AllowRegistration: true}
+		svc := New(&fakeStore{}, "", true)
 		_, err := svc.Create(context.Background(), "user@example.com", "", " ")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -100,10 +100,12 @@ func TestCreate(t *testing.T) {
 		t.Parallel()
 
 		called := false
-		svc := &Service{Store: &fakeStore{createUserFn: func(context.Context, string, string, string) (*db.User, error) {
-			called = true
-			return &db.User{ID: "user"}, nil
-		}}, AuthHeader: "X-User", AllowRegistration: false}
+		svc := New(&fakeStore{
+			createUserFn: func(context.Context, string, string, string) (*db.User, error) {
+				called = true
+				return &db.User{ID: "user"}, nil
+			},
+		}, "X-User", false)
 		user, err := svc.Create(context.Background(), "user@example.com", "", "")
 		require.NoError(t, err)
 		require.NotNil(t, user)
@@ -118,7 +120,7 @@ func TestLogin(t *testing.T) {
 	t.Run("Disabled with auth header", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}, AuthHeader: "X-User"}
+		svc := New(&fakeStore{}, "X-User", false)
 		_, err := svc.Login(context.Background(), "user@example.com", "secret")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -127,9 +129,11 @@ func TestLogin(t *testing.T) {
 	t.Run("Invalid credentials", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
-			return nil, "", nil
-		}}}
+		svc := New(&fakeStore{
+			getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
+				return nil, "", nil
+			},
+		}, "", false)
 		_, err := svc.Login(context.Background(), "user@example.com", "secret")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorUnauthorized))
@@ -141,9 +145,11 @@ func TestLogin(t *testing.T) {
 		hash, err := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
 		require.NoError(t, err)
 
-		svc := &Service{Store: &fakeStore{getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
-			return &db.User{ID: "user"}, string(hash), nil
-		}}}
+		svc := New(&fakeStore{
+			getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
+				return &db.User{ID: "user"}, string(hash), nil
+			},
+		}, "", false)
 		user, err := svc.Login(context.Background(), "user@example.com", "secret")
 		require.NoError(t, err)
 		require.NotNil(t, user)
@@ -157,7 +163,7 @@ func TestChangePassword(t *testing.T) {
 	t.Run("Proxy managed", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}, AuthHeader: "X-User"}
+		svc := New(&fakeStore{}, "X-User", false)
 		err := svc.ChangePassword(context.Background(), "user", "old", "new")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorForbidden))
@@ -169,9 +175,11 @@ func TestChangePassword(t *testing.T) {
 		hash, err := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
 		require.NoError(t, err)
 
-		svc := &Service{Store: &fakeStore{getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
-			return &db.User{ID: "user"}, string(hash), nil
-		}}}
+		svc := New(&fakeStore{
+			getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
+				return &db.User{ID: "user"}, string(hash), nil
+			},
+		}, "", false)
 		err = svc.ChangePassword(context.Background(), "user", "wrong", "new")
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorUnauthorized))
@@ -184,7 +192,7 @@ func TestChangePassword(t *testing.T) {
 		require.NoError(t, err)
 
 		called := false
-		svc := &Service{Store: &fakeStore{
+		svc := New(&fakeStore{
 			getUserWithPassFn: func(context.Context, string) (*db.User, string, error) {
 				return &db.User{ID: "user"}, string(hash), nil
 			},
@@ -192,7 +200,7 @@ func TestChangePassword(t *testing.T) {
 				called = true
 				return nil
 			},
-		}}
+		}, "", false)
 		err = svc.ChangePassword(context.Background(), "user", "secret", "newpass")
 		require.NoError(t, err)
 		assert.True(t, called, "expected UpdateUserPassword to be called")
@@ -205,7 +213,7 @@ func TestUpdateRole(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{}}
+		svc := New(&fakeStore{}, "", false)
 		err := svc.UpdateRole(context.Background(), " ", true)
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorValidation))
@@ -214,9 +222,11 @@ func TestUpdateRole(t *testing.T) {
 	t.Run("Internal error", func(t *testing.T) {
 		t.Parallel()
 
-		svc := &Service{Store: &fakeStore{updateUserAdminFn: func(context.Context, string, bool) error {
-			return errors.New("boom")
-		}}}
+		svc := New(&fakeStore{
+			updateUserAdminFn: func(context.Context, string, bool) error {
+				return errors.New("boom")
+			},
+		}, "", false)
 		err := svc.UpdateRole(context.Background(), "user", true)
 		require.Error(t, err)
 		assert.True(t, service.IsKind(err, service.ErrorInternal))
