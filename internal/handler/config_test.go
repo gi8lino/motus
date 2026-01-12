@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/users"
 )
 
 func TestConfig(t *testing.T) {
@@ -47,7 +48,7 @@ func TestCurrentUser(t *testing.T) {
 			},
 		}
 
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.CurrentUser()
 		req := httptest.NewRequest(http.MethodGet, "/api/users/current", nil)
 		req.Header.Set("X-User-ID", "user@example.com")
@@ -69,7 +70,7 @@ func TestCurrentUser(t *testing.T) {
 			},
 		}
 
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.CurrentUser()
 		req := httptest.NewRequest(http.MethodGet, "/api/users/current", nil)
 		req.Header.Set("X-User-ID", "user@example.com")
@@ -81,7 +82,7 @@ func TestCurrentUser(t *testing.T) {
 	})
 
 	t.Run("Returns bad request when missing user", func(t *testing.T) {
-		api := &API{UsersStore: &fakeUserStore{}}
+		api := &API{Users: users.New(&fakeUserStore{}, "", false)}
 		h := api.CurrentUser()
 		req := httptest.NewRequest(http.MethodGet, "/api/users/current", nil)
 		rec := httptest.NewRecorder()

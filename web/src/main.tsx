@@ -9,6 +9,7 @@ declare global {
   }
 }
 
+// readRoutePrefix extracts the optional base path from the meta tag.
 const readRoutePrefix = (): string => {
   const meta = document.querySelector('meta[name="routePrefix"]');
   // Guard: return empty base when the meta tag is missing.

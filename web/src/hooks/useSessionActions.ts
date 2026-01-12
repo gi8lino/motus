@@ -48,8 +48,8 @@ export function useSessionActions({
     // Guard: prompt to resume if an active session already exists.
     if (session && !session.done) {
       const resume = await askConfirm(
-        "You have an active session. Resume it instead?",
-        { confirmLabel: "Resume", cancelLabel: "New session" },
+        "You have an active workout. Resume it instead?",
+        { confirmLabel: "Resume", cancelLabel: "New workout" },
       );
       if (resume) {
         setSessionsView();

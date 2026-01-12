@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/templates"
 )
 
 type fakeTemplateStore struct {
@@ -54,7 +55,7 @@ func TestTemplatesHandlers(t *testing.T) {
 		store := &fakeTemplateStore{listTemplatesFn: func(context.Context) ([]db.Workout, error) {
 			return []db.Workout{{ID: "t1", Name: "Template"}}, nil
 		}}
-		api := &API{TemplatesStore: store}
+		api := &API{Templates: templates.New(store)}
 		h := api.ListTemplates()
 		req := httptest.NewRequest(http.MethodGet, "/api/templates", nil)
 		rec := httptest.NewRecorder()
@@ -72,7 +73,7 @@ func TestTemplatesHandlers(t *testing.T) {
 		store := &fakeTemplateStore{createTemplateFn: func(context.Context, string, string) (*db.Workout, error) {
 			return &db.Workout{ID: "t1", Name: "Template"}, nil
 		}}
-		api := &API{TemplatesStore: store}
+		api := &API{Templates: templates.New(store)}
 		h := api.CreateTemplate()
 		body := strings.NewReader(`{"workoutId":"w1","name":"Template"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/templates", body)
@@ -90,7 +91,7 @@ func TestTemplatesHandlers(t *testing.T) {
 		store := &fakeTemplateStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 			return &db.Workout{ID: "t1", Name: "Template", IsTemplate: true}, nil
 		}}
-		api := &API{TemplatesStore: store}
+		api := &API{Templates: templates.New(store)}
 		h := api.GetTemplate()
 		req := httptest.NewRequest(http.MethodGet, "/api/templates/t1", nil)
 		req.SetPathValue("id", "t1")
@@ -108,7 +109,7 @@ func TestTemplatesHandlers(t *testing.T) {
 		store := &fakeTemplateStore{createWorkoutFromTemplate: func(context.Context, string, string, string) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Copy"}, nil
 		}}
-		api := &API{TemplatesStore: store}
+		api := &API{Templates: templates.New(store)}
 		h := api.ApplyTemplate()
 		body := strings.NewReader(`{"userId":"user@example.com","name":"Copy"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/templates/t1/apply", body)

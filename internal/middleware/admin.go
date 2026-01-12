@@ -9,15 +9,15 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-// adminStore describes the user lookup required by RequireAdmin.
-type adminStore interface {
-	// GetUser fetches a user for admin checks.
-	GetUser(ctx context.Context, id string) (*db.User, error)
+// adminGetter describes the user lookup required by RequireAdmin.
+type adminGetter interface {
+	// Get fetches a user for admin checks.
+	Get(ctx context.Context, id string) (*db.User, error)
 }
 
 // RequireAdmin blocks requests without an admin user (looked up by X-User-ID).
 // This is a lightweight guard; replace with real auth for production.
-func RequireAdmin(store adminStore, authHeader string) Middleware {
+func RequireAdmin(store adminGetter, authHeader string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := utils.DefaultIfZero(authHeader, "X-User-ID")
@@ -29,7 +29,7 @@ func RequireAdmin(store adminStore, authHeader string) Middleware {
 				return
 			}
 
-			user, err := store.GetUser(r.Context(), userID)
+			user, err := store.Get(r.Context(), userID)
 			if err != nil || user == nil || !user.IsAdmin {
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte("forbidden"))

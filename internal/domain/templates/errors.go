@@ -1,4 +1,3 @@
-// Package templates provides domain errors for the template domain.
 package templates
 
 import "fmt"

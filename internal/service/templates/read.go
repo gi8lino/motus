@@ -1,13 +1,9 @@
 package templates
 
-import (
-	"context"
-
-	"github.com/gi8lino/motus/internal/db"
-)
+import "context"
 
 // List returns all shared templates.
-func (s *Service) List(ctx context.Context) ([]db.Workout, error) {
+func (s *Service) List(ctx context.Context) ([]Workout, error) {
 	templates, err := s.manager.List(ctx)
 	if err != nil {
 		return nil, s.mapError(err)
@@ -16,7 +12,7 @@ func (s *Service) List(ctx context.Context) ([]db.Workout, error) {
 }
 
 // Get returns a template by id.
-func (s *Service) Get(ctx context.Context, id string) (*db.Workout, error) {
+func (s *Service) Get(ctx context.Context, id string) (*Workout, error) {
 	template, err := s.manager.Get(ctx, id)
 	if err != nil {
 		return nil, s.mapError(err)

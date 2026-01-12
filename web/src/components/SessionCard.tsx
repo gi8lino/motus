@@ -6,12 +6,14 @@ import { logTimerEvent } from "../utils/timerLogger";
 
 type AnyStep = any;
 
+// getExercises normalizes the exercises list for a step payload.
 function getExercises(step: AnyStep): Exercise[] {
   if (!step) return [];
   if (Array.isArray(step.exercises)) return step.exercises;
   return [];
 }
 
+// getStepName resolves the display label for a step.
 function getStepName(step: AnyStep): string {
   const subsetLabel = String(step?.subsetLabel || "").trim();
   if (subsetLabel) return subsetLabel;
@@ -23,6 +25,7 @@ function getStepName(step: AnyStep): string {
   return "Set";
 }
 
+// getCurrentExerciseLabel builds the display label for the active exercise.
 function getCurrentExerciseLabel(step: AnyStep): string {
   if (!step) return "";
   const exercise = Array.isArray(step.exercises)
@@ -50,6 +53,7 @@ type StepGroup = {
   estimatedSeconds: number;
 };
 
+// SessionCard renders the main session status card and controls.
 export function SessionCard({
   session,
   currentStep,

@@ -1,4 +1,3 @@
-// Package exercises defines domain errors for exercise catalog rules.
 package exercises
 
 import "fmt"
@@ -47,19 +46,19 @@ func (e *Error) DomainKind() int {
 	return int(e.Kind)
 }
 
-// validation creates a validation-kind error.
+// validation creates a validation error.
 func validation(message string) error {
 	return &Error{Kind: KindValidation, Message: message}
-}
-
-// forbidden creates a forbidden-kind error.
-func forbidden(message string) error {
-	return &Error{Kind: KindForbidden, Message: message}
 }
 
 // notFound creates a not-found error.
 func notFound(message string) error {
 	return &Error{Kind: KindNotFound, Message: message}
+}
+
+// forbidden creates a forbidden error.
+func forbidden(message string) error {
+	return &Error{Kind: KindForbidden, Message: message}
 }
 
 // internal wraps an internal error.

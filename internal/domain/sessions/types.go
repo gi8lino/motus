@@ -1,6 +1,32 @@
+// Package sessions provides domain types and session state builders.
 package sessions
 
-import "time"
+import (
+	"time"
+
+	"github.com/gi8lino/motus/internal/db"
+)
+
+// Workout is the domain-level DTO for session workouts.
+type Workout = db.Workout
+
+// WorkoutStep is the domain-level DTO for workout steps.
+type WorkoutStep = db.WorkoutStep
+
+// WorkoutSubset is the domain-level DTO for workout subsets.
+type WorkoutSubset = db.WorkoutSubset
+
+// SubsetExercise is the domain-level DTO for subset exercises.
+type SubsetExercise = db.SubsetExercise
+
+// PauseOptions controls auto-advance for pauses.
+type PauseOptions = db.PauseOptions
+
+// SessionLog is the domain-level DTO for completed session logs.
+type SessionLog = db.SessionLog
+
+// SessionStepLog is the domain-level DTO for session step timing logs.
+type SessionStepLog = db.SessionStepLog
 
 // SessionState captures the runtime status that the SPA consumes for an active session.
 type SessionState struct {
@@ -49,9 +75,4 @@ type Exercise struct {
 	Weight   string `json:"weight"`
 	Duration string `json:"duration"`
 	SoundKey string `json:"soundKey,omitempty"`
-}
-
-// PauseOptions controls auto-advance for pauses.
-type PauseOptions struct {
-	AutoAdvance bool `json:"autoAdvance"`
 }

@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
 // NewStateFromWorkout builds a SessionState for the SPA from the stored workout definition.
-func NewStateFromWorkout(workout *db.Workout, soundURLByKey func(string) string) SessionState {
+func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) SessionState {
 	state := SessionState{
 		SessionID:    utils.NewID(),
 		WorkoutID:    workout.ID,

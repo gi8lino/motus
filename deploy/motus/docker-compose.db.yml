@@ -1,0 +1,27 @@
+services:
+  motus-db:
+    image: postgres:18
+    container_name: motus-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: motus
+      POSTGRES_USER: motus
+      POSTGRES_PASSWORD: motus
+    ports:
+      - "5431:5432"
+    volumes:
+      - motus-db-data:/var/lib/postgresql/
+  # motus-pgadmin:
+  #   image: dpage/pgadmin4:9
+  #   container_name: motus-pgadmin
+  #   restart: unless-stopped
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@motus.app
+  #     PGADMIN_DEFAULT_PASSWORD: motus
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - motus-db
+
+volumes:
+  motus-db-data:

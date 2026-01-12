@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/users"
 )
 
 type fakeUserStore struct {
@@ -80,7 +81,7 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{listUsersFn: func(context.Context) ([]db.User, error) {
 			return []db.User{{ID: "user@example.com"}}, nil
 		}}
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.GetUsers()
 		req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		rec := httptest.NewRecorder()
@@ -98,7 +99,7 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{createUserFn: func(context.Context, string, string, string) (*db.User, error) {
 			return &db.User{ID: "user@example.com"}, nil
 		}}
-		api := &API{UsersStore: store, AllowRegistration: true}
+		api := &API{Users: users.New(store, "", true), AllowRegistration: true}
 		h := api.CreateUser()
 		body := strings.NewReader(`{"email":"user@example.com","avatarUrl":"","password":"secret"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/users", body)
@@ -114,7 +115,7 @@ func TestUsersHandlers(t *testing.T) {
 
 	t.Run("Update user role", func(t *testing.T) {
 		store := &fakeUserStore{updateUserAdminFn: func(context.Context, string, bool) error { return nil }}
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.UpdateUserRole()
 		body := strings.NewReader(`{"isAdmin":true}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/users/user@example.com/admin", body)
@@ -133,7 +134,7 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{getUserWithPasswordFn: func(context.Context, string) (*db.User, string, error) {
 			return &db.User{ID: "user@example.com"}, string(hash), nil
 		}}
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.Login()
 		body := strings.NewReader(`{"email":"user@example.com","password":"secret"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/login", body)
@@ -157,7 +158,7 @@ func TestUsersHandlers(t *testing.T) {
 			},
 			updateUserPasswordFn: func(context.Context, string, string) error { return nil },
 		}
-		api := &API{UsersStore: store}
+		api := &API{Users: users.New(store, "", false)}
 		h := api.ChangePassword()
 		body := strings.NewReader(`{"currentPassword":"secret","newPassword":"new"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/users/password", body)

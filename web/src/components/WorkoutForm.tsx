@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
+import { SoundIcon } from "./icons/SoundIcon";
 import { TrashIcon } from "./icons/TrashIcon";
 import { formatExerciseLine } from "../utils/format";
 import { parseDurationSeconds, isGoDuration } from "../utils/time";
@@ -29,10 +30,12 @@ import {
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
 
+// makeSubsetId creates a stable client id for new subsets.
 function makeSubsetId() {
   return `subset-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// makeStepId creates a stable client id for new steps.
 function makeStepId() {
   return `step-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -717,14 +720,7 @@ export function WorkoutForm({
               )
             }
           >
-            <svg
-              className="sound-icon"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path d="M3 9h4l6-5v16l-6-5H3V9zm13.6-1.6a1 1 0 0 1 1.4 0A6 6 0 0 1 20 12a6 6 0 0 1-2 4.6 1 1 0 1 1-1.4-1.4A4 4 0 0 0 18 12a4 4 0 0 0-1.4-3.2 1 1 0 0 1 0-1.4zm2.8-2.8a1 1 0 0 1 1.4 0A10 10 0 0 1 24 12a10 10 0 0 1-3.2 7.4 1 1 0 1 1-1.4-1.4A8 8 0 0 0 22 12a8 8 0 0 0-2.8-6 1 1 0 0 1 0-1.4z" />
-            </svg>
+            <SoundIcon />
           </button>
           {soundOpen && (
             <div ref={soundPopoverRef} className="sound-popover">
@@ -765,17 +761,7 @@ export function WorkoutForm({
             title="Remove exercise"
           >
             <span className="desktop-only">
-              <svg
-                className="trash-icon"
-                viewBox="-2.5 0 61 61"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M36 26v10.997c0 1.659-1.337 3.003-3.009 3.003h-9.981c-1.662 0-3.009-1.342-3.009-3.003v-10.997h16zm-2 0v10.998c0 .554-.456 1.002-1.002 1.002h-9.995c-.554 0-1.002-.456-1.002-1.002v-10.998h12zm-9-5c0-.552.451-1 .991-1h4.018c.547 0 .991.444.991 1 0 .552-.451 1-.991 1h-4.018c-.547 0-.991-.444-.991-1zm0 6.997c0-.551.444-.997 1-.997.552 0 1 .453 1 .997v6.006c0 .551-.444.997-1 .997-.552 0-1-.453-1-.997v-6.006zm4 0c0-.551.444-.997 1-.997.552 0 1 .453 1 .997v6.006c0 .551-.444.997-1 .997-.552 0-1-.453-1-.997v-6.006zm-6-5.997h-4.008c-.536 0-.992.448-.992 1 0 .556.444 1 .992 1h18.016c.536 0 .992-.448.992-1 0-.556-.444-1-.992-1h-4.008v-1c0-1.653-1.343-3-3-3h-3.999c-1.652 0-3 1.343-3 3v1z"
-                />
-              </svg>
+              <TrashIcon />
             </span>
             <span className="mobile-only">Remove exercise</span>
           </button>

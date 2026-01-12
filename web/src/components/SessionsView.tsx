@@ -558,6 +558,11 @@ export function SessionsView({
     return `Paused • step ${current}/${total}`;
   }, [session]);
 
+  const startLabel =
+    selectedWorkoutId && session?.workoutId === selectedWorkoutId
+      ? "New"
+      : "Select";
+
   return (
     <>
       <section className="panel">
@@ -592,7 +597,7 @@ export function SessionsView({
               disabled={startDisabled}
               title={startTitle}
             >
-              Start
+              {startLabel}
             </button>
           </div>
         </div>
