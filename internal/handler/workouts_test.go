@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/workouts"
 )
 
 type fakeWorkoutStore struct {
@@ -86,7 +87,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{workoutsByUserFn: func(context.Context, string) ([]db.Workout, error) {
 			return []db.Workout{{ID: "w1", Name: "Workout"}}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.GetWorkouts()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts", nil)
 		req.SetPathValue("id", "user@example.com")
@@ -106,7 +107,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.CreateWorkout()
 		body := strings.NewReader(`{"name":"Workout","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts", body)
@@ -126,7 +127,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.GetWorkout()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts/w1", nil)
 		req.SetPathValue("id", "w1")
@@ -144,7 +145,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Workout"}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.ExportWorkout()
 		req := httptest.NewRequest(http.MethodGet, "/api/workouts/w1/export", nil)
 		req.SetPathValue("id", "w1")
@@ -162,7 +163,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{createWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Imported"}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.ImportWorkout()
 		body := strings.NewReader(`{"userId":"user@example.com","workout":{"name":"Imported","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/workouts/import", body)
@@ -181,7 +182,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 		store := &fakeWorkoutStore{updateWorkoutFn: func(context.Context, *db.Workout) (*db.Workout, error) {
 			return &db.Workout{ID: "w1", Name: "Updated"}, nil
 		}}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.UpdateWorkout()
 		body := strings.NewReader(`{"userId":"user@example.com","name":"Updated","steps":[{"type":"set","name":"Step","subsets":[{"name":"Main","exercises":[{"name":"Lift","reps":"5"}]}]}]}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/workouts/w1", body)
@@ -198,7 +199,7 @@ func TestWorkoutsHandlers(t *testing.T) {
 
 	t.Run("Delete workout", func(t *testing.T) {
 		store := &fakeWorkoutStore{deleteWorkoutFn: func(context.Context, string) error { return nil }}
-		api := &API{WorkoutsStore: store}
+		api := &API{Workouts: workouts.New(store)}
 		h := api.DeleteWorkout()
 		req := httptest.NewRequest(http.MethodDelete, "/api/workouts/w1", nil)
 		req.SetPathValue("id", "w1")

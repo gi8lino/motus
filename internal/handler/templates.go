@@ -1,16 +1,11 @@
 package handler
 
-import (
-	"net/http"
-
-	"github.com/gi8lino/motus/internal/service/templates"
-)
+import "net/http"
 
 // ListTemplates returns all shared templates.
 func (a *API) ListTemplates() http.HandlerFunc {
-	svc := templates.New(a.TemplatesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
-		items, err := svc.List(r.Context())
+		items, err := a.Templates.List(r.Context())
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -22,7 +17,6 @@ func (a *API) ListTemplates() http.HandlerFunc {
 
 // CreateTemplate marks a workout as a template.
 func (a *API) CreateTemplate() http.HandlerFunc {
-	svc := templates.New(a.TemplatesStore)
 	type createTemplateRequest struct {
 		WorkoutID string `json:"workoutId"`
 		Name      string `json:"name"`
@@ -34,7 +28,7 @@ func (a *API) CreateTemplate() http.HandlerFunc {
 			return
 		}
 
-		template, err := svc.Create(r.Context(), req.WorkoutID, req.Name)
+		template, err := a.Templates.Create(r.Context(), req.WorkoutID, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -46,9 +40,8 @@ func (a *API) CreateTemplate() http.HandlerFunc {
 
 // GetTemplate returns a template by id.
 func (a *API) GetTemplate() http.HandlerFunc {
-	svc := templates.New(a.TemplatesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
-		template, err := svc.Get(r.Context(), r.PathValue("id"))
+		template, err := a.Templates.Get(r.Context(), r.PathValue("id"))
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -60,7 +53,6 @@ func (a *API) GetTemplate() http.HandlerFunc {
 
 // ApplyTemplate clones a template into a new workout.
 func (a *API) ApplyTemplate() http.HandlerFunc {
-	svc := templates.New(a.TemplatesStore)
 	type applyTemplateRequest struct {
 		UserID string `json:"userId"`
 		Name   string `json:"name"`
@@ -79,7 +71,7 @@ func (a *API) ApplyTemplate() http.HandlerFunc {
 		}
 		req.UserID = resolvedUserID
 
-		workout, err := svc.Apply(r.Context(), r.PathValue("id"), req.UserID, req.Name)
+		workout, err := a.Templates.Apply(r.Context(), r.PathValue("id"), req.UserID, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return

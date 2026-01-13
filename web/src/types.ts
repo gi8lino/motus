@@ -149,6 +149,7 @@ export type SoundOption = {
   leadSeconds?: number;
 };
 
+// CatalogExercise describes an exercise stored in the shared catalog.
 export type CatalogExercise = {
   id: string;
   name: string;
@@ -157,6 +158,7 @@ export type CatalogExercise = {
   createdAt?: string;
 };
 
+// AskConfirmOptions configures confirm dialog labels.
 export type AskConfirmOptions = {
   title?: string;
   confirmLabel?: string;

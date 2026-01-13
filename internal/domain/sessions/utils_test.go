@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
@@ -15,7 +14,7 @@ func TestMapExercise(t *testing.T) {
 	t.Run("Defaults", func(t *testing.T) {
 		t.Parallel()
 
-		input := db.SubsetExercise{
+		input := SubsetExercise{
 			Name:     "Push",
 			Type:     utils.ExerciseTypeRep,
 			Reps:     "10",
@@ -35,12 +34,13 @@ func TestMapExercise(t *testing.T) {
 
 func TestDeriveExerciseDuration(t *testing.T) {
 	t.Parallel()
+
 	t.Run("Defaults", func(t *testing.T) {
 		t.Parallel()
-		subset := db.WorkoutSubset{EstimatedSeconds: 30}
-		countdown := db.SubsetExercise{Type: utils.ExerciseTypeCountdown, Duration: "15s"}
-		stopwatch := db.SubsetExercise{Type: utils.ExerciseTypeStopwatch}
-		rep := db.SubsetExercise{Type: utils.ExerciseTypeRep}
+		subset := WorkoutSubset{EstimatedSeconds: 30}
+		countdown := SubsetExercise{Type: utils.ExerciseTypeCountdown, Duration: "15s"}
+		stopwatch := SubsetExercise{Type: utils.ExerciseTypeStopwatch}
+		rep := SubsetExercise{Type: utils.ExerciseTypeRep}
 
 		seconds, auto := deriveExerciseDuration(countdown, subset)
 		assert.Equal(t, 15, seconds)
@@ -50,7 +50,7 @@ func TestDeriveExerciseDuration(t *testing.T) {
 		assert.Equal(t, 30, seconds)
 		assert.False(t, auto)
 
-		subset.Exercises = []db.SubsetExercise{rep}
+		subset.Exercises = []SubsetExercise{rep}
 		seconds, auto = deriveExerciseDuration(rep, subset)
 		assert.Equal(t, 30, seconds)
 		assert.False(t, auto)

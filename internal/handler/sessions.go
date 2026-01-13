@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gi8lino/motus/internal/service/sessions"
-	"github.com/gi8lino/motus/internal/service/sounds"
 )
 
 // CreateSession initializes a new session state from a workout.
@@ -24,7 +23,7 @@ func (a *API) CreateSession() http.HandlerFunc {
 			return
 		}
 
-		state, err := sessions.CreateState(r.Context(), a.SessionsStore, req.WorkoutID, sounds.URLByKey)
+		state, err := a.Sessions.CreateState(r.Context(), req.WorkoutID)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -48,13 +47,7 @@ func (a *API) ListSessionHistory() http.HandlerFunc {
 			return
 		}
 
-		history, err := a.SessionsStore.SessionHistory(r.Context(), resolvedID, 25)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
-			return
-		}
-
-		items, err := sessions.BuildSessionHistory(r.Context(), a.SessionsStore, history)
+		items, err := a.Sessions.BuildSessionHistory(r.Context(), resolvedID, 25)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -67,7 +60,7 @@ func (a *API) ListSessionHistory() http.HandlerFunc {
 // SessionSteps returns stored step timings for a session.
 func (a *API) SessionSteps() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		steps, err := sessions.FetchStepTimings(r.Context(), a.SessionsStore, r.PathValue("id"))
+		steps, err := a.Sessions.FetchStepTimings(r.Context(), r.PathValue("id"))
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -102,7 +95,7 @@ func (a *API) CompleteSession() http.HandlerFunc {
 		}
 		req.UserID = resolvedUserID
 
-		log, err := sessions.RecordSession(r.Context(), a.SessionsStore, sessions.CompleteRequest{
+		log, err := a.Sessions.RecordSession(r.Context(), sessions.CompleteRequest{
 			SessionID:   req.SessionID,
 			WorkoutID:   req.WorkoutID,
 			WorkoutName: req.WorkoutName,

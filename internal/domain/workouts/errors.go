@@ -1,4 +1,3 @@
-// Package workouts provides domain errors for workout operations.
 package workouts
 
 import "fmt"

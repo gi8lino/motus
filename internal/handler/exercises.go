@@ -1,14 +1,9 @@
 package handler
 
-import (
-	"net/http"
-
-	"github.com/gi8lino/motus/internal/service/exercises"
-)
+import "net/http"
 
 // ListExercises returns the exercise catalog for the current user.
 func (a *API) ListExercises() http.HandlerFunc {
-	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
@@ -16,7 +11,7 @@ func (a *API) ListExercises() http.HandlerFunc {
 			return
 		}
 
-		items, err := svc.List(r.Context(), userID)
+		items, err := a.Exercises.List(r.Context(), userID)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -28,7 +23,6 @@ func (a *API) ListExercises() http.HandlerFunc {
 
 // CreateExercise adds a new exercise to the catalog.
 func (a *API) CreateExercise() http.HandlerFunc {
-	svc := exercises.New(a.ExercisesStore)
 	type createExerciseRequest struct {
 		Name   string `json:"name"`
 		IsCore bool   `json:"isCore"`
@@ -46,7 +40,7 @@ func (a *API) CreateExercise() http.HandlerFunc {
 			return
 		}
 
-		exercise, err := svc.Create(r.Context(), userID, req.Name, req.IsCore)
+		exercise, err := a.Exercises.Create(r.Context(), userID, req.Name, req.IsCore)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -58,7 +52,6 @@ func (a *API) CreateExercise() http.HandlerFunc {
 
 // UpdateExercise renames an exercise or creates a personal copy.
 func (a *API) UpdateExercise() http.HandlerFunc {
-	svc := exercises.New(a.ExercisesStore)
 	type updateExerciseRequest struct {
 		Name string `json:"name"`
 	}
@@ -77,7 +70,7 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 			return
 		}
 
-		updated, err := svc.Update(r.Context(), userID, id, req.Name)
+		updated, err := a.Exercises.Update(r.Context(), userID, id, req.Name)
 		if err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
@@ -89,7 +82,6 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 
 // DeleteExercise removes an exercise from the catalog.
 func (a *API) DeleteExercise() http.HandlerFunc {
-	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
@@ -99,7 +91,7 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 			return
 		}
 
-		if err := svc.Delete(r.Context(), userID, id); err != nil {
+		if err := a.Exercises.Delete(r.Context(), userID, id); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
@@ -110,9 +102,8 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 
 // BackfillExercises rebuilds core exercises from workout data.
 func (a *API) BackfillExercises() http.HandlerFunc {
-	svc := exercises.New(a.ExercisesStore)
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := svc.Backfill(r.Context()); err != nil {
+		if err := a.Exercises.Backfill(r.Context()); err != nil {
 			writeJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/service/exercises"
 )
 
 type fakeExercisesStore struct {
@@ -102,7 +103,7 @@ func TestExercisesHandlers(t *testing.T) {
 		store := &fakeExercisesStore{listExercisesFn: func(_ context.Context, userID string) ([]db.Exercise, error) {
 			return []db.Exercise{{ID: "ex1", Name: "Burpee"}}, nil
 		}}
-		api := &API{ExercisesStore: store}
+		api := &API{Exercises: exercises.New(store)}
 		h := api.ListExercises()
 		req := httptest.NewRequest(http.MethodGet, "/api/exercises", nil)
 		req.Header.Set("X-User-ID", "user@example.com")
@@ -126,7 +127,7 @@ func TestExercisesHandlers(t *testing.T) {
 				return &db.Exercise{ID: "ex1", Name: "Burpee"}, nil
 			},
 		}
-		api := &API{ExercisesStore: store}
+		api := &API{Exercises: exercises.New(store)}
 		h := api.CreateExercise()
 		body := strings.NewReader(`{"name":"Burpee","isCore":false}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/exercises", body)
@@ -153,7 +154,7 @@ func TestExercisesHandlers(t *testing.T) {
 				return &db.Exercise{ID: "ex1", Name: "Burpee 2"}, nil
 			},
 		}
-		api := &API{ExercisesStore: store}
+		api := &API{Exercises: exercises.New(store)}
 		h := api.UpdateExercise()
 		body := strings.NewReader(`{"name":"Burpee 2"}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/exercises/ex1", body)
@@ -181,7 +182,7 @@ func TestExercisesHandlers(t *testing.T) {
 				return nil
 			},
 		}
-		api := &API{ExercisesStore: store}
+		api := &API{Exercises: exercises.New(store)}
 		h := api.DeleteExercise()
 		req := httptest.NewRequest(http.MethodDelete, "/api/exercises/ex1", nil)
 		req.SetPathValue("id", "ex1")
@@ -195,7 +196,7 @@ func TestExercisesHandlers(t *testing.T) {
 
 	t.Run("Backfill exercises", func(t *testing.T) {
 		store := &fakeExercisesStore{backfillCoreExercisesFn: func(context.Context) error { return nil }}
-		api := &API{ExercisesStore: store}
+		api := &API{Exercises: exercises.New(store)}
 		h := api.BackfillExercises()
 		req := httptest.NewRequest(http.MethodPost, "/api/exercises/backfill", nil)
 		rec := httptest.NewRecorder()

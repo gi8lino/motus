@@ -18,8 +18,8 @@ type stubAdminStore struct {
 	err   error
 }
 
-// GetUser returns a user or error for testing RequireAdmin.
-func (s stubAdminStore) GetUser(_ context.Context, id string) (*db.User, error) {
+// Get returns a user or error for testing RequireAdmin.
+func (s stubAdminStore) Get(_ context.Context, id string) (*db.User, error) {
 	if s.err != nil {
 		return nil, s.err
 	}

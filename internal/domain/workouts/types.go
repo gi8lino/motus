@@ -1,12 +1,22 @@
+// Package workouts provides domain logic for workout definitions.
 package workouts
 
-import (
-	"regexp"
+import "github.com/gi8lino/motus/internal/db"
 
-	"github.com/gi8lino/motus/internal/db"
-)
+// Workout is the domain-level DTO for workouts.
+type Workout = db.Workout
 
-var repRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
+// PauseOptions is the domain-level DTO for pause configuration.
+type PauseOptions = db.PauseOptions
+
+// WorkoutStep is the domain-level DTO for workout steps.
+type WorkoutStep = db.WorkoutStep
+
+// WorkoutSubset is the domain-level DTO for workout subsets.
+type WorkoutSubset = db.WorkoutSubset
+
+// SubsetExercise is the domain-level DTO for subset exercises.
+type SubsetExercise = db.SubsetExercise
 
 // WorkoutRequest describes the payload for building a workout definition.
 type WorkoutRequest struct {
@@ -17,18 +27,18 @@ type WorkoutRequest struct {
 
 // StepInput describes a workout step definition in the domain model.
 type StepInput struct {
-	Type                  string          `json:"type"`
-	Name                  string          `json:"name"`
-	Duration              string          `json:"duration"`
-	EstimatedSeconds      int             `json:"estimatedSeconds"`
-	SoundKey              string          `json:"soundKey"`
-	Subsets               []SubsetInput   `json:"subsets"`
-	PauseOptions          db.PauseOptions `json:"pauseOptions"`
-	RepeatCount           int             `json:"repeatCount"`
-	RepeatRestSeconds     int             `json:"repeatRestSeconds"`
-	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast"`
-	RepeatRestSoundKey    string          `json:"repeatRestSoundKey"`
-	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance"`
+	Type                  string        `json:"type"`
+	Name                  string        `json:"name"`
+	Duration              string        `json:"duration"`
+	EstimatedSeconds      int           `json:"estimatedSeconds"`
+	SoundKey              string        `json:"soundKey"`
+	Subsets               []SubsetInput `json:"subsets"`
+	PauseOptions          PauseOptions  `json:"pauseOptions"`
+	RepeatCount           int           `json:"repeatCount"`
+	RepeatRestSeconds     int           `json:"repeatRestSeconds"`
+	RepeatRestAfterLast   bool          `json:"repeatRestAfterLast"`
+	RepeatRestSoundKey    string        `json:"repeatRestSoundKey"`
+	RepeatRestAutoAdvance bool          `json:"repeatRestAutoAdvance"`
 }
 
 // SubsetInput describes a logical subset inside a set step.

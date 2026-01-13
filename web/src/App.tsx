@@ -13,16 +13,16 @@ import {
   updateUserName,
 } from "./api";
 import { useSessionTimer } from "./hooks/useSessionTimer";
-import { WorkoutForm } from "./components/WorkoutForm";
-import { LoginView } from "./components/LoginView";
-import { AdminView } from "./components/AdminView";
-import { WorkoutsView } from "./components/WorkoutsView";
-import { SessionsView } from "./components/SessionsView";
-import { TemplatesView } from "./components/TemplatesView";
-import { HistoryView } from "./components/HistoryView";
-import { ProfileView } from "./components/ProfileView";
-import { ExercisesView } from "./components/ExercisesView";
-import { BrandHeader } from "./components/BrandHeader";
+import { LoginView } from "./components/auth/LoginView";
+import { AdminView } from "./components/admin/AdminView";
+import { WorkoutsView } from "./components/workouts/WorkoutsView";
+import { SessionsView } from "./components/sessions/SessionsView";
+import { TemplatesView } from "./components/templates/TemplatesView";
+import { HistoryView } from "./components/history/HistoryView";
+import { ProfileView } from "./components/auth/ProfileView";
+import { ExercisesView } from "./components/exercises/ExercisesView";
+import { BrandHeader } from "./components/common/BrandHeader";
+import DialogModal from "./components/common/DialogModal";
 import { isValidEmail } from "./utils/validation";
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
@@ -32,6 +32,7 @@ import { useTemplateActions } from "./hooks/useTemplateActions";
 import { useProfileActions } from "./hooks/useProfileActions";
 import { useWorkoutFormActions } from "./hooks/useWorkoutFormActions";
 import { useSessionActions } from "./hooks/useSessionActions";
+import { useDialog } from "./hooks/useDialog";
 import { STEP_TYPE_PAUSE } from "./utils/step";
 import type {
   CatalogExercise,
@@ -158,6 +159,7 @@ function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
     };
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load data when the loader or dependencies change.
   useEffect(() => {
     const cancel = reload();
     return cancel;
@@ -197,6 +199,7 @@ export default function App() {
   const [defaultPauseAutoAdvance, setDefaultPauseAutoAdvance] = useState(false);
   const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
     useState(false);
+  const [pauseOnTabHidden, setPauseOnTabHidden] = useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
@@ -206,17 +209,15 @@ export default function App() {
   const historyReloadGuard = useRef<string | null>(null);
   const [exerciseCatalog, setExerciseCatalog] = useState<CatalogExercise[]>([]);
   const [promptedResume, setPromptedResume] = useState(false);
-  const [dialog, setDialog] = useState<{
-    type: "alert" | "confirm" | "prompt";
-    message: string;
-    title?: string;
-    defaultValue?: string;
-    placeholder?: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-    resolve: (value: any) => void;
-  } | null>(null);
-  const [dialogValue, setDialogValue] = useState("");
+  const {
+    dialog,
+    dialogValue,
+    setDialogValue,
+    closeDialog,
+    notify,
+    askConfirm,
+    askPrompt,
+  } = useDialog();
   const [toast, setToast] = useState<string | null>(null);
   const [resumeSuppressed, setResumeSuppressed] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -244,8 +245,8 @@ export default function App() {
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);
 
+  // Load config and resolve proxy-auth user early.
   useEffect(() => {
-    // Load config and resolve proxy-auth user early.
     getConfig()
       .then((cfg) => {
         setConfig(cfg);
@@ -270,8 +271,8 @@ export default function App() {
       });
   }, []);
 
+  // Apply theme selection and react to system preference changes.
   useEffect(() => {
-    // Apply theme selection and react to system preference changes.
     const root = document.documentElement;
     const applyTheme = () => {
       if (themeMode === "auto") {
@@ -294,6 +295,7 @@ export default function App() {
     };
   }, [themeMode]);
 
+  // Hydrate user-specific defaults from local storage.
   useEffect(() => {
     if (!currentUserId) {
       setRepeatRestAfterLastDefault(false);
@@ -301,6 +303,7 @@ export default function App() {
       setDefaultPauseDuration("");
       setDefaultPauseSoundKey("");
       setDefaultPauseAutoAdvance(false);
+      setPauseOnTabHidden(false);
       return;
     }
     const stored = localStorage.getItem(
@@ -319,6 +322,9 @@ export default function App() {
     setDefaultPauseAutoAdvance(
       localStorage.getItem(`motus:defaultPauseAuto:${currentUserId}`) ===
         "true",
+    );
+    setPauseOnTabHidden(
+      localStorage.getItem(`motus:pauseOnHidden:${currentUserId}`) === "true",
     );
   }, [currentUserId]);
 
@@ -363,8 +369,18 @@ export default function App() {
     );
   };
 
+  // handlePauseOnTabHidden persists the session pause-on-hidden preference.
+  const handlePauseOnTabHidden = (value: boolean) => {
+    setPauseOnTabHidden(value);
+    if (!currentUserId) return;
+    localStorage.setItem(
+      `motus:pauseOnHidden:${currentUserId}`,
+      value ? "true" : "false",
+    );
+  };
+
+  // Validate stored user id once local users are known.
   useEffect(() => {
-    // Validate stored user id once local users are known.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (currentUserId && users.data.find((u) => u.id === currentUserId)) {
@@ -376,8 +392,8 @@ export default function App() {
     }
   }, [authHeaderEnabled, users.data, currentUserId]);
 
+  // Persist the current view in the URL for refresh/bookmark.
   useEffect(() => {
-    // Persist the current view in the URL for refresh/bookmark.
     const params = new URLSearchParams(window.location.search);
     if (view === "train") {
       if (!params.has(VIEW_PARAM)) return;
@@ -392,20 +408,21 @@ export default function App() {
     window.history.replaceState({}, "", url);
   }, [view]);
 
+  // Clear login errors when leaving the login view.
   useEffect(() => {
     if (view === "login") setLoginError(null);
   }, [view]);
 
+  // Auto-redirect to sessions when a local user logs in.
   useEffect(() => {
-    // Auto-redirect to sessions when a local user logs in.
     if (authHeaderEnabled) return;
     if (currentUserId && view === "login") {
       setView("train");
     }
   }, [authHeaderEnabled, currentUserId, view]);
 
+  // Keep the exercise catalog in sync with auth state.
   useEffect(() => {
-    // Keep the exercise catalog in sync with auth state.
     if (!authHeaderEnabled && !currentUserId) {
       setExerciseCatalog([]);
       return;
@@ -415,76 +432,14 @@ export default function App() {
       .catch(() => {});
   }, [authHeaderEnabled, currentUserId]);
 
+  // Force login screen when local auth has no user.
   useEffect(() => {
-    // Force login screen when local auth has no user.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (!currentUserId && view !== "login") {
       setView("login");
     }
   }, [authHeaderEnabled, currentUserId, users.data, view]);
-
-  // notify shows a basic alert dialog.
-  const notify = useCallback(
-    (message: string) =>
-      new Promise<void>((resolve) => {
-        setDialog({
-          type: "alert",
-          message,
-          resolve: () => {
-            resolve();
-            setDialog(null);
-          },
-        });
-        setDialogValue("");
-      }),
-    [],
-  );
-
-  // askConfirm shows a confirmation dialog.
-  type ConfirmDialogOptions = {
-    title?: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-  };
-
-  const askConfirm = useCallback(
-    (message: string, options?: ConfirmDialogOptions) =>
-      new Promise<boolean>((resolve) => {
-        setDialog({
-          type: "confirm",
-          message,
-          title: options?.title,
-          confirmLabel: options?.confirmLabel,
-          cancelLabel: options?.cancelLabel,
-          resolve: (val: boolean) => {
-            resolve(val);
-            setDialog(null);
-          },
-        });
-        setDialogValue("");
-      }),
-    [],
-  );
-
-  // askPrompt shows a prompt dialog.
-  const askPrompt = useCallback(
-    (message: string, defaultValue = "", placeholder = "") =>
-      new Promise<string | null>((resolve) => {
-        setDialog({
-          type: "prompt",
-          message,
-          defaultValue,
-          placeholder,
-          resolve: (val: string | null) => {
-            resolve(val);
-            setDialog(null);
-          },
-        });
-        setDialogValue(defaultValue);
-      }),
-    [],
-  );
 
   // showToast shows a toast notification.
   const showToast = useCallback((message: string) => {
@@ -663,8 +618,8 @@ export default function App() {
     notify,
   });
 
+  // Prompt to resume a restored, unfinished session once.
   useEffect(() => {
-    // Prompt to resume a restored, unfinished session once.
     if (
       !restoredFromStorage ||
       !session ||
@@ -676,8 +631,8 @@ export default function App() {
     setPromptedResume(true);
   }, [restoredFromStorage, session, promptedResume, resumeSuppressed]);
 
+  // Auto-advance timed exercises or auto-pause steps when their target elapses.
   useEffect(() => {
-    // Auto-advance timed exercises or auto-pause steps when their target elapses.
     if (!session || !session.running) return;
     if (!currentStep || !currentStep.estimatedSeconds) return;
     const isAutoAdvance =
@@ -712,15 +667,15 @@ export default function App() {
     notify,
   ]);
 
+  // Reset resume suppression when session ends/clears.
   useEffect(() => {
-    // Reset resume suppression when session ends/clears.
     if (!session) {
       setResumeSuppressed(false);
     }
   }, [session?.sessionId]);
 
+  // Refresh history once when a session logs.
   useEffect(() => {
-    // Refresh history once when a session logs.
     if (session?.logged && session.sessionId !== historyReloadGuard.current) {
       historyReloadGuard.current = session.sessionId;
       history.reload();
@@ -869,6 +824,26 @@ export default function App() {
               onEditWorkout={handleEditWorkoutFromList}
               onShareTemplate={handleShareTemplate}
               onDeleteWorkout={handleDeleteWorkout}
+              workoutForm={{
+                open: showWorkoutForm,
+                onClose: handleCloseWorkoutModal,
+                userId: currentUserId,
+                onSave: handleSaveWorkout,
+                onUpdate: handleUpdateWorkout,
+                editingWorkout,
+                sounds: sounds.data || [],
+                exerciseCatalog,
+                onCreateExercise: createExerciseEntry,
+                promptUser: askPrompt,
+                notifyUser: notify,
+                defaultStepSoundKey,
+                defaultPauseDuration,
+                defaultPauseSoundKey,
+                defaultPauseAutoAdvance,
+                repeatRestAfterLastDefault,
+                onDirtyChange: setWorkoutDirty,
+                onToast: showToast,
+              }}
             />
           )}
 
@@ -892,6 +867,7 @@ export default function App() {
               onFinishSession={handleFinishSession}
               onCopySummary={() => showToast("Copied summary")}
               onToast={showToast}
+              pauseOnTabHidden={pauseOnTabHidden}
             />
           )}
 
@@ -936,6 +912,8 @@ export default function App() {
               onRepeatRestAfterLastDefaultChange={
                 handleRepeatRestAfterLastDefault
               }
+              pauseOnTabHidden={pauseOnTabHidden}
+              onPauseOnTabHiddenChange={handlePauseOnTabHidden}
               exportWorkoutId={exportWorkoutId}
               onExportWorkoutChange={setExportWorkoutId}
               activeWorkouts={activeWorkouts}
@@ -960,98 +938,13 @@ export default function App() {
         </main>
       </div>
 
-      {showWorkoutForm && (
-        <div className="modal-overlay" onClick={handleCloseWorkoutModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <WorkoutForm
-              userId={currentUserId}
-              onSave={handleSaveWorkout}
-              onUpdate={handleUpdateWorkout}
-              editingWorkout={editingWorkout}
-              sounds={sounds.data || []}
-              exerciseCatalog={exerciseCatalog}
-              onCreateExercise={createExerciseEntry}
-              onClose={handleCloseWorkoutModal}
-              promptUser={askPrompt}
-              notifyUser={notify}
-              defaultStepSoundKey={defaultStepSoundKey}
-              defaultPauseDuration={defaultPauseDuration}
-              defaultPauseSoundKey={defaultPauseSoundKey}
-              defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-              repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-              onDirtyChange={setWorkoutDirty}
-              onToast={showToast}
-            />
-          </div>
-        </div>
-      )}
       {dialog && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            if (dialog.type === "confirm") {
-              dialog.resolve(false);
-            } else if (dialog.type === "prompt") {
-              dialog.resolve(null);
-            } else {
-              dialog.resolve(undefined);
-            }
-            setDialog(null);
-          }}
-        >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              {dialog.title ||
-                (dialog.type === "confirm" ? "Confirm" : "Message")}
-            </h3>
-            <p className="muted">{dialog.message}</p>
-            {dialog.type === "prompt" && (
-              <input
-                autoFocus
-                value={dialogValue}
-                placeholder={dialog.placeholder || ""}
-                onChange={(e) => setDialogValue(e.target.value)}
-              />
-            )}
-            <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-              {dialog.type !== "alert" && (
-                <button
-                  className="btn subtle"
-                  onClick={() => {
-                    if (dialog.type === "confirm") {
-                      dialog.resolve(false);
-                    } else {
-                      dialog.resolve(null);
-                    }
-                    setDialog(null);
-                  }}
-                >
-                  {dialog.cancelLabel || "Cancel"}
-                </button>
-              )}
-              <button
-                className="btn primary"
-                onClick={() => {
-                  if (dialog.type === "confirm") {
-                    dialog.resolve(true);
-                  } else if (dialog.type === "prompt") {
-                    dialog.resolve(dialogValue);
-                  } else {
-                    dialog.resolve(undefined);
-                  }
-                  setDialog(null);
-                }}
-              >
-                {dialog.confirmLabel ||
-                  (dialog.type === "confirm"
-                    ? "Confirm"
-                    : dialog.type === "prompt"
-                      ? "Save"
-                      : "OK")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DialogModal
+          dialog={dialog}
+          value={dialogValue}
+          onValueChange={setDialogValue}
+          onClose={closeDialog}
+        />
       )}
       {toast && <div className="toast-floating">{toast}</div>}
       <footer className="app-footer">

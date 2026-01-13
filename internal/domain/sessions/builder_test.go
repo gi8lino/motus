@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
@@ -15,11 +14,11 @@ func TestNewStateFromWorkout(t *testing.T) {
 	t.Run("Defaults and corrections", func(t *testing.T) {
 		t.Parallel()
 
-		workout := &db.Workout{
+		workout := &Workout{
 			ID:     "w1",
 			UserID: "u1",
 			Name:   "Workout",
-			Steps: []db.WorkoutStep{
+			Steps: []WorkoutStep{
 				{
 					ID:   "s1",
 					Type: utils.StepTypePause.String(),
@@ -29,15 +28,15 @@ func TestNewStateFromWorkout(t *testing.T) {
 					ID:   "s2",
 					Type: utils.StepTypeSet.String(),
 					Name: "Set",
-					Subsets: []db.WorkoutSubset{
+					Subsets: []WorkoutSubset{
 						{
 							Name:      "Superset",
 							Superset:  true,
-							Exercises: []db.SubsetExercise{{Name: "Push", Type: utils.ExerciseTypeRep}},
+							Exercises: []SubsetExercise{{Name: "Push", Type: utils.ExerciseTypeRep}},
 						},
 						{
 							Name: "Normal",
-							Exercises: []db.SubsetExercise{
+							Exercises: []SubsetExercise{
 								{Name: "Pull", Type: utils.ExerciseTypeStopwatch},
 							},
 						},

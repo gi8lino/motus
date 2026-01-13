@@ -1,4 +1,3 @@
-// Package users defines domain errors for the user domain.
 package users
 
 import "fmt"
@@ -8,6 +7,7 @@ type ErrorKind int
 
 const (
 	KindValidation ErrorKind = iota
+	KindNotFound
 	KindForbidden
 	KindUnauthorized
 	KindInternal
@@ -50,6 +50,11 @@ func (e *Error) DomainKind() int {
 // validation creates a validation error.
 func validation(message string) error {
 	return &Error{Kind: KindValidation, Message: message}
+}
+
+// notFound creates a not-found error.
+func notFound(message string) error {
+	return &Error{Kind: KindNotFound, Message: message}
 }
 
 // forbidden creates a forbidden error.

@@ -63,6 +63,7 @@ export async function getCurrentUser(): Promise<User> {
   return request("/api/me");
 }
 
+// listUsers fetches all users for the admin view.
 export async function listUsers(): Promise<User[]> {
   return request("/api/users");
 }

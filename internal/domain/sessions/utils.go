@@ -4,12 +4,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
 // mapExercises converts DB subset exercises into session exercises.
-func mapExercises(exercises []db.SubsetExercise) []Exercise {
+func mapExercises(exercises []SubsetExercise) []Exercise {
 	if len(exercises) == 0 {
 		return nil
 	}
@@ -21,7 +20,7 @@ func mapExercises(exercises []db.SubsetExercise) []Exercise {
 }
 
 // mapExercise builds a session exercise from a subset exercise record.
-func mapExercise(ex db.SubsetExercise) Exercise {
+func mapExercise(ex SubsetExercise) Exercise {
 	return Exercise{
 		Name:     ex.Name,
 		Type:     utils.NormalizeExerciseType(ex.Type),
@@ -33,10 +32,7 @@ func mapExercise(ex db.SubsetExercise) Exercise {
 }
 
 // deriveExerciseDuration determines timing for a subset exercise.
-func deriveExerciseDuration(
-	ex db.SubsetExercise,
-	subset db.WorkoutSubset,
-) (seconds int, autoAdvance bool) {
+func deriveExerciseDuration(ex SubsetExercise, subset WorkoutSubset) (seconds int, autoAdvance bool) {
 	exType := utils.NormalizeExerciseType(ex.Type)
 	if exType == utils.ExerciseTypeCountdown || exType == utils.ExerciseTypeStopwatch {
 		dur := parseDurationSeconds(ex.Duration)

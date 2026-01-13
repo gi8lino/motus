@@ -50,7 +50,7 @@ func NewRouter(
 	apiMux.Handle("POST /users", api.CreateUser())
 	apiMux.Handle("PUT /users/{id}/admin",
 		middleware.Chain(api.UpdateUserRole(),
-			middleware.RequireAdmin(api.UsersStore, api.AuthHeader),
+			middleware.RequireAdmin(api.Users, api.AuthHeader),
 		),
 	)
 
@@ -74,7 +74,7 @@ func NewRouter(
 	apiMux.Handle("POST /exercises/backfill",
 		middleware.Chain(
 			api.BackfillExercises(),
-			middleware.RequireAdmin(api.ExercisesStore, api.AuthHeader),
+			middleware.RequireAdmin(api.Users, api.AuthHeader),
 		),
 	)
 
