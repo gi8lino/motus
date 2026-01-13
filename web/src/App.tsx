@@ -159,6 +159,7 @@ function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
     };
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load data when the loader or dependencies change.
   useEffect(() => {
     const cancel = reload();
     return cancel;
@@ -243,8 +244,8 @@ export default function App() {
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);
 
+  // Load config and resolve proxy-auth user early.
   useEffect(() => {
-    // Load config and resolve proxy-auth user early.
     getConfig()
       .then((cfg) => {
         setConfig(cfg);
@@ -269,8 +270,8 @@ export default function App() {
       });
   }, []);
 
+  // Apply theme selection and react to system preference changes.
   useEffect(() => {
-    // Apply theme selection and react to system preference changes.
     const root = document.documentElement;
     const applyTheme = () => {
       if (themeMode === "auto") {
@@ -293,6 +294,7 @@ export default function App() {
     };
   }, [themeMode]);
 
+  // Hydrate user-specific defaults from local storage.
   useEffect(() => {
     if (!currentUserId) {
       setRepeatRestAfterLastDefault(false);
@@ -362,8 +364,8 @@ export default function App() {
     );
   };
 
+  // Validate stored user id once local users are known.
   useEffect(() => {
-    // Validate stored user id once local users are known.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (currentUserId && users.data.find((u) => u.id === currentUserId)) {
@@ -375,8 +377,8 @@ export default function App() {
     }
   }, [authHeaderEnabled, users.data, currentUserId]);
 
+  // Persist the current view in the URL for refresh/bookmark.
   useEffect(() => {
-    // Persist the current view in the URL for refresh/bookmark.
     const params = new URLSearchParams(window.location.search);
     if (view === "train") {
       if (!params.has(VIEW_PARAM)) return;
@@ -391,20 +393,21 @@ export default function App() {
     window.history.replaceState({}, "", url);
   }, [view]);
 
+  // Clear login errors when leaving the login view.
   useEffect(() => {
     if (view === "login") setLoginError(null);
   }, [view]);
 
+  // Auto-redirect to sessions when a local user logs in.
   useEffect(() => {
-    // Auto-redirect to sessions when a local user logs in.
     if (authHeaderEnabled) return;
     if (currentUserId && view === "login") {
       setView("train");
     }
   }, [authHeaderEnabled, currentUserId, view]);
 
+  // Keep the exercise catalog in sync with auth state.
   useEffect(() => {
-    // Keep the exercise catalog in sync with auth state.
     if (!authHeaderEnabled && !currentUserId) {
       setExerciseCatalog([]);
       return;
@@ -414,8 +417,8 @@ export default function App() {
       .catch(() => {});
   }, [authHeaderEnabled, currentUserId]);
 
+  // Force login screen when local auth has no user.
   useEffect(() => {
-    // Force login screen when local auth has no user.
     if (authHeaderEnabled) return;
     if (!users.data) return;
     if (!currentUserId && view !== "login") {
@@ -600,8 +603,8 @@ export default function App() {
     notify,
   });
 
+  // Prompt to resume a restored, unfinished session once.
   useEffect(() => {
-    // Prompt to resume a restored, unfinished session once.
     if (
       !restoredFromStorage ||
       !session ||
@@ -613,8 +616,8 @@ export default function App() {
     setPromptedResume(true);
   }, [restoredFromStorage, session, promptedResume, resumeSuppressed]);
 
+  // Auto-advance timed exercises or auto-pause steps when their target elapses.
   useEffect(() => {
-    // Auto-advance timed exercises or auto-pause steps when their target elapses.
     if (!session || !session.running) return;
     if (!currentStep || !currentStep.estimatedSeconds) return;
     const isAutoAdvance =
@@ -649,15 +652,15 @@ export default function App() {
     notify,
   ]);
 
+  // Reset resume suppression when session ends/clears.
   useEffect(() => {
-    // Reset resume suppression when session ends/clears.
     if (!session) {
       setResumeSuppressed(false);
     }
   }, [session?.sessionId]);
 
+  // Refresh history once when a session logs.
   useEffect(() => {
-    // Refresh history once when a session logs.
     if (session?.logged && session.sessionId !== historyReloadGuard.current) {
       historyReloadGuard.current = session.sessionId;
       history.reload();

@@ -142,6 +142,7 @@ export function WorkoutForm({
     markDirty();
   };
 
+  // Dismiss the exercise sound popover on outside clicks.
   useEffect(() => {
     // Close the exercise sound popover when clicking outside.
     if (!exerciseSoundPicker) return;
@@ -156,6 +157,7 @@ export function WorkoutForm({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [exerciseSoundPicker]);
 
+  // Normalize incoming workout data when editing or starting fresh.
   useEffect(() => {
     if (!editingWorkout) {
       setEditingId(null);
@@ -239,6 +241,7 @@ export function WorkoutForm({
     onDirtyChange?.(false);
   }, [editingWorkout, onDirtyChange, repeatRestAfterLastDefault]);
 
+  // Resolve catalog exercise IDs when the catalog loads.
   useEffect(() => {
     if (!catalog.length) return;
     setSteps((prev) =>

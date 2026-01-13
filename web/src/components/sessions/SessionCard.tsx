@@ -155,6 +155,7 @@ export function SessionCard({
     [currentStep, extractExerciseLabels],
   );
 
+  // Schedule auto-advance for timed steps when enabled.
   useEffect(() => {
     // Auto-advance when a timed exercise or pause reaches zero.
     if (

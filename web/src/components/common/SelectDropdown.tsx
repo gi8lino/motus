@@ -37,6 +37,7 @@ export function SelectDropdown({
     ? (items.find((item) => item.id === value) ?? null)
     : null;
 
+  // Close the menu when the user clicks outside the dropdown.
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
       if (!rootRef.current) return;

@@ -115,8 +115,10 @@ export function SessionsView({
     resetOverrunState();
   }, [onPause, resetOverrunState]);
 
+  // Cleanup overrun timers when the view unmounts.
   useEffect(() => () => resetOverrunState(), [resetOverrunState]);
 
+  // Reset per-session sound tracking when the session id changes.
   useEffect(() => {
     const currentSessionId = session?.sessionId || null;
     if (sessionIdRef.current !== currentSessionId) {
@@ -125,6 +127,7 @@ export function SessionsView({
     }
   }, [session?.sessionId]);
 
+  // Keep a ref of elapsed time for timer callbacks.
   useEffect(() => {
     elapsedRef.current = elapsed;
   }, [elapsed]);
@@ -153,6 +156,7 @@ export function SessionsView({
     [],
   );
 
+  // Clear button cooldown timers on unmount.
   useEffect(() => {
     return () => {
       Object.values(buttonCooldownTimersRef.current).forEach((timer) => {
@@ -163,6 +167,7 @@ export function SessionsView({
     };
   }, []);
 
+  // Clear pending sound timers on unmount.
   useEffect(() => {
     return () => {
       if (stepSoundTimerRef.current) {
@@ -188,12 +193,14 @@ export function SessionsView({
     };
   }, []);
 
+  // Reset overrun state whenever the session stops running.
   useEffect(() => {
     if (!session?.running) {
       resetOverrunState();
     }
   }, [session?.running, resetOverrunState]);
 
+  // Pause the session when the tab is hidden.
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
@@ -214,6 +221,7 @@ export function SessionsView({
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [session?.running, onPause, onToast]);
 
+  // Initialize the overrun schedule for the current step.
   useEffect(() => {
     resetOverrunState();
     const estimateMs = currentStep?.estimatedSeconds
@@ -228,6 +236,7 @@ export function SessionsView({
     currentStep?.estimatedSeconds,
   ]);
 
+  // Schedule subset and exercise target sounds.
   useEffect(() => {
     if (!currentStep || !session?.running) {
       if (stepSoundTimerRef.current) {
@@ -445,6 +454,7 @@ export function SessionsView({
     markSoundPlayed,
   ]);
 
+  // Show the overrun modal once the target has elapsed.
   useEffect(() => {
     if (
       !session?.running ||
@@ -475,6 +485,7 @@ export function SessionsView({
     handleOverrunPause,
   ]);
 
+  // Maintain the overrun countdown while the modal is visible.
   useEffect(() => {
     if (!overrunModal?.show) {
       clearOverrunTimers();
@@ -485,6 +496,7 @@ export function SessionsView({
     return () => clearOverrunTimers();
   }, [overrunModal?.show, overrunModal?.deadline, clearOverrunTimers]);
 
+  // Bind keyboard shortcuts for run/next actions.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (overrunModal?.show) {

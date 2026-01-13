@@ -63,6 +63,7 @@ export function ProfileView({
   authHeaderEnabled: boolean;
 }) {
   const canExport = Boolean(exportWorkoutId);
+  // Prevent password tab access when auth headers are enabled.
   useEffect(() => {
     if (authHeaderEnabled && profileTab === "password") {
       onProfileTabChange("settings");
@@ -318,6 +319,7 @@ function DisplayNameForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Keep the display name input in sync with prop changes.
   useEffect(() => {
     setName(currentName);
   }, [currentName]);
