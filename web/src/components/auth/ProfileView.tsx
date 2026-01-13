@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import type { SoundOption, Workout } from "../../types";
+import { SelectDropdown } from "../common/SelectDropdown";
 
 type ProfileTab = "settings" | "password" | "transfer";
 type ThemeMode = "auto" | "dark" | "light";
@@ -97,30 +98,38 @@ export function ProfileView({
               <div className="label">Appearance</div>
               <div className="field">
                 <label>Theme</label>
-                <select
+                <SelectDropdown
+                  items={[
+                    { id: "auto", label: "Auto (system)" },
+                    { id: "dark", label: "Dark" },
+                    { id: "light", label: "Light" },
+                  ]}
                   value={themeMode}
-                  onChange={(e) => onThemeChange(e.target.value as ThemeMode)}
-                >
-                  <option value="auto">Auto (system)</option>
-                  <option value="dark">Dark</option>
-                  <option value="light">Light</option>
-                </select>
+                  placeholder="Select theme"
+                  onSelect={(item) => onThemeChange(item.id as ThemeMode)}
+                />
               </div>
               <div className="divider" />
               <div className="label">Defaults</div>
               <div className="field">
                 <label>Default step sound</label>
-                <select
-                  value={defaultStepSoundKey}
-                  onChange={(e) => onDefaultStepSoundChange(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {sounds.map((sound) => (
-                    <option key={sound.key} value={sound.key}>
-                      {sound.label}
-                    </option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  items={[
+                    { id: "", label: "None" },
+                    ...sounds.map((sound) => ({
+                      id: sound.key,
+                      label: sound.label,
+                    })),
+                  ]}
+                  value={defaultStepSoundKey || null}
+                  placeholder="Select sound"
+                  onSelect={(item) => onDefaultStepSoundChange(item.id)}
+                  onClear={
+                    defaultStepSoundKey
+                      ? () => onDefaultStepSoundChange("")
+                      : undefined
+                  }
+                />
               </div>
               <div className="field">
                 <label>Default pause duration</label>
@@ -132,19 +141,25 @@ export function ProfileView({
               </div>
               <div className="field">
                 <label>Default pause sound</label>
-                <select
-                  value={defaultPauseSoundKey}
-                  onChange={(e) => onDefaultPauseSoundChange(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {sounds.map((sound) => (
-                    <option key={sound.key} value={sound.key}>
-                      {sound.label}
-                    </option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  items={[
+                    { id: "", label: "None" },
+                    ...sounds.map((sound) => ({
+                      id: sound.key,
+                      label: sound.label,
+                    })),
+                  ]}
+                  value={defaultPauseSoundKey || null}
+                  placeholder="Select sound"
+                  onSelect={(item) => onDefaultPauseSoundChange(item.id)}
+                  onClear={
+                    defaultPauseSoundKey
+                      ? () => onDefaultPauseSoundChange("")
+                      : undefined
+                  }
+                />
               </div>
-              <label className="field checkbox">
+              <label className="switch" title="Auto-advance pauses by default">
                 <input
                   type="checkbox"
                   checked={defaultPauseAutoAdvance}
@@ -152,9 +167,13 @@ export function ProfileView({
                     onDefaultPauseAutoAdvanceChange(e.target.checked)
                   }
                 />
-                <span>Default pause auto-advance</span>
+                <span className="switch-slider" aria-hidden="true" />
+                <span className="switch-label">Default pause auto-advance</span>
               </label>
-              <label className="field checkbox">
+              <label
+                className="switch"
+                title="Repeat the rest step after the final round"
+              >
                 <input
                   type="checkbox"
                   checked={repeatRestAfterLastDefault}
@@ -162,15 +181,24 @@ export function ProfileView({
                     onRepeatRestAfterLastDefaultChange(e.target.checked)
                   }
                 />
-                <span>Repeat rest after last (default)</span>
+                <span className="switch-slider" aria-hidden="true" />
+                <span className="switch-label">
+                  Repeat rest after last (default)
+                </span>
               </label>
-              <label className="field checkbox">
+              <label
+                className="switch"
+                title="Pause session when tab is hidden"
+              >
                 <input
                   type="checkbox"
                   checked={pauseOnTabHidden}
                   onChange={(e) => onPauseOnTabHiddenChange(e.target.checked)}
                 />
-                <span>Pause session when tab is hidden</span>
+                <span className="switch-slider" aria-hidden="true" />
+                <span className="switch-label">
+                  Pause session when tab is hidden
+                </span>
               </label>
             </div>
           )}
@@ -182,17 +210,20 @@ export function ProfileView({
               <div className="label">Workout transfer</div>
               <div className="field">
                 <label>Export workout</label>
-                <select
-                  value={exportWorkoutId}
-                  onChange={(e) => onExportWorkoutChange(e.target.value)}
-                >
-                  <option value="">Select workout</option>
-                  {activeWorkouts.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  items={activeWorkouts.map((workout) => ({
+                    id: workout.id,
+                    label: workout.name,
+                  }))}
+                  value={exportWorkoutId || null}
+                  placeholder="Select workout"
+                  onSelect={(item) => onExportWorkoutChange(item.id)}
+                  onClear={
+                    exportWorkoutId
+                      ? () => onExportWorkoutChange("")
+                      : undefined
+                  }
+                />
               </div>
               <div className="btn-group">
                 <button

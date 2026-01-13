@@ -583,11 +583,15 @@ select {
 }
 
 .switch {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
   cursor: pointer;
   user-select: none;
+}
+
+.switch + .switch {
+  margin-top: 8px;
 }
 
 .switch input {
@@ -604,6 +608,7 @@ select {
   background: var(--outline);
   transition: background 150ms ease;
   flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .switch-slider::after {
@@ -632,6 +637,7 @@ select {
 .switch-label {
   font-size: 12px;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 .switch input:checked + .switch-slider + .switch-label {
