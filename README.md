@@ -57,7 +57,7 @@ Each step can include multiple exercises and a sound cue. Auto-advance pauses tr
 1. Set up PostgreSQL and export the connection string. Example using Docker:
 
    ```bash
-   docker run --name motus-db -e POSTGRES_PASSWORD=motus -e POSTGRES_USER=motus -e POSTGRES_DB=motus -p 5432:5432 -d postgres:16
+   docker run --name motus-db -e POSTGRES_PASSWORD=motus -e POSTGRES_USER=motus -e POSTGRES_DB=motus -p 5432:5432 -d postgres:18
    export MOTUS_DATABASE_URL="postgres://motus:motus@localhost:5432/motus?sslmode=disable"
    ```
 

@@ -71,7 +71,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 	tf.BoolVar(&opts.AutoCreateUsers, "auto-create-users", false, "Auto-create users when auth-header is enabled").
 		Value()
 
-	tf.StringVar(&opts.CoreExercisesFile, "core-exercises-file", "", "Path to a JSON file describing core exercises to seed at startup").
+	tf.StringVar(&opts.CoreExercisesFile, "core-exercises-file", "", "Path to a YAML file describing core exercises to seed at startup").
 		Placeholder("FILE").
 		Value()
 
