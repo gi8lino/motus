@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -123,6 +124,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 			// Skip migrations that have already been applied.
 			continue
 		}
+		startVersion := currentVersion
 		for _, stmt := range migration.statements {
 			if _, err := tx.Exec(ctx, stmt); err != nil {
 				return err
@@ -131,6 +133,12 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		if err := writeSchemaVersion(ctx, tx, migration.version); err != nil {
 			return err
 		}
+		s.logger.Info(
+			"db migration applied",
+			slog.Int("from", startVersion),
+			slog.Int("to", migration.version),
+			slog.String("name", migration.name),
+		)
 		currentVersion = migration.version
 	}
 
