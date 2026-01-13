@@ -35,6 +35,7 @@ export function SessionsView({
   onFinishSession,
   onCopySummary,
   onToast,
+  pauseOnTabHidden,
 }: {
   workouts: Workout[];
   selectedWorkoutId: string | null;
@@ -54,6 +55,7 @@ export function SessionsView({
   onFinishSession: () => Promise<string | null>;
   onCopySummary: () => void;
   onToast: (message: string) => void;
+  pauseOnTabHidden: boolean;
 }) {
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
   const [overrunModal, setOverrunModal] = useState<{
@@ -200,8 +202,12 @@ export function SessionsView({
     }
   }, [session?.running, resetOverrunState]);
 
-  // Pause the session when the tab is hidden.
+  // Pause the session when the tab is hidden (if enabled).
   useEffect(() => {
+    if (!pauseOnTabHidden) {
+      hiddenPauseNotifiedRef.current = false;
+      return;
+    }
     const handleVisibility = () => {
       if (document.hidden) {
         if (session?.running) {
@@ -219,7 +225,7 @@ export function SessionsView({
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [session?.running, onPause, onToast]);
+  }, [pauseOnTabHidden, session?.running, onPause, onToast]);
 
   // Initialize the overrun schedule for the current step.
   useEffect(() => {

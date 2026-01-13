@@ -24,6 +24,8 @@ export function ProfileView({
   onDefaultPauseAutoAdvanceChange,
   repeatRestAfterLastDefault,
   onRepeatRestAfterLastDefaultChange,
+  pauseOnTabHidden,
+  onPauseOnTabHiddenChange,
   exportWorkoutId,
   onExportWorkoutChange,
   activeWorkouts,
@@ -50,6 +52,8 @@ export function ProfileView({
   onDefaultPauseAutoAdvanceChange: (value: boolean) => void;
   repeatRestAfterLastDefault: boolean;
   onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
+  pauseOnTabHidden: boolean;
+  onPauseOnTabHiddenChange: (value: boolean) => void;
   exportWorkoutId: string;
   onExportWorkoutChange: (id: string) => void;
   activeWorkouts: Workout[];
@@ -159,6 +163,14 @@ export function ProfileView({
                   }
                 />
                 <span>Repeat rest after last (default)</span>
+              </label>
+              <label className="field checkbox">
+                <input
+                  type="checkbox"
+                  checked={pauseOnTabHidden}
+                  onChange={(e) => onPauseOnTabHiddenChange(e.target.checked)}
+                />
+                <span>Pause session when tab is hidden</span>
               </label>
             </div>
           )}

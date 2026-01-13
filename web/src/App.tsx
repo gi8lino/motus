@@ -199,6 +199,7 @@ export default function App() {
   const [defaultPauseAutoAdvance, setDefaultPauseAutoAdvance] = useState(false);
   const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
     useState(false);
+  const [pauseOnTabHidden, setPauseOnTabHidden] = useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
@@ -302,6 +303,7 @@ export default function App() {
       setDefaultPauseDuration("");
       setDefaultPauseSoundKey("");
       setDefaultPauseAutoAdvance(false);
+      setPauseOnTabHidden(false);
       return;
     }
     const stored = localStorage.getItem(
@@ -320,6 +322,9 @@ export default function App() {
     setDefaultPauseAutoAdvance(
       localStorage.getItem(`motus:defaultPauseAuto:${currentUserId}`) ===
         "true",
+    );
+    setPauseOnTabHidden(
+      localStorage.getItem(`motus:pauseOnHidden:${currentUserId}`) === "true",
     );
   }, [currentUserId]);
 
@@ -360,6 +365,16 @@ export default function App() {
     if (!currentUserId) return;
     localStorage.setItem(
       `motus:defaultPauseAuto:${currentUserId}`,
+      value ? "true" : "false",
+    );
+  };
+
+  // handlePauseOnTabHidden persists the session pause-on-hidden preference.
+  const handlePauseOnTabHidden = (value: boolean) => {
+    setPauseOnTabHidden(value);
+    if (!currentUserId) return;
+    localStorage.setItem(
+      `motus:pauseOnHidden:${currentUserId}`,
       value ? "true" : "false",
     );
   };
@@ -852,6 +867,7 @@ export default function App() {
               onFinishSession={handleFinishSession}
               onCopySummary={() => showToast("Copied summary")}
               onToast={showToast}
+              pauseOnTabHidden={pauseOnTabHidden}
             />
           )}
 
@@ -896,6 +912,8 @@ export default function App() {
               onRepeatRestAfterLastDefaultChange={
                 handleRepeatRestAfterLastDefault
               }
+              pauseOnTabHidden={pauseOnTabHidden}
+              onPauseOnTabHiddenChange={handlePauseOnTabHidden}
               exportWorkoutId={exportWorkoutId}
               onExportWorkoutChange={setExportWorkoutId}
               activeWorkouts={activeWorkouts}
