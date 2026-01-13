@@ -9,6 +9,8 @@ import type {
 } from "../../types";
 import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
+import { ArrowDownIcon } from "../icons/ArrowDownIcon";
+import { ArrowUpIcon } from "../icons/ArrowUpIcon";
 import { SoundIcon } from "../icons/SoundIcon";
 import { TrashIcon } from "../icons/TrashIcon";
 import { formatExerciseLine } from "../../utils/format";
@@ -1134,25 +1136,25 @@ export function WorkoutForm({
                   </option>
                 </select>
                 <button
-                  className="btn icon"
+                  className="btn icon icon-only move"
                   type="button"
                   onClick={() => moveStep(idx, -1)}
                   disabled={idx === 0}
                   title="Move up"
                 >
-                  ↑
+                  <ArrowUpIcon />
                 </button>
                 <button
-                  className="btn icon"
+                  className="btn icon icon-only move"
                   type="button"
                   onClick={() => moveStep(idx, 1)}
                   disabled={idx === steps.length - 1}
                   title="Move down"
                 >
-                  ↓
+                  <ArrowDownIcon />
                 </button>
                 <button
-                  className="btn icon delete"
+                  className="btn icon delete icon-only"
                   type="button"
                   onClick={() => removeStep(idx)}
                   title="Remove set"

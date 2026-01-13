@@ -543,6 +543,14 @@ select {
   background: transparent;
 }
 
+.btn.icon.delete.icon-only {
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  height: auto;
+}
+
 .btn.icon.delete {
   color: var(--muted);
 }
@@ -552,12 +560,15 @@ select {
   color: var(--text);
 }
 
-.btn.icon.delete.icon-only {
+.btn.icon.icon-only {
   border-color: transparent;
   background: transparent;
-  padding: 0;
-  min-width: 0;
-  height: auto;
+  color: var(--muted);
+}
+
+.btn.icon.icon-only:hover,
+.btn.icon.icon-only:focus {
+  color: var(--text);
 }
 
 .subset-actions {
