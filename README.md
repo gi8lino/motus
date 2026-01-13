@@ -88,6 +88,9 @@ Motus supports a handful of runtime flags (or environment variables with the `MO
 - `--auth-header` (default empty): header name to trust for proxy auth.
 - `--allow-registration` (default false): allow local user sign-up.
 - `--auto-create-users` (default false): auto-create users when auth-header is enabled.
+- `--core-exercises-file` (default empty): path to a YAML file of core exercises to seed on startup.
+- `--admin-email` (default empty): admin email to bootstrap or update at startup.
+- `--admin-password` (default empty): admin password to bootstrap or update at startup.
 - `--debug` (default false): enable debug logging.
 - `--log-format` (default `json`): `json` or `text`.
 
@@ -104,6 +107,19 @@ To promote an existing user to admin directly in the database:
 ```sql
 UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
 ```
+
+## Core exercises YAML
+
+Use `--core-exercises-file` to seed a set of core exercises at startup. The file must be YAML with a top-level `exercises` list of strings:
+
+```yaml
+exercises:
+  - Push-up
+  - Squat
+  - 1 Pump Burpee
+```
+
+See `examples/core-exercises.yaml` for a full example.
 
 ## Docker Compose (DB + pgAdmin)
 
