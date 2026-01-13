@@ -808,6 +808,7 @@ export function WorkoutForm({
           const hasMultiple = subsets.length > 1;
           const subsetLabel = subset.name?.trim() || `Subset ${subsetIdx + 1}`;
           const subsetExercises = subset.exercises || [];
+          const isSuperset = Boolean(subset.superset);
           return (
             <div
               key={subset.id || `${idx}-${subsetIdx}`}
@@ -822,9 +823,22 @@ export function WorkoutForm({
                 <div className="set-header">
                   <strong>{subsetLabel}</strong>
                   <div className="subset-actions">
-                    {subset.superset ? (
-                      <span className="set-badge superset">Superset</span>
-                    ) : null}
+                    <label
+                      className="switch superset-toggle"
+                      title="Superset: Next moves to the next subset."
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSuperset}
+                        onChange={(event) =>
+                          updateSubset(idx, subsetIdx, {
+                            superset: event.target.checked,
+                          })
+                        }
+                      />
+                      <span className="switch-slider" aria-hidden="true" />
+                      <span className="switch-label">Superset</span>
+                    </label>
                     <button
                       className="btn icon delete icon-only"
                       type="button"
@@ -881,21 +895,26 @@ export function WorkoutForm({
                   ))}
                 </select>
               </div>
-              <label className="field checkbox">
-                <input
-                  type="checkbox"
-                  checked={Boolean(subset.superset)}
-                  onChange={(event) =>
-                    updateSubset(idx, subsetIdx, {
-                      superset: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  Treat this subset as a superset block (Next moves to the next
-                  subset).
-                </span>
-              </label>
+              {!hasMultiple && (
+                <div className="subset-actions superset-toggle-row">
+                  <label
+                    className="switch superset-toggle"
+                    title="Superset: Next moves to the next subset."
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSuperset}
+                      onChange={(event) =>
+                        updateSubset(idx, subsetIdx, {
+                          superset: event.target.checked,
+                        })
+                      }
+                    />
+                    <span className="switch-slider" aria-hidden="true" />
+                    <span className="switch-label">Superset</span>
+                  </label>
+                </div>
+              )}
 
               {subsetExercises.length ? (
                 subsetExercises.map((exercise, exIdx) =>
