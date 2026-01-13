@@ -1,4 +1,4 @@
-import type { SessionHistoryItem, SessionState } from "../types";
+import type { SessionHistoryItem, SessionState } from "../../types";
 
 // HistoryList renders past sessions and supports selection/resume.
 export function HistoryList({

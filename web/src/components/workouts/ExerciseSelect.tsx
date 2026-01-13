@@ -1,5 +1,5 @@
-import type { CatalogExercise } from "../types";
-import { SelectDropdown } from "./SelectDropdown";
+import type { CatalogExercise } from "../../types";
+import { SelectDropdown } from "../common/SelectDropdown";
 
 // ExerciseSelect renders a custom exercise picker with Core tags.
 export function ExerciseSelect({

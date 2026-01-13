@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { User } from "../types";
-import { UserForm } from "./AuthForms";
+import type { User } from "../../types";
+import { UserForm } from "../auth/AuthForms";
 
 type AdminTab = "users" | "settings";
 

@@ -1,4 +1,4 @@
-import type { CatalogExercise } from "../types";
+import type { CatalogExercise } from "../../types";
 
 // ExercisesView manages personal and core exercises.
 export function ExercisesView({

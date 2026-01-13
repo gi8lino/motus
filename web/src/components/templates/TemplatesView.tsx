@@ -1,4 +1,4 @@
-import type { Template } from "../types";
+import type { Template } from "../../types";
 
 // TemplatesView renders shared templates and apply actions.
 export function TemplatesView({

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-import type { SoundOption, Workout } from "../types";
+import type { SoundOption, Workout } from "../../types";
 
 type ProfileTab = "settings" | "password" | "transfer";
 type ThemeMode = "auto" | "dark" | "light";

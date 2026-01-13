@@ -1,4 +1,4 @@
-import { withBasePath } from "../utils/basePath";
+import { withBasePath } from "../../utils/basePath";
 
 // brandLogoSrc resolves the Motus icon URL with the configured base path.
 const brandLogoSrc = withBasePath("/brand.svg");

@@ -5,13 +5,15 @@ import type {
   SessionStepState,
   SoundOption,
   Workout,
-} from "../types";
-import { formatMillis } from "../utils/format";
-import { resolveMediaUrl } from "../utils/basePath";
-import { parseDurationSeconds } from "../utils/time";
-import { logTimerEvent } from "../utils/timerLogger";
+} from "../../types";
+import { formatMillis } from "../../utils/format";
+import { resolveMediaUrl } from "../../utils/basePath";
+import { parseDurationSeconds } from "../../utils/time";
+import { logTimerEvent } from "../../utils/timerLogger";
 import { SessionCard } from "./SessionCard";
-import { WorkoutSelect } from "./WorkoutSelect";
+import { WorkoutSelect } from "../workouts/WorkoutSelect";
+import { SessionFinishModal } from "./SessionFinishModal";
+import { SessionOverrunModal } from "./SessionOverrunModal";
 
 // SessionsView runs the active workout session.
 export function SessionsView({
@@ -615,60 +617,17 @@ export function SessionsView({
         />
       </section>
 
-      {finishSummary && (
-        <div className="modal-overlay" onClick={() => setFinishSummary(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Great job!</h3>
-            <p className="muted">Training finished. Copy the summary for AI.</p>
-            <textarea
-              readOnly
-              value={finishSummary}
-              style={{ width: "100%", minHeight: "180px" }}
-            />
-            <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-              <button
-                className="btn subtle"
-                onClick={() => {
-                  if (navigator?.clipboard?.writeText) {
-                    navigator.clipboard
-                      .writeText(finishSummary)
-                      .catch(() => {});
-                  }
-                  onCopySummary();
-                }}
-              >
-                Copy
-              </button>
-              <button
-                className="btn primary"
-                onClick={() => setFinishSummary(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {overrunModal?.show && (
-        <div className="modal-overlay" onClick={handleOverrunPause}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Still training?</h3>
-            <p className="muted">
-              You passed the target. Auto-pause in{" "}
-              {formatMillis(overrunCountdown)}.
-            </p>
-            <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-              <button className="btn subtle" onClick={handleOverrunPostpone}>
-                Postpone (+30s)
-              </button>
-              <button className="btn primary" onClick={handleOverrunPause}>
-                Pause
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SessionFinishModal
+        summary={finishSummary}
+        onClose={() => setFinishSummary(null)}
+        onCopySummary={onCopySummary}
+      />
+      <SessionOverrunModal
+        show={Boolean(overrunModal?.show)}
+        countdown={overrunCountdown}
+        onPause={handleOverrunPause}
+        onPostpone={handleOverrunPostpone}
+      />
     </>
   );
 }

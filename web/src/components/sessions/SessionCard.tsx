@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, type RefObject } from "react";
-import { formatExerciseLine, formatMillis } from "../utils/format";
-import { STEP_TYPE_PAUSE } from "../utils/step";
-import type { Exercise, SessionState, SessionStepState } from "../types";
-import { logTimerEvent } from "../utils/timerLogger";
+import { formatExerciseLine, formatMillis } from "../../utils/format";
+import { STEP_TYPE_PAUSE } from "../../utils/step";
+import type { Exercise, SessionState, SessionStepState } from "../../types";
+import { logTimerEvent } from "../../utils/timerLogger";
 
 type AnyStep = any;
 
@@ -174,13 +174,22 @@ export function SessionCard({
       remainingMs: remaining,
     };
     if (remaining <= 0) {
-      logTimerEvent("auto-advance-step", { ...autoAdvanceDetails, triggered: true });
+      logTimerEvent("auto-advance-step", {
+        ...autoAdvanceDetails,
+        triggered: true,
+      });
       onNext();
       return;
     }
-    logTimerEvent("auto-advance-step", { ...autoAdvanceDetails, scheduledInMs: remaining });
+    logTimerEvent("auto-advance-step", {
+      ...autoAdvanceDetails,
+      scheduledInMs: remaining,
+    });
     const timer = setTimeout(() => {
-      logTimerEvent("auto-advance-step", { ...autoAdvanceDetails, triggered: true });
+      logTimerEvent("auto-advance-step", {
+        ...autoAdvanceDetails,
+        triggered: true,
+      });
       onNext();
     }, remaining);
     return () => clearTimeout(timer);

@@ -1,4 +1,4 @@
-import type { SoundOption } from "../types";
+import type { SoundOption } from "../../types";
 
 // PauseOptionsField renders shared pause controls (auto-advance + sound).
 export function PauseOptionsField({

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { isValidEmail } from "../utils/validation";
+import { isValidEmail } from "../../utils/validation";
 
 // UserForm creates a new user.
 export function UserForm({

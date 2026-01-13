@@ -6,27 +6,27 @@ import type {
   Workout,
   WorkoutSubset,
   WorkoutStep,
-} from "../types";
+} from "../../types";
 import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
-import { SoundIcon } from "./icons/SoundIcon";
-import { TrashIcon } from "./icons/TrashIcon";
-import { formatExerciseLine } from "../utils/format";
-import { parseDurationSeconds, isGoDuration } from "../utils/time";
-import { isRepRange } from "../utils/validation";
+import { SoundIcon } from "../icons/SoundIcon";
+import { TrashIcon } from "../icons/TrashIcon";
+import { formatExerciseLine } from "../../utils/format";
+import { parseDurationSeconds, isGoDuration } from "../../utils/time";
+import { isRepRange } from "../../utils/validation";
 import {
   EXERCISE_TYPE_COUNTDOWN,
   EXERCISE_TYPE_REP,
   EXERCISE_TYPE_STOPWATCH,
   isDurationExercise,
   normalizeExerciseType,
-} from "../utils/exercise";
+} from "../../utils/exercise";
 import {
   STEP_TYPE_SET,
   isPauseStepType,
   isSetStepType,
   normalizeStepType,
-} from "../utils/step";
+} from "../../utils/step";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
 
@@ -41,25 +41,7 @@ function makeStepId() {
 }
 
 // WorkoutForm lets you create or edit a workout with steps/exercises.
-export function WorkoutForm({
-  onSave,
-  onUpdate,
-  editingWorkout,
-  sounds,
-  userId,
-  exerciseCatalog,
-  onCreateExercise,
-  onClose,
-  promptUser,
-  notifyUser,
-  defaultStepSoundKey,
-  defaultPauseDuration,
-  defaultPauseSoundKey,
-  defaultPauseAutoAdvance,
-  repeatRestAfterLastDefault,
-  onDirtyChange,
-  onToast,
-}: {
+export type WorkoutFormProps = {
   onSave: (payload: { name: string; steps: WorkoutStep[] }) => Promise<void>;
   onUpdate?: (payload: {
     id: string;
@@ -84,7 +66,27 @@ export function WorkoutForm({
   repeatRestAfterLastDefault: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onToast?: (message: string) => void;
-}) {
+};
+
+export function WorkoutForm({
+  onSave,
+  onUpdate,
+  editingWorkout,
+  sounds,
+  userId,
+  exerciseCatalog,
+  onCreateExercise,
+  onClose,
+  promptUser,
+  notifyUser,
+  defaultStepSoundKey,
+  defaultPauseDuration,
+  defaultPauseSoundKey,
+  defaultPauseAutoAdvance,
+  repeatRestAfterLastDefault,
+  onDirtyChange,
+  onToast,
+}: WorkoutFormProps) {
   const [name, setName] = useState(DEFAULT_WORKOUT_NAME);
   const [steps, setSteps] = useState<WorkoutStep[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);

@@ -313,7 +313,10 @@ export function useSessionTimer({
       currentStepDetail?.autoAdvance ||
         currentStepDetail?.pauseOptions?.autoAdvance,
     );
-    logTimerEvent("advance-step", timerDetails({ autoAdvance: autoAdvanceTriggered }));
+    logTimerEvent(
+      "advance-step",
+      timerDetails({ autoAdvance: autoAdvanceTriggered }),
+    );
     update((next) => {
       const currentIdx = next.currentIndex;
       const current = next.steps[currentIdx];

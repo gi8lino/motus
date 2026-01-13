@@ -13,16 +13,16 @@ import {
   updateUserName,
 } from "./api";
 import { useSessionTimer } from "./hooks/useSessionTimer";
-import { WorkoutForm } from "./components/WorkoutForm";
-import { LoginView } from "./components/LoginView";
-import { AdminView } from "./components/AdminView";
-import { WorkoutsView } from "./components/WorkoutsView";
-import { SessionsView } from "./components/SessionsView";
-import { TemplatesView } from "./components/TemplatesView";
-import { HistoryView } from "./components/HistoryView";
-import { ProfileView } from "./components/ProfileView";
-import { ExercisesView } from "./components/ExercisesView";
-import { BrandHeader } from "./components/BrandHeader";
+import { LoginView } from "./components/auth/LoginView";
+import { AdminView } from "./components/admin/AdminView";
+import { WorkoutsView } from "./components/workouts/WorkoutsView";
+import { SessionsView } from "./components/sessions/SessionsView";
+import { TemplatesView } from "./components/templates/TemplatesView";
+import { HistoryView } from "./components/history/HistoryView";
+import { ProfileView } from "./components/auth/ProfileView";
+import { ExercisesView } from "./components/exercises/ExercisesView";
+import { BrandHeader } from "./components/common/BrandHeader";
+import DialogModal from "./components/common/DialogModal";
 import { isValidEmail } from "./utils/validation";
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
@@ -32,6 +32,7 @@ import { useTemplateActions } from "./hooks/useTemplateActions";
 import { useProfileActions } from "./hooks/useProfileActions";
 import { useWorkoutFormActions } from "./hooks/useWorkoutFormActions";
 import { useSessionActions } from "./hooks/useSessionActions";
+import { useDialog } from "./hooks/useDialog";
 import { STEP_TYPE_PAUSE } from "./utils/step";
 import type {
   CatalogExercise,
@@ -206,17 +207,15 @@ export default function App() {
   const historyReloadGuard = useRef<string | null>(null);
   const [exerciseCatalog, setExerciseCatalog] = useState<CatalogExercise[]>([]);
   const [promptedResume, setPromptedResume] = useState(false);
-  const [dialog, setDialog] = useState<{
-    type: "alert" | "confirm" | "prompt";
-    message: string;
-    title?: string;
-    defaultValue?: string;
-    placeholder?: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-    resolve: (value: any) => void;
-  } | null>(null);
-  const [dialogValue, setDialogValue] = useState("");
+  const {
+    dialog,
+    dialogValue,
+    setDialogValue,
+    closeDialog,
+    notify,
+    askConfirm,
+    askPrompt,
+  } = useDialog();
   const [toast, setToast] = useState<string | null>(null);
   const [resumeSuppressed, setResumeSuppressed] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -423,68 +422,6 @@ export default function App() {
       setView("login");
     }
   }, [authHeaderEnabled, currentUserId, users.data, view]);
-
-  // notify shows a basic alert dialog.
-  const notify = useCallback(
-    (message: string) =>
-      new Promise<void>((resolve) => {
-        setDialog({
-          type: "alert",
-          message,
-          resolve: () => {
-            resolve();
-            setDialog(null);
-          },
-        });
-        setDialogValue("");
-      }),
-    [],
-  );
-
-  // askConfirm shows a confirmation dialog.
-  type ConfirmDialogOptions = {
-    title?: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-  };
-
-  const askConfirm = useCallback(
-    (message: string, options?: ConfirmDialogOptions) =>
-      new Promise<boolean>((resolve) => {
-        setDialog({
-          type: "confirm",
-          message,
-          title: options?.title,
-          confirmLabel: options?.confirmLabel,
-          cancelLabel: options?.cancelLabel,
-          resolve: (val: boolean) => {
-            resolve(val);
-            setDialog(null);
-          },
-        });
-        setDialogValue("");
-      }),
-    [],
-  );
-
-  // askPrompt shows a prompt dialog.
-  const askPrompt = useCallback(
-    (message: string, defaultValue = "", placeholder = "") =>
-      new Promise<string | null>((resolve) => {
-        setDialog({
-          type: "prompt",
-          message,
-          defaultValue,
-          placeholder,
-          resolve: (val: string | null) => {
-            resolve(val);
-            setDialog(null);
-          },
-        });
-        setDialogValue(defaultValue);
-      }),
-    [],
-  );
 
   // showToast shows a toast notification.
   const showToast = useCallback((message: string) => {
@@ -869,6 +806,26 @@ export default function App() {
               onEditWorkout={handleEditWorkoutFromList}
               onShareTemplate={handleShareTemplate}
               onDeleteWorkout={handleDeleteWorkout}
+              workoutForm={{
+                open: showWorkoutForm,
+                onClose: handleCloseWorkoutModal,
+                userId: currentUserId,
+                onSave: handleSaveWorkout,
+                onUpdate: handleUpdateWorkout,
+                editingWorkout,
+                sounds: sounds.data || [],
+                exerciseCatalog,
+                onCreateExercise: createExerciseEntry,
+                promptUser: askPrompt,
+                notifyUser: notify,
+                defaultStepSoundKey,
+                defaultPauseDuration,
+                defaultPauseSoundKey,
+                defaultPauseAutoAdvance,
+                repeatRestAfterLastDefault,
+                onDirtyChange: setWorkoutDirty,
+                onToast: showToast,
+              }}
             />
           )}
 
@@ -960,98 +917,13 @@ export default function App() {
         </main>
       </div>
 
-      {showWorkoutForm && (
-        <div className="modal-overlay" onClick={handleCloseWorkoutModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <WorkoutForm
-              userId={currentUserId}
-              onSave={handleSaveWorkout}
-              onUpdate={handleUpdateWorkout}
-              editingWorkout={editingWorkout}
-              sounds={sounds.data || []}
-              exerciseCatalog={exerciseCatalog}
-              onCreateExercise={createExerciseEntry}
-              onClose={handleCloseWorkoutModal}
-              promptUser={askPrompt}
-              notifyUser={notify}
-              defaultStepSoundKey={defaultStepSoundKey}
-              defaultPauseDuration={defaultPauseDuration}
-              defaultPauseSoundKey={defaultPauseSoundKey}
-              defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-              repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-              onDirtyChange={setWorkoutDirty}
-              onToast={showToast}
-            />
-          </div>
-        </div>
-      )}
       {dialog && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            if (dialog.type === "confirm") {
-              dialog.resolve(false);
-            } else if (dialog.type === "prompt") {
-              dialog.resolve(null);
-            } else {
-              dialog.resolve(undefined);
-            }
-            setDialog(null);
-          }}
-        >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              {dialog.title ||
-                (dialog.type === "confirm" ? "Confirm" : "Message")}
-            </h3>
-            <p className="muted">{dialog.message}</p>
-            {dialog.type === "prompt" && (
-              <input
-                autoFocus
-                value={dialogValue}
-                placeholder={dialog.placeholder || ""}
-                onChange={(e) => setDialogValue(e.target.value)}
-              />
-            )}
-            <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-              {dialog.type !== "alert" && (
-                <button
-                  className="btn subtle"
-                  onClick={() => {
-                    if (dialog.type === "confirm") {
-                      dialog.resolve(false);
-                    } else {
-                      dialog.resolve(null);
-                    }
-                    setDialog(null);
-                  }}
-                >
-                  {dialog.cancelLabel || "Cancel"}
-                </button>
-              )}
-              <button
-                className="btn primary"
-                onClick={() => {
-                  if (dialog.type === "confirm") {
-                    dialog.resolve(true);
-                  } else if (dialog.type === "prompt") {
-                    dialog.resolve(dialogValue);
-                  } else {
-                    dialog.resolve(undefined);
-                  }
-                  setDialog(null);
-                }}
-              >
-                {dialog.confirmLabel ||
-                  (dialog.type === "confirm"
-                    ? "Confirm"
-                    : dialog.type === "prompt"
-                      ? "Save"
-                      : "OK")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DialogModal
+          dialog={dialog}
+          value={dialogValue}
+          onValueChange={setDialogValue}
+          onClose={closeDialog}
+        />
       )}
       {toast && <div className="toast-floating">{toast}</div>}
       <footer className="app-footer">

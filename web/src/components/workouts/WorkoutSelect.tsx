@@ -1,5 +1,5 @@
-import type { Workout } from "../types";
-import { SelectDropdown } from "./SelectDropdown";
+import type { Workout } from "../../types";
+import { SelectDropdown } from "../common/SelectDropdown";
 
 // WorkoutSelect renders a custom workout picker styled like exercise inputs.
 export function WorkoutSelect({
