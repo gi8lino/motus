@@ -78,7 +78,7 @@ func TestCurrentUser(t *testing.T) {
 
 		h.ServeHTTP(rec, req)
 
-		require.Equal(t, http.StatusNotFound, rec.Code)
+		require.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 
 	t.Run("Returns bad request when missing user", func(t *testing.T) {

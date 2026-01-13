@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -86,11 +85,4 @@ func WithCORS(origin string, next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// writeJSON writes the given payload as JSON to the response.
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
 }

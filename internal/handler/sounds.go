@@ -9,6 +9,8 @@ import (
 // ListSounds returns available sound options.
 func (a *API) ListSounds() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, sounds.BuiltinOptions)
+		if err := encode(w, r, http.StatusOK, sounds.BuiltinOptions); err != nil {
+			a.Logger.Error("sounds encode", "err", err)
+		}
 	}
 }

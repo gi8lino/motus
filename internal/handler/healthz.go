@@ -6,10 +6,14 @@ import "net/http"
 func (a *API) Healthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := a.HealthStore.Ping(r.Context()); err != nil {
-			writeJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
+			if err := encode(w, r, http.StatusInternalServerError, apiError{Error: err.Error()}); err != nil {
+				a.Logger.Error("healthz encode", "err", err)
+			}
 			return
 		}
 
-		writeJSON(w, http.StatusOK, statusResponse{Status: "ok"})
+		if err := encode(w, r, http.StatusOK, statusResponse{Status: "ok"}); err != nil {
+			a.Logger.Error("healthz encode", "err", err)
+		}
 	}
 }
