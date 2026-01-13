@@ -63,6 +63,7 @@ export function SessionCard({
   onPause,
   onNext,
   onFinish,
+  onStopAudio,
   runButtonRef,
   nextButtonRef,
 }: {
@@ -74,6 +75,7 @@ export function SessionCard({
   onPause: () => void;
   onNext: () => void;
   onFinish: () => void;
+  onStopAudio?: () => void;
   runButtonRef?: RefObject<HTMLButtonElement>;
   nextButtonRef?: RefObject<HTMLButtonElement>;
 }) {
@@ -101,6 +103,16 @@ export function SessionCard({
       ? "Continue"
       : "Start";
 
+  // handleNext stops audio and advances or finishes the session.
+  const handleNext = () => {
+    onStopAudio?.();
+    if (isLastStep) {
+      onFinish();
+      return;
+    }
+    onNext();
+  };
+
   const displayMillis =
     currentStep && isAutoAdvance && currentStep.estimatedSeconds
       ? Math.max(
@@ -114,6 +126,7 @@ export function SessionCard({
     return getCurrentExerciseLabel(currentStep as any);
   }, [currentStep]);
 
+  // extractExerciseLabels collects display labels for the current step.
   const extractExerciseLabels = useCallback(
     (step: SessionStepState | null, startIndex = 0) => {
       if (!step) return [];
@@ -410,7 +423,7 @@ export function SessionCard({
             <button
               ref={nextButtonRef}
               className="btn large next"
-              onClick={isLastStep ? onFinish : onNext}
+              onClick={handleNext}
               disabled={!session || done || !session.startedAt}
             >
               {isLastStep ? "Finish" : "Next"}

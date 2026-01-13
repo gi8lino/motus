@@ -140,6 +140,7 @@ function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // reload re-runs the loader and updates local state.
   const reload = useCallback(() => {
     let cancelled = false;
     setLoading(true);
@@ -288,6 +289,7 @@ export default function App() {
     applyTheme();
     if (themeMode !== "auto") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
+    // handler reapplies theme when the system preference changes.
     const handler = () => applyTheme();
     media.addEventListener("change", handler);
     return () => {
@@ -328,7 +330,7 @@ export default function App() {
     );
   }, [currentUserId]);
 
-  // handleRepeatRestAfterLastDefault persists the profile default for rest-after-last.
+  // handleRepeatRestAfterLastDefault persists the rest-after-last preference.
   const handleRepeatRestAfterLastDefault = (value: boolean) => {
     setRepeatRestAfterLastDefault(value);
     if (!currentUserId) return;
@@ -338,7 +340,7 @@ export default function App() {
     );
   };
 
-  // handleDefaultStepSound persists the default sound for new steps.
+  // handleDefaultStepSound persists the default step sound selection.
   const handleDefaultStepSound = (value: string) => {
     setDefaultStepSoundKey(value);
     if (!currentUserId) return;
@@ -359,7 +361,7 @@ export default function App() {
     localStorage.setItem(`motus:defaultPauseSound:${currentUserId}`, value);
   };
 
-  // handleDefaultPauseAutoAdvance persists the default pause auto-advance.
+  // handleDefaultPauseAutoAdvance persists the default pause auto-advance toggle.
   const handleDefaultPauseAutoAdvance = (value: boolean) => {
     setDefaultPauseAutoAdvance(value);
     if (!currentUserId) return;
@@ -369,7 +371,7 @@ export default function App() {
     );
   };
 
-  // handlePauseOnTabHidden persists the session pause-on-hidden preference.
+  // handlePauseOnTabHidden persists the pause-on-hidden setting.
   const handlePauseOnTabHidden = (value: boolean) => {
     setPauseOnTabHidden(value);
     if (!currentUserId) return;
@@ -442,12 +444,13 @@ export default function App() {
   }, [authHeaderEnabled, currentUserId, users.data, view]);
 
   // showToast shows a toast notification.
+  // showToast displays a short-lived notification.
   const showToast = useCallback((message: string) => {
     setToast(message);
     setTimeout(() => setToast((t) => (t === message ? null : t)), 1800);
   }, []);
 
-  // handleLogout clears local auth state and returns to login.
+  // handleLogout clears auth state and returns to login.
   const handleLogout = () => {
     localStorage.removeItem("motus:userId");
     setCurrentUserId(null);
@@ -462,7 +465,7 @@ export default function App() {
     [users.data, currentUserId],
   );
 
-  // handleUpdateName saves the display name for the signed-in user.
+  // handleUpdateName updates the current user's display name.
   const handleUpdateName = useCallback(
     async (name: string) => {
       if (!currentUserId) {

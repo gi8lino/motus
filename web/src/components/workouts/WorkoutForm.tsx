@@ -146,8 +146,8 @@ export function WorkoutForm({
 
   // Dismiss the exercise sound popover on outside clicks.
   useEffect(() => {
-    // Close the exercise sound popover when clicking outside.
     if (!exerciseSoundPicker) return;
+    // handleClick closes the sound popover when clicking away.
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;

@@ -68,6 +68,8 @@ export function SessionsView({
   const overrunIntervalRef = useRef<number | null>(null);
   const stepSoundTimerRef = useRef<number | null>(null);
   const subsetSoundTimerRef = useRef<number | null>(null);
+  const activeAudiosRef = useRef<Set<HTMLAudioElement>>(new Set());
+  const pausedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set());
   const stepSoundScheduleRef = useRef<{
     key: string | null;
     targetMs: number;
@@ -89,6 +91,7 @@ export function SessionsView({
   const runButtonRef = useRef<HTMLButtonElement>(null!);
   const nextActionButtonRef = useRef<HTMLButtonElement>(null!);
 
+  // clearOverrunTimers stops the overrun timeout/interval timers.
   const clearOverrunTimers = useCallback(() => {
     if (overrunTimeoutRef.current) {
       clearTimeout(overrunTimeoutRef.current);
@@ -100,22 +103,73 @@ export function SessionsView({
     }
   }, []);
 
+  // resetOverrunState clears the overrun modal state.
   const resetOverrunState = useCallback(() => {
     clearOverrunTimers();
     setOverrunModal(null);
     setOverrunCountdown(0);
   }, [clearOverrunTimers]);
 
+  // handleOverrunPostpone pushes the overrun window forward.
   const handleOverrunPostpone = useCallback(() => {
     if (!session?.running) return;
     nextOverrunMsRef.current = elapsed + 30000;
     resetOverrunState();
   }, [session?.running, elapsed, resetOverrunState]);
 
-  const handleOverrunPause = useCallback(() => {
+  const stopAudio = (audio: HTMLAudioElement) => {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = "";
+    audio.load();
+  };
+
+  // pauseActiveAudio pauses any currently playing sounds.
+  const pauseActiveAudio = useCallback(() => {
+    if (!activeAudiosRef.current.size) return;
+    activeAudiosRef.current.forEach((audio) => {
+      audio.pause();
+      pausedAudiosRef.current.add(audio);
+    });
+    activeAudiosRef.current.clear();
+  }, []);
+
+  // resumePausedAudio resumes any sounds that were paused.
+  const resumePausedAudio = useCallback(() => {
+    if (!pausedAudiosRef.current.size) return;
+    pausedAudiosRef.current.forEach((audio) => {
+      activeAudiosRef.current.add(audio);
+      audio.play().catch(() => {
+        activeAudiosRef.current.delete(audio);
+      });
+    });
+    pausedAudiosRef.current.clear();
+  }, []);
+
+  // stopActiveAudio stops and clears all active/paused sounds.
+  const stopActiveAudio = useCallback(() => {
+    if (!activeAudiosRef.current.size && !pausedAudiosRef.current.size) return;
+    activeAudiosRef.current.forEach((audio) => {
+      stopAudio(audio);
+    });
+    activeAudiosRef.current.clear();
+    pausedAudiosRef.current.forEach((audio) => {
+      stopAudio(audio);
+    });
+    pausedAudiosRef.current.clear();
+  }, []);
+
+  // handlePause pauses audio before pausing the session.
+  const handlePause = useCallback(() => {
+    pauseActiveAudio();
     onPause();
+  }, [onPause, pauseActiveAudio]);
+
+  // handleOverrunPause pauses the session from the overrun modal.
+  const handleOverrunPause = useCallback(() => {
+    handlePause();
     resetOverrunState();
-  }, [onPause, resetOverrunState]);
+  }, [handlePause, resetOverrunState]);
 
   // Cleanup overrun timers when the view unmounts.
   useEffect(() => () => resetOverrunState(), [resetOverrunState]);
@@ -180,6 +234,7 @@ export function SessionsView({
         clearTimeout(subsetSoundTimerRef.current);
         subsetSoundTimerRef.current = null;
       }
+      stopActiveAudio();
       stepSoundScheduleRef.current = {
         key: null,
         targetMs: 0,
@@ -193,7 +248,7 @@ export function SessionsView({
         triggerAt: 0,
       };
     };
-  }, []);
+  }, [stopActiveAudio]);
 
   // Reset overrun state whenever the session stops running.
   useEffect(() => {
@@ -208,9 +263,11 @@ export function SessionsView({
       hiddenPauseNotifiedRef.current = false;
       return;
     }
+    // handleVisibility pauses when the document becomes hidden.
     const handleVisibility = () => {
       if (document.hidden) {
         if (session?.running) {
+          pauseActiveAudio();
           onPause();
           if (!hiddenPauseNotifiedRef.current) {
             onToast("Training paused while tab was hidden");
@@ -225,7 +282,7 @@ export function SessionsView({
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pauseOnTabHidden, session?.running, onPause, onToast]);
+  }, [pauseOnTabHidden, session?.running, onPause, onToast, pauseActiveAudio]);
 
   // Initialize the overrun schedule for the current step.
   useEffect(() => {
@@ -252,6 +309,11 @@ export function SessionsView({
       if (subsetSoundTimerRef.current) {
         clearTimeout(subsetSoundTimerRef.current);
         subsetSoundTimerRef.current = null;
+      }
+      if (!currentStep) {
+        stopActiveAudio();
+      } else {
+        pauseActiveAudio();
       }
       stepSoundScheduleRef.current = {
         key: null,
@@ -358,7 +420,20 @@ export function SessionsView({
           const triggerAt = Date.now() + Math.max(remaining, 0);
           const play = () => {
             logTimerEvent("subset-sound-fired", subsetLogBase);
-            new Audio(subsetSoundUrl).play().catch(() => {});
+            stopActiveAudio();
+            const audio = new Audio(subsetSoundUrl);
+            activeAudiosRef.current.add(audio);
+            audio.addEventListener(
+              "ended",
+              () => {
+                activeAudiosRef.current.delete(audio);
+                pausedAudiosRef.current.delete(audio);
+              },
+              { once: true },
+            );
+            audio.play().catch(() => {
+              activeAudiosRef.current.delete(audio);
+            });
             subsetSoundTimerRef.current = null;
             subsetSoundPlayedRef.current.add(subsetInstanceId);
           };
@@ -423,7 +498,20 @@ export function SessionsView({
         const triggerAt = nowTs + Math.max(remaining, 0);
         const play = () => {
           logTimerEvent("step-sound-fired", stepLogBase);
-          new Audio(exerciseSoundUrl).play().catch(() => {});
+          stopActiveAudio();
+          const audio = new Audio(exerciseSoundUrl);
+          activeAudiosRef.current.add(audio);
+          audio.addEventListener(
+            "ended",
+            () => {
+              activeAudiosRef.current.delete(audio);
+              pausedAudiosRef.current.delete(audio);
+            },
+            { once: true },
+          );
+          audio.play().catch(() => {
+            activeAudiosRef.current.delete(audio);
+          });
           stepSoundTimerRef.current = null;
           markSoundPlayed();
         };
@@ -458,6 +546,8 @@ export function SessionsView({
     session?.running,
     sounds,
     markSoundPlayed,
+    pauseActiveAudio,
+    stopActiveAudio,
   ]);
 
   // Show the overrun modal once the target has elapsed.
@@ -502,8 +592,15 @@ export function SessionsView({
     return () => clearOverrunTimers();
   }, [overrunModal?.show, overrunModal?.deadline, clearOverrunTimers]);
 
+  // handleStart resumes audio before starting the session step.
+  const handleStart = useCallback(() => {
+    onStartStep();
+    resumePausedAudio();
+  }, [onStartStep, resumePausedAudio]);
+
   // Bind keyboard shortcuts for run/next actions.
   useEffect(() => {
+    // handler routes keyboard shortcuts to session actions.
     const handler = (e: KeyboardEvent) => {
       if (overrunModal?.show) {
         if (e.code === "Enter") {
@@ -523,10 +620,10 @@ export function SessionsView({
         if (!session) return;
         if (!tryConsumeKey(e.code, runButtonRef.current)) return;
         if (session.running) {
-          onPause();
+          handlePause();
           return;
         }
-        onStartStep();
+        handleStart();
         return;
       }
 
@@ -537,6 +634,7 @@ export function SessionsView({
         const isLast =
           session.currentIndex >=
           (session.steps?.length ? session.steps.length - 1 : 0);
+        stopActiveAudio();
         if (!isLast) {
           onNext();
           return;
@@ -553,13 +651,15 @@ export function SessionsView({
     overrunModal?.show,
     handleOverrunPause,
     handleOverrunPostpone,
-    onStartStep,
-    onPause,
+    handleStart,
+    handlePause,
     onNext,
     onFinishSession,
     tryConsumeKey,
+    stopActiveAudio,
   ]);
 
+  // handleFinish finalizes the session and shows the summary.
   const handleFinish = async () => {
     const summary = await onFinishSession();
     if (summary) setFinishSummary(summary);
@@ -626,10 +726,11 @@ export function SessionsView({
           session={session}
           currentStep={currentStep}
           elapsed={elapsed}
-          onStart={onStartStep}
-          onPause={onPause}
+          onStart={handleStart}
+          onPause={handlePause}
           onNext={onNext}
           onFinish={handleFinish}
+          onStopAudio={stopActiveAudio}
           runButtonRef={runButtonRef}
           nextButtonRef={nextActionButtonRef}
         />

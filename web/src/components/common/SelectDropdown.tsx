@@ -42,6 +42,7 @@ export function SelectDropdown({
 
   // Close the menu when the user clicks outside the dropdown.
   useEffect(() => {
+    // handleClick closes the menu on outside clicks.
     const handleClick = (event: MouseEvent) => {
       if (!rootRef.current) return;
       if (rootRef.current.contains(event.target as Node)) return;
@@ -78,6 +79,7 @@ export function SelectDropdown({
     return false;
   };
 
+  // handleTypeAhead focuses the first matching option by typed prefix.
   const handleTypeAhead = (event: React.KeyboardEvent) => {
     if (!open) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
