@@ -109,7 +109,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx) // nolint: errcheck
+	defer tx.Rollback(ctx) // nolint:errcheck
 
 	if err := ensureSchemaVersionTable(ctx, tx); err != nil {
 		return err

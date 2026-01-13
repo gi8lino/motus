@@ -31,7 +31,7 @@ func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Lo
 	if err != nil {
 		return fmt.Errorf("open core exercises file: %w", err)
 	}
-	defer f.Close() // nolint: errcheck
+	defer f.Close() // nolint:errcheck
 
 	data, err := io.ReadAll(f)
 	if err != nil {
