@@ -1,12 +1,25 @@
 package db
 
-import "context"
+import (
+	"context"
 
-// EnsureSchema creates required tables.
-// Apply the latest schema definitions and additive migrations.
-func (s *Store) EnsureSchema(ctx context.Context) error {
-	stmts := []string{
-		`CREATE TABLE IF NOT EXISTS users (
+	"github.com/jackc/pgx/v5"
+)
+
+const schemaVersionLatest = 1
+
+type schemaMigration struct {
+	version    int
+	name       string
+	statements []string
+}
+
+var schemaMigrations = []schemaMigration{
+	{
+		version: schemaVersionLatest,
+		name:    "baseline",
+		statements: []string{
+			`CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             is_admin BOOLEAN NOT NULL DEFAULT FALSE,
@@ -14,14 +27,14 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             password_hash TEXT NOT NULL DEFAULT '',
             created_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS workouts (
+			`CREATE TABLE IF NOT EXISTS workouts (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
             is_template BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS workout_steps (
+			`CREATE TABLE IF NOT EXISTS workout_steps (
             id TEXT PRIMARY KEY,
             workout_id TEXT NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
             step_order INT NOT NULL,
@@ -37,7 +50,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             repeat_rest_auto_advance BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS workout_subsets (
+			`CREATE TABLE IF NOT EXISTS workout_subsets (
             id TEXT PRIMARY KEY,
             step_id TEXT NOT NULL REFERENCES workout_steps(id) ON DELETE CASCADE,
             subset_order INT NOT NULL,
@@ -48,7 +61,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             created_at TIMESTAMPTZ NOT NULL
         )`,
 
-		`CREATE TABLE IF NOT EXISTS workout_subset_exercises (
+			`CREATE TABLE IF NOT EXISTS workout_subset_exercises (
             id TEXT PRIMARY KEY,
             subset_id TEXT NOT NULL REFERENCES workout_subsets(id) ON DELETE CASCADE,
             exercise_order INT NOT NULL,
@@ -61,14 +74,14 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             sound_key TEXT NOT NULL DEFAULT ''
         )`,
 
-		`CREATE TABLE IF NOT EXISTS exercises (
+			`CREATE TABLE IF NOT EXISTS exercises (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
             owner_user_id TEXT,
             is_core BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS workout_sessions (
+			`CREATE TABLE IF NOT EXISTS workout_sessions (
             id TEXT PRIMARY KEY,
             workout_id TEXT NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
             workout_name TEXT NOT NULL DEFAULT '',
@@ -76,7 +89,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             started_at TIMESTAMPTZ NOT NULL,
             completed_at TIMESTAMPTZ NOT NULL
         )`,
-		`CREATE TABLE IF NOT EXISTS session_steps (
+			`CREATE TABLE IF NOT EXISTS session_steps (
             id TEXT PRIMARY KEY,
             session_id TEXT NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
             step_order INT NOT NULL,
@@ -85,15 +98,72 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
             estimated_seconds INT NOT NULL,
             elapsed_millis BIGINT NOT NULL DEFAULT 0
         )`,
-		`ALTER TABLE workout_subset_exercises
-        ADD COLUMN IF NOT EXISTS sound_key TEXT NOT NULL DEFAULT ''`,
+		},
+	},
+}
+
+// EnsureSchema applies the baseline schema and any pending migrations.
+func (s *Store) EnsureSchema(ctx context.Context) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) // nolint: errcheck
+
+	if err := ensureSchemaVersionTable(ctx, tx); err != nil {
+		return err
+	}
+	currentVersion, err := readSchemaVersion(ctx, tx)
+	if err != nil {
+		return err
 	}
 
-	// Apply each schema statement in order.
-	for _, stmt := range stmts {
-		if _, err := s.pool.Exec(ctx, stmt); err != nil {
+	for _, migration := range schemaMigrations {
+		if migration.version <= currentVersion {
+			// Skip migrations that have already been applied.
+			continue
+		}
+		for _, stmt := range migration.statements {
+			if _, err := tx.Exec(ctx, stmt); err != nil {
+				return err
+			}
+		}
+		if err := writeSchemaVersion(ctx, tx, migration.version); err != nil {
 			return err
 		}
+		currentVersion = migration.version
 	}
-	return nil
+
+	return tx.Commit(ctx)
+}
+
+// ensureSchemaVersionTable creates the schema version tracker if missing.
+func ensureSchemaVersionTable(ctx context.Context, tx pgx.Tx) error {
+	_, err := tx.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_version (
+        id INT PRIMARY KEY,
+        version INT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`)
+	return err
+}
+
+// readSchemaVersion returns the current schema version (or 0 when missing).
+func readSchemaVersion(ctx context.Context, tx pgx.Tx) (int, error) {
+	var version int
+	err := tx.QueryRow(ctx, `SELECT version FROM schema_version WHERE id = 1`).Scan(&version)
+	if err == pgx.ErrNoRows {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return version, nil
+}
+
+// writeSchemaVersion persists the latest schema version.
+func writeSchemaVersion(ctx context.Context, tx pgx.Tx, version int) error {
+	_, err := tx.Exec(ctx, `INSERT INTO schema_version (id, version, updated_at)
+        VALUES (1, $1, NOW())
+        ON CONFLICT (id) DO UPDATE SET version = EXCLUDED.version, updated_at = NOW()`, version)
+	return err
 }
