@@ -14,23 +14,17 @@ func (a *API) GetWorkouts() http.HandlerFunc {
 
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout list user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		workouts, err := a.Workouts.List(r.Context(), resolvedID)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout list", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, workouts); err != nil {
-			a.Logger.Error("workout list encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, workouts)
 	}
 }
 
@@ -41,32 +35,24 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 
 		req, err := decode[workouts.WorkoutRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout create decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		resolvedUserID, err := a.resolveUserID(r, userID)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout create user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
 
 		created, err := a.Workouts.Create(r.Context(), req)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout create", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusCreated, created); err != nil {
-			a.Logger.Error("workout create encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusCreated, created)
 	}
 }
 
@@ -77,15 +63,11 @@ func (a *API) GetWorkout() http.HandlerFunc {
 
 		workout, err := a.Workouts.Get(r.Context(), id)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout get", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, workout); err != nil {
-			a.Logger.Error("workout get encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, workout)
 	}
 }
 
@@ -96,15 +78,11 @@ func (a *API) ExportWorkout() http.HandlerFunc {
 
 		workout, err := a.Workouts.Export(r.Context(), id)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout export", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, workout); err != nil {
-			a.Logger.Error("workout export encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, workout)
 	}
 }
 
@@ -117,32 +95,24 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[importWorkoutRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout import decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout import user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
 
 		created, err := a.Workouts.Import(r.Context(), req.UserID, req.Workout)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout import", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusCreated, created); err != nil {
-			a.Logger.Error("workout import encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusCreated, created)
 	}
 }
 
@@ -153,27 +123,21 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 
 		req, err := decode[workouts.WorkoutRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout update decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if a.AuthHeader != "" {
 			resolvedUserID, err := a.resolveUserID(r, "")
 			if err != nil {
-				if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-					a.Logger.Error("workout update user", "err", err)
-				}
+				a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 				return
 			}
 			req.UserID = resolvedUserID
 		} else if req.UserID == "" {
 			current, err := a.Workouts.Get(r.Context(), id)
 			if err != nil {
-				if err := encode(w, r, http.StatusNotFound, apiError{Error: err.Error()}); err != nil {
-					a.Logger.Error("workout update lookup", "err", err)
-				}
+				a.respondJSON(w, http.StatusNotFound, apiError{Error: err.Error()})
 				return
 			}
 			req.UserID = current.UserID
@@ -181,15 +145,11 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 
 		updated, err := a.Workouts.Update(r.Context(), id, req)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout update", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, updated); err != nil {
-			a.Logger.Error("workout update encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, updated)
 	}
 }
 
@@ -199,12 +159,10 @@ func (a *API) DeleteWorkout() http.HandlerFunc {
 		id := r.PathValue("id")
 
 		if err := a.Workouts.Delete(r.Context(), id); err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("workout delete", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }

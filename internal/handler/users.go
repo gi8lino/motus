@@ -7,15 +7,11 @@ func (a *API) GetUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := a.Users.List(r.Context())
 		if err != nil {
-			if err := encode(w, r, http.StatusInternalServerError, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user list", "err", err)
-			}
+			a.respondJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, users); err != nil {
-			a.Logger.Error("user list encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, users)
 	}
 }
 
@@ -29,23 +25,17 @@ func (a *API) CreateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[createUserRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user create decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Create(r.Context(), req.Email, req.AvatarURL, req.Password)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user create", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusCreated, user); err != nil {
-			a.Logger.Error("user create encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusCreated, user)
 	}
 }
 
@@ -59,20 +49,16 @@ func (a *API) UpdateUserRole() http.HandlerFunc {
 
 		req, err := decode[updateUserRoleRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user role decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.UpdateRole(r.Context(), id, req.IsAdmin); err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user role", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
 
@@ -85,23 +71,17 @@ func (a *API) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[loginRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("login decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Login(r.Context(), req.Email, req.Password)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("login", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, user); err != nil {
-			a.Logger.Error("login encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, user)
 	}
 }
 
@@ -114,28 +94,21 @@ func (a *API) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("password user", "err", err)
-			}
-			return
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		}
 
 		req, err := decode[changePasswordRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("password decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.ChangePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword); err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("password change", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
 
@@ -147,27 +120,21 @@ func (a *API) UpdateUserName() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user name user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		req, err := decode[updateUserNameRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user name decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.UpdateName(r.Context(), userID, req.Name); err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("user name update", "err", err)
-			}
-			return
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
+			a.Logger.Error("user name update", "err", err)
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }

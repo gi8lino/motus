@@ -37,6 +37,11 @@ type apiError struct {
 	Error string `json:"error"`
 }
 
+// statusResponse is the response body for the status endpoint.
+type statusResponse struct {
+	Status string `json:"status"`
+}
+
 // NewAPI builds a handler container with shared dependencies.
 func NewAPI(
 	store *db.Store,
@@ -59,6 +64,13 @@ func NewAPI(
 		AuthHeader:        authHeader,
 		AllowRegistration: allowRegistration,
 		AutoCreateUsers:   autoCreateUsers,
+	}
+}
+
+// respondJSON writes a JSON response.
+func (a *API) respondJSON(w http.ResponseWriter, status int, v any) {
+	if err := encode(w, status, v); err != nil {
+		a.Logger.Error("encode response failed", "err", err)
 	}
 }
 

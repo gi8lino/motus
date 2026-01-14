@@ -67,13 +67,12 @@ func TestWithCORS(t *testing.T) {
 	})
 }
 
-func TestEncode(t *testing.T) {
+func TestRespondJSON(t *testing.T) {
 	t.Run("Writes JSON response", func(t *testing.T) {
 		t.Parallel()
 
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		require.NoError(t, encode(rec, req, http.StatusCreated, map[string]string{"status": "ok"}))
+		require.NoError(t, encode(rec, http.StatusCreated, map[string]string{"status": "ok"}))
 
 		assert.Equal(t, http.StatusCreated, rec.Code)
 		assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))

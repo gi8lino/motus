@@ -19,26 +19,20 @@ func (a *API) CreateSession() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[createSessionRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session create decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		state, err := a.Sessions.CreateState(r.Context(), req.WorkoutID)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session create", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusCreated, createSessionResponse{
+		a.respondJSON(w, http.StatusCreated, createSessionResponse{
 			SessionID: state.SessionID,
 			State:     state,
-		}); err != nil {
-			a.Logger.Error("session create encode", "err", err)
-		}
+		})
 	}
 }
 
@@ -49,23 +43,17 @@ func (a *API) ListSessionHistory() http.HandlerFunc {
 
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session history user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		items, err := a.Sessions.BuildSessionHistory(r.Context(), resolvedID, 25)
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session history", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, items); err != nil {
-			a.Logger.Error("session history encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, items)
 	}
 }
 
@@ -74,15 +62,11 @@ func (a *API) SessionSteps() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		steps, err := a.Sessions.FetchStepTimings(r.Context(), r.PathValue("id"))
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session steps", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, steps); err != nil {
-			a.Logger.Error("session steps encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, steps)
 	}
 }
 
@@ -100,17 +84,13 @@ func (a *API) CompleteSession() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[completeSessionRequest](r)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session complete decode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session complete user", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		req.UserID = resolvedUserID
@@ -125,14 +105,10 @@ func (a *API) CompleteSession() http.HandlerFunc {
 			Steps:       req.Steps,
 		})
 		if err != nil {
-			if err := encode(w, r, serviceStatus(err), apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("session complete", "err", err)
-			}
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusCreated, log); err != nil {
-			a.Logger.Error("session complete encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusCreated, log)
 	}
 }

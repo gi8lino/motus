@@ -13,14 +13,12 @@ type configResponse struct {
 // Config returns runtime configuration for the SPA.
 func (a *API) Config() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := encode(w, r, http.StatusOK, configResponse{
+		a.respondJSON(w, http.StatusOK, configResponse{
 			AuthHeaderEnabled: a.AuthHeader != "",
 			AllowRegistration: a.AllowRegistration,
 			Version:           a.Version,
 			Commit:            a.Commit,
-		}); err != nil {
-			a.Logger.Error("config encode", "err", err)
-		}
+		})
 	}
 }
 
@@ -29,22 +27,16 @@ func (a *API) CurrentUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
-			if err := encode(w, r, http.StatusBadRequest, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("current user encode", "err", err)
-			}
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Get(r.Context(), userID)
 		if err != nil || user == nil {
-			if err := encode(w, r, http.StatusUnauthorized, apiError{Error: err.Error()}); err != nil {
-				a.Logger.Error("current user encode", "err", err)
-			}
+			a.respondJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
 			return
 		}
 
-		if err := encode(w, r, http.StatusOK, user); err != nil {
-			a.Logger.Error("current user encode", "err", err)
-		}
+		a.respondJSON(w, http.StatusOK, user)
 	}
 }

@@ -10,7 +10,5 @@ type versionResponse struct {
 
 // VersionInfo returns version metadata for the SPA.
 func (a *API) VersionInfo(w http.ResponseWriter, r *http.Request) {
-	if err := encode(w, r, http.StatusOK, versionResponse{Version: a.Version, Commit: a.Commit}); err != nil {
-		a.Logger.Error("version encode", "err", err)
-	}
+	a.respondJSON(w, http.StatusOK, versionResponse{Version: a.Version, Commit: a.Commit})
 }
