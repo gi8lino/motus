@@ -7,16 +7,19 @@ func (a *API) ListExercises() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		items, err := a.Exercises.List(r.Context(), userID)
 		if err != nil {
+			a.Logger.Error("list exercises failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("list exercises", "items", items)
 		a.respondJSON(w, http.StatusOK, items)
 	}
 }
@@ -30,22 +33,26 @@ func (a *API) CreateExercise() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		req, err := decode[createExerciseRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		exercise, err := a.Exercises.Create(r.Context(), userID, req.Name, req.IsCore)
 		if err != nil {
+			a.Logger.Error("create exercise failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("create exercise", "exercise", exercise)
 		a.respondJSON(w, http.StatusCreated, exercise)
 	}
 }
@@ -60,22 +67,26 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		req, err := decode[updateExerciseRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		updated, err := a.Exercises.Update(r.Context(), userID, id, req.Name)
 		if err != nil {
+			a.Logger.Error("update exercise failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("update exercise", "exercise", updated)
 		a.respondJSON(w, http.StatusOK, updated)
 	}
 }
@@ -87,16 +98,18 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
-			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			a.Logger.Error("exercise delete user", "err", err)
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Exercises.Delete(r.Context(), userID, id); err != nil {
+			a.Logger.Error("delete exercise failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("delete exercise", "exercise", id)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -105,10 +118,12 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 func (a *API) BackfillExercises() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := a.Exercises.Backfill(r.Context()); err != nil {
+			a.Logger.Error("backfill exercises failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("backfill exercises")
 		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	}
 }

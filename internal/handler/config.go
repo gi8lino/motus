@@ -27,16 +27,19 @@ func (a *API) CurrentUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Get(r.Context(), userID)
 		if err != nil || user == nil {
+			a.Logger.Error("get user failed", "err", err)
 			a.respondJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("get user", "user", user)
 		a.respondJSON(w, http.StatusOK, user)
 	}
 }

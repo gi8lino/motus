@@ -19,16 +19,19 @@ func (a *API) CreateTraining() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[createTrainingRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		state, err := a.Trainings.CreateState(r.Context(), req.WorkoutID)
 		if err != nil {
+			a.Logger.Error("create training state failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("create training state", "state", state)
 		a.respondJSON(w, http.StatusCreated, createTrainingResponse{
 			TrainingID: state.TrainingID,
 			State:      state,
@@ -43,16 +46,19 @@ func (a *API) ListTrainingHistory() http.HandlerFunc {
 
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		items, err := a.Trainings.BuildTrainingHistory(r.Context(), resolvedID, 25)
 		if err != nil {
+			a.Logger.Error("build training history failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Error("build training history", "items", items)
 		a.respondJSON(w, http.StatusOK, items)
 	}
 }
@@ -62,10 +68,12 @@ func (a *API) TrainingSteps() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		steps, err := a.Trainings.FetchStepTimings(r.Context(), r.PathValue("id"))
 		if err != nil {
+			a.Logger.Error("fetch step timings failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Error("fetch step timings", "steps", steps)
 		a.respondJSON(w, http.StatusOK, steps)
 	}
 }
@@ -84,12 +92,14 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[completeTrainingRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
@@ -105,10 +115,12 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 			Steps:       req.Steps,
 		})
 		if err != nil {
+			a.Logger.Error("record training failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("record training", "log", log)
 		a.respondJSON(w, http.StatusCreated, log)
 	}
 }

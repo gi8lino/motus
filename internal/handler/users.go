@@ -7,10 +7,12 @@ func (a *API) GetUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := a.Users.List(r.Context())
 		if err != nil {
+			a.Logger.Error("list users failed", "err", err)
 			a.respondJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("list users", "users", users)
 		a.respondJSON(w, http.StatusOK, users)
 	}
 }
@@ -25,16 +27,19 @@ func (a *API) CreateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[createUserRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Create(r.Context(), req.Email, req.AvatarURL, req.Password)
 		if err != nil {
+			a.Logger.Debug("create user failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("create user", "user", user)
 		a.respondJSON(w, http.StatusCreated, user)
 	}
 }
@@ -49,15 +54,18 @@ func (a *API) UpdateUserRole() http.HandlerFunc {
 
 		req, err := decode[updateUserRoleRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.UpdateRole(r.Context(), id, req.IsAdmin); err != nil {
+			a.Logger.Error("update user role failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("update user role", "user", id)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -71,16 +79,19 @@ func (a *API) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[loginRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		user, err := a.Users.Login(r.Context(), req.Email, req.Password)
 		if err != nil {
+			a.Logger.Error("login user failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("login user", "user", user)
 		a.respondJSON(w, http.StatusOK, user)
 	}
 }
@@ -94,20 +105,24 @@ func (a *API) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		}
 
 		req, err := decode[changePasswordRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.ChangePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword); err != nil {
+			a.Logger.Error("change password failed", "err", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.Logger.Debug("change password", "user", userID)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -120,21 +135,24 @@ func (a *API) UpdateUserName() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.resolveUserID(r, "")
 		if err != nil {
+			a.Logger.Error("resolve user id failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		req, err := decode[updateUserNameRequest](r)
 		if err != nil {
+			a.Logger.Error("decode request failed", "err", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		if err := a.Users.UpdateName(r.Context(), userID, req.Name); err != nil {
-			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			a.Logger.Error("user name update", "err", err)
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 		}
 
+		a.Logger.Debug("update user name", "user", userID)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
