@@ -92,21 +92,21 @@ type Exercise struct {
 	CreatedAt   time.Time `json:"createdAt"`             // CreatedAt records when the entry was created.
 }
 
-// SessionLog represents a completed workout session.
-type SessionLog struct {
-	ID          string    `json:"id"`          // ID is the unique session identifier.
+// TrainingLog represents a completed workout training.
+type TrainingLog struct {
+	ID          string    `json:"id"`          // ID is the unique training identifier.
 	WorkoutID   string    `json:"workoutId"`   // WorkoutID links to the workout.
 	WorkoutName string    `json:"workoutName"` // WorkoutName is the display name at completion time.
-	UserID      string    `json:"userId"`      // UserID owns the session.
-	StartedAt   time.Time `json:"startedAt"`   // StartedAt is when the session began.
-	CompletedAt time.Time `json:"completedAt"` // CompletedAt is when the session finished.
+	UserID      string    `json:"userId"`      // UserID owns the training.
+	StartedAt   time.Time `json:"startedAt"`   // StartedAt is when the training began.
+	CompletedAt time.Time `json:"completedAt"` // CompletedAt is when the training finished.
 }
 
-// SessionStepLog captures actual timing for a completed step.
-type SessionStepLog struct {
+// TrainingStepLog captures actual timing for a completed step.
+type TrainingStepLog struct {
 	ID               string `json:"id"`               // ID is the unique log row identifier.
-	SessionID        string `json:"sessionId"`        // SessionID links to the session.
-	StepOrder        int    `json:"stepOrder"`        // StepOrder preserves session ordering.
+	TrainingID       string `json:"trainingId"`       // TrainingID links to the training.
+	StepOrder        int    `json:"stepOrder"`        // StepOrder preserves training ordering.
 	Type             string `json:"type"`             // Type is the step kind.
 	Name             string `json:"name"`             // Name is the step label.
 	EstimatedSeconds int    `json:"estimatedSeconds"` // EstimatedSeconds is the target duration.

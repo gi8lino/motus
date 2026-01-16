@@ -24,7 +24,7 @@ type WorkoutExerciseRowProps = {
   catalog: CatalogExercise[];
   sounds: SoundOption[];
 
-  sessionKey: string;
+  trainingKey: string;
   soundOpen: boolean;
   setSoundOpen: (open: boolean) => void;
 
@@ -61,7 +61,7 @@ export function WorkoutExerciseRow({
   ex,
   catalog,
   sounds,
-  sessionKey,
+  trainingKey,
   soundOpen,
   setSoundOpen,
   soundPopoverRef,
@@ -94,7 +94,7 @@ export function WorkoutExerciseRow({
 
   return (
     <div
-      key={`${sessionKey}-${exIdx}`}
+      key={`${trainingKey}-${exIdx}`}
       className="exercise-row"
       draggable
       onDragStart={(e) => {

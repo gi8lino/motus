@@ -10,6 +10,10 @@ type UseAuthActionsArgs = {
   onRegisterSuccess: (user: User) => void;
 };
 
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback;
+}
+
 // useAuthActions provides login and registration handlers.
 export function useAuthActions({
   setLoginError,
@@ -25,8 +29,7 @@ export function useAuthActions({
         const user = await loginUser(email, password);
         onLoginSuccess(user);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Invalid login";
-        setLoginError(message);
+        setLoginError(errorMessage(err, "Invalid login"));
       }
     },
     [setLoginError, onLoginSuccess],
@@ -35,11 +38,15 @@ export function useAuthActions({
   // register creates a new user and forwards the result.
   const register = useCallback(
     async (email: string, password: string) => {
-      // Delegate to the API and let callers update local state.
-      const user = await createUser(email, password);
-      onRegisterSuccess(user);
+      try {
+        setLoginError(null);
+        const user = await createUser(email, password);
+        onRegisterSuccess(user);
+      } catch (err) {
+        setLoginError(errorMessage(err, "Unable to register"));
+      }
     },
-    [onRegisterSuccess],
+    [onRegisterSuccess, setLoginError],
   );
 
   return { login, register };

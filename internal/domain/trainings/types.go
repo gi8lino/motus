@@ -1,5 +1,5 @@
-// Package sessions provides domain types and session state builders.
-package sessions
+// Package trainings provides domain types and training state builders.
+package trainings
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	"github.com/gi8lino/motus/internal/db"
 )
 
-// Workout is the domain-level DTO for session workouts.
+// Workout is the domain-level DTO for training workouts.
 type Workout = db.Workout
 
 // WorkoutStep is the domain-level DTO for workout steps.
@@ -22,28 +22,28 @@ type SubsetExercise = db.SubsetExercise
 // PauseOptions controls auto-advance for pauses.
 type PauseOptions = db.PauseOptions
 
-// SessionLog is the domain-level DTO for completed session logs.
-type SessionLog = db.SessionLog
+// TrainingLog is the domain-level DTO for completed training logs.
+type TrainingLog = db.TrainingLog
 
-// SessionStepLog is the domain-level DTO for session step timing logs.
-type SessionStepLog = db.SessionStepLog
+// TrainingStepLog is the domain-level DTO for training step timing logs.
+type TrainingStepLog = db.TrainingStepLog
 
-// SessionState captures the runtime status that the SPA consumes for an active session.
-type SessionState struct {
-	SessionID    string             `json:"sessionId"`
-	WorkoutID    string             `json:"workoutId"`
-	UserID       string             `json:"userId"`
-	WorkoutName  string             `json:"workoutName"`
-	CurrentIndex int                `json:"currentIndex"`
-	Running      bool               `json:"running"`
-	Done         bool               `json:"done"`
-	StartedAt    time.Time          `json:"startedAt"`
-	CompletedAt  time.Time          `json:"completedAt"`
-	Steps        []SessionStepState `json:"steps"`
+// TrainingState captures the runtime status that the SPA consumes for an active training.
+type TrainingState struct {
+	TrainingID   string              `json:"trainingId"`
+	WorkoutID    string              `json:"workoutId"`
+	UserID       string              `json:"userId"`
+	WorkoutName  string              `json:"workoutName"`
+	CurrentIndex int                 `json:"currentIndex"`
+	Running      bool                `json:"running"`
+	Done         bool                `json:"done"`
+	StartedAt    time.Time           `json:"startedAt"`
+	CompletedAt  time.Time           `json:"completedAt"`
+	Steps        []TrainingStepState `json:"steps"`
 }
 
-// SessionStepState describes a single card/step inside a session view.
-type SessionStepState struct {
+// TrainingStepState describes a single card/step inside a training view.
+type TrainingStepState struct {
 	ID                     string       `json:"id"`
 	Name                   string       `json:"name"`
 	Type                   string       `json:"type"`
@@ -67,7 +67,7 @@ type SessionStepState struct {
 	SetName                string       `json:"setName,omitempty"`
 }
 
-// Exercise represents a configured exercise inside a session step.
+// Exercise represents a configured exercise inside a training step.
 type Exercise struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`

@@ -91,8 +91,8 @@ export type User = {
   createdAt: string;
 };
 
-// TrainStepState captures a live session step.
-export type TrainStepState = WorkoutStep & {
+// TrainStepState captures a live training step.
+export type TrainngStepState = WorkoutStep & {
   elapsedMillis: number;
   completed: boolean;
   current: boolean;
@@ -109,9 +109,9 @@ export type TrainStepState = WorkoutStep & {
 };
 
 // TrainStepLog stores a completed step timing.
-export type TrainStepLog = {
+export type TrainngStepLog = {
   id: string;
-  sessionId: string;
+  trainingId: string;
   stepOrder: number;
   type: string;
   name: string;
@@ -119,9 +119,9 @@ export type TrainStepLog = {
   elapsedMillis: number;
 };
 
-// SessionState tracks the active workout session.
-export type TrainState = {
-  sessionId: string;
+// TrainingState tracks the active workout training.
+export type TrainngState = {
+  trainingId: string;
   workoutId: string;
   workoutName?: string;
   userId: string;
@@ -135,19 +135,19 @@ export type TrainState = {
   completedAt?: string | null;
   logged?: boolean;
 
-  steps: TrainStepState[];
+  steps: TrainngStepState[];
 };
 
-// TrainHistoryItem summarizes a completed session with optional steps.
-export type TrainHistoryItem = {
+// TrainngHistoryItem summarizes a completed training with optional steps.
+export type TrainngHistoryItem = {
   id: string;
-  sessionId: string;
+  trainingId: string;
   workoutId: string;
   workoutName?: string;
   userId: string;
   startedAt?: string;
   completedAt?: string;
-  steps?: TrainStepLog[];
+  steps?: TrainngStepLog[];
 };
 
 // SoundOption describes an available sound effect.

@@ -80,9 +80,9 @@ func NewRouter(
 
 	apiMux.Handle("GET /sounds", api.ListSounds())
 
-	apiMux.Handle("POST /sessions", api.CreateSession())
-	apiMux.Handle("GET /users/{id}/sessions/history", api.ListSessionHistory())
-	apiMux.Handle("POST /sessions/complete", api.CompleteSession())
+	apiMux.Handle("POST /trainings", api.CreateTraining())
+	apiMux.Handle("GET /users/{id}/trainings/history", api.ListTrainingHistory())
+	apiMux.Handle("POST /trainings/complete", api.CompleteTraining())
 
 	// Mount API under /api
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))

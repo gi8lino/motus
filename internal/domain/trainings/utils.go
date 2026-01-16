@@ -1,4 +1,4 @@
-package sessions
+package trainings
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-// mapExercises converts DB subset exercises into session exercises.
+// mapExercises converts DB subset exercises into training exercises.
 func mapExercises(exercises []SubsetExercise) []Exercise {
 	if len(exercises) == 0 {
 		return nil
@@ -19,7 +19,7 @@ func mapExercises(exercises []SubsetExercise) []Exercise {
 	return result
 }
 
-// mapExercise builds a session exercise from a subset exercise record.
+// mapExercise builds a training exercise from a subset exercise record.
 func mapExercise(ex SubsetExercise) Exercise {
 	return Exercise{
 		Name:     ex.Name,

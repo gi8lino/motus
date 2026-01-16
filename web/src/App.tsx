@@ -5,7 +5,7 @@ import {
   getCurrentUser,
   getWorkout,
   listExercises,
-  listSessionHistory,
+  listTrainingHistory,
   listSounds,
   listTemplates,
   listUsers,
@@ -16,7 +16,7 @@ import {
 
 import type {
   CatalogExercise,
-  TrainHistoryItem,
+  TrainngHistoryItem,
   SoundOption,
   Template,
   ThemeMode,
@@ -24,7 +24,7 @@ import type {
   Workout,
 } from "./types";
 
-import { useSessionTimer } from "./hooks/useSessionTimer";
+import { useTrainingTimer } from "./hooks/useTrainTimer";
 import { useDialog } from "./hooks/useDialog";
 import { useViewState } from "./hooks/useViewState";
 
@@ -47,7 +47,7 @@ import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
 import { useExerciseActions } from "./hooks/useExerciseActions";
 import { useProfileActions } from "./hooks/useProfileActions";
-import { useSessionActions } from "./hooks/useSessionActions";
+import { useTrainActions } from "./hooks/useTrainActions";
 
 import "./styles.css";
 
@@ -97,12 +97,12 @@ function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
   return { data, loading, error, setData, reload };
 }
 
-// resumeMessage formats a resume prompt for an in-progress session.
+// resumeMessage formats a resume prompt for an in-progress trining.
 function resumeMessage(
-  session?: ReturnType<typeof useSessionTimer>["session"] | null,
+  training?: ReturnType<typeof useTrainingTimer>["training"] | null,
 ) {
-  if (!session) return "";
-  const name = session.workoutName || "your workout";
+  if (!training) return "";
+  const name = training.workoutName || "your workout";
   return `Resume ${name}?`;
 }
 
@@ -171,11 +171,11 @@ export default function App() {
     () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
     [currentUserId],
   );
-  const history = useDataLoader<TrainHistoryItem[]>(
+  const history = useDataLoader<TrainngHistoryItem[]>(
     () =>
       currentUserId
-        ? listSessionHistory(currentUserId)
-        : Promise.resolve([] as TrainHistoryItem[]),
+        ? listTrainingHistory(currentUserId)
+        : Promise.resolve([] as TrainngHistoryItem[]),
     [currentUserId],
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);
@@ -395,9 +395,9 @@ export default function App() {
     [currentUserId, users],
   );
 
-  // ---------- session timer ----------
+  // ---------- training timer ----------
   const {
-    session,
+    training,
     currentStep,
     displayedElapsed,
     restoredFromStorage,
@@ -407,18 +407,18 @@ export default function App() {
     nextStep,
     finishAndLog,
     markSoundPlayed,
-    clear: clearSession,
-  } = useSessionTimer({ currentUserId });
+    clear: clearTraining,
+  } = useTrainingTimer({ currentUserId });
 
   const [promptedResume, setPromptedResume] = useState(false);
   const [resumeSuppressed, setResumeSuppressed] = useState(false);
 
   const {
-    startSession: handleStartSession,
-    finishSession: handleFinishSession,
-  } = useSessionActions({
+    startTraining: handleStartTraining,
+    finishTraining: handleFinishTraining,
+  } = useTrainActions({
     selectedWorkoutId,
-    session,
+    training,
     currentWorkoutName,
     setTrainView: () => setView("train"),
     setPromptedResume,
@@ -432,19 +432,19 @@ export default function App() {
 
   // prompt resume once
   useEffect(() => {
-    if (!restoredFromStorage || !session || session.done) return;
+    if (!restoredFromStorage || !training || training.done) return;
     if (promptedResume || resumeSuppressed) return;
     setPromptedResume(true);
-  }, [restoredFromStorage, session, promptedResume, resumeSuppressed]);
+  }, [restoredFromStorage, training, promptedResume, resumeSuppressed]);
 
-  // reset resume suppression when session clears
+  // reset resume suppression when training clears
   useEffect(() => {
-    if (!session) setResumeSuppressed(false);
-  }, [session?.sessionId]);
+    if (!training) setResumeSuppressed(false);
+  }, [training?.trainingId]);
 
   // auto-advance for timed steps
   useEffect(() => {
-    if (!session || !session.running) return;
+    if (!training || !training.running) return;
     if (!currentStep || !currentStep.estimatedSeconds) return;
 
     const isAutoAdvance =
@@ -458,8 +458,8 @@ export default function App() {
     if (displayedElapsed < threshold + 200) return;
 
     const isLast =
-      session.currentIndex >=
-      (session.steps?.length ? session.steps.length - 1 : 0);
+      training.currentIndex >=
+      (training.steps?.length ? training.steps.length - 1 : 0);
 
     if (!isLast) {
       nextStep();
@@ -468,13 +468,13 @@ export default function App() {
 
     finishAndLog().then((result) => {
       if (!result?.ok) {
-        notify(result?.error || "Unable to save session");
+        notify(result?.error || "Unable to save training");
         return;
       }
       history.reload();
     });
   }, [
-    session,
+    training,
     currentStep,
     displayedElapsed,
     nextStep,
@@ -483,13 +483,16 @@ export default function App() {
     notify,
   ]);
 
-  // refresh history once when a session logs
+  // refresh history once when a training logs
   useEffect(() => {
-    if (session?.logged && session.sessionId !== historyReloadGuard.current) {
-      historyReloadGuard.current = session.sessionId;
+    if (
+      training?.logged &&
+      training.trainingId !== historyReloadGuard.current
+    ) {
+      historyReloadGuard.current = training.trainingId;
       history.reload();
     }
-  }, [session?.logged, session?.sessionId, history]);
+  }, [training?.logged, training?.trainingId, history]);
 
   // ---------- handlers for defaults ----------
   const handleRepeatRestAfterLastDefault = (value: boolean) => {
@@ -542,7 +545,7 @@ export default function App() {
     localStorage.removeItem("motus:userId");
     setCurrentUserId(null);
     setView("login");
-    clearSession();
+    clearTraining();
   };
 
   // ---------- template apply ----------
@@ -600,7 +603,7 @@ export default function App() {
     );
   }
 
-  const resumeOpen = promptedResume && Boolean(session && !session.done);
+  const resumeOpen = promptedResume && Boolean(training && !training.done);
 
   return (
     <>
@@ -613,17 +616,17 @@ export default function App() {
           !authHeaderEnabled && currentUserId ? handleLogout : undefined
         }
         resumeOpen={resumeOpen}
-        resumeText={resumeMessage(session)}
+        resumeText={resumeMessage(training)}
         onResume={() => {
           setPromptedResume(false);
           setView("train");
-          if (!session?.running) startCurrentStep();
+          if (!training?.running) startCurrentStep();
           setToast(null);
           setResumeSuppressed(true);
         }}
         onDismissResume={() => {
           setPromptedResume(false);
-          clearSession();
+          clearTraining();
           setResumeSuppressed(true);
         }}
         toast={toast}
@@ -692,10 +695,10 @@ export default function App() {
             workouts={activeWorkouts}
             selectedWorkoutId={selectedWorkoutId}
             onSelectWorkout={setSelectedWorkoutId}
-            onStartTrain={handleStartSession}
+            onStartTrain={handleStartTraining}
             startDisabled={!selectedWorkoutId || !currentUserId}
             startTitle={!selectedWorkoutId ? "Select a workout first" : ""}
-            session={session}
+            training={training}
             currentStep={currentStep}
             elapsed={displayedElapsed}
             workoutName={currentWorkoutName}
@@ -704,7 +707,7 @@ export default function App() {
             onStartStep={startCurrentStep}
             onPause={pause}
             onNext={nextStep}
-            onFinishTrain={handleFinishSession}
+            onFinishTrain={handleFinishTraining}
             onCopySummary={() => showToast("Copied summary")}
             onToast={showToast}
             pauseOnTabHidden={pauseOnTabHidden}
@@ -724,7 +727,7 @@ export default function App() {
         {view === "history" && (
           <HistoryView
             items={history.data || []}
-            activeSession={session}
+            activeTraining={training}
             onResume={() => setView("train")}
             loadWorkout={getWorkout}
             onCopySummary={() => showToast("Copied summary")}

@@ -7,9 +7,9 @@ import (
 	"github.com/gi8lino/motus/internal/auth"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/service/exercises"
-	"github.com/gi8lino/motus/internal/service/sessions"
 	"github.com/gi8lino/motus/internal/service/sounds"
 	"github.com/gi8lino/motus/internal/service/templates"
+	"github.com/gi8lino/motus/internal/service/trainings"
 	"github.com/gi8lino/motus/internal/service/users"
 	"github.com/gi8lino/motus/internal/service/workouts"
 )
@@ -25,7 +25,7 @@ type API struct {
 	Exercises         *exercises.Service // Exercises provides exercise operations.
 	Workouts          *workouts.Service  // Workouts provides workout operations.
 	Templates         *templates.Service // Templates provides template operations.
-	Sessions          *sessions.Service  // Sessions provides session operations.
+	Trainings         *trainings.Service // Trainings provides training operations.
 	Logger            *slog.Logger       // Logger reports server activity.
 	AuthHeader        string             // AuthHeader specifies the proxy auth header.
 	AllowRegistration bool               // AllowRegistration toggles self-serve user creation.
@@ -59,7 +59,7 @@ func NewAPI(
 		Exercises:         exercises.New(store),
 		Workouts:          workouts.New(store),
 		Templates:         templates.New(store),
-		Sessions:          sessions.New(store, sounds.URLByKey),
+		Trainings:         trainings.New(store, sounds.URLByKey),
 		Logger:            logger,
 		AuthHeader:        authHeader,
 		AllowRegistration: allowRegistration,

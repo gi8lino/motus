@@ -1,8 +1,8 @@
 import type {
   CatalogExercise,
-  TrainHistoryItem,
-  TrainState,
-  TrainStepLog,
+  TrainngHistoryItem,
+  TrainngState,
+  TrainngStepLog,
   SoundOption,
   User,
   Workout,
@@ -224,10 +224,10 @@ export async function listSounds(): Promise<SoundOption[]> {
   return request("/api/sounds");
 }
 
-// startSession creates a new session for a workout.
-export async function startSession(workoutId: string): Promise<TrainState> {
-  const res = await request<{ sessionId: string; state: TrainState }>(
-    "/api/sessions",
+// startTraining creates a new training for a workout.
+export async function startTrain(workoutId: string): Promise<TrainngState> {
+  const res = await request<{ trainingId: string; state: TrainngState }>(
+    "/api/trainings",
     {
       method: "POST",
       body: JSON.stringify({ workoutId }),
@@ -236,9 +236,9 @@ export async function startSession(workoutId: string): Promise<TrainState> {
   return res.state;
 }
 
-// logSessionCompletion records a completed session.
-export async function logSessionCompletion(payload: {
-  sessionId: string;
+// logTrainingCompletion records a completed training.
+export async function logTrainingCompletion(payload: {
+  trainingId: string;
   workoutId: string;
   workoutName?: string;
   userId: string;
@@ -252,24 +252,24 @@ export async function logSessionCompletion(payload: {
     elapsedMillis?: number;
   }>;
 }) {
-  return request("/api/sessions/complete", {
+  return request("/api/trainings/complete", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-// listSessionHistory returns all completed sessions for a user.
-export async function listSessionHistory(
+// listTrainingHistory returns all completed trainings for a user.
+export async function listTrainingHistory(
   userId: string,
-): Promise<TrainHistoryItem[]> {
-  return request(`/api/users/${encodeURIComponent(userId)}/sessions/history`);
+): Promise<TrainngHistoryItem[]> {
+  return request(`/api/users/${encodeURIComponent(userId)}/trainings/history`);
 }
 
-// getSessionSteps fetches stored per-step timings for a session.
-export async function getSessionSteps(
-  sessionId: string,
-): Promise<TrainStepLog[]> {
-  return request(`/api/sessions/${encodeURIComponent(sessionId)}/steps`);
+// getTrainingSteps fetches stored per-step timings for a training.
+export async function getTrainingSteps(
+  trainingId: string,
+): Promise<TrainngStepLog[]> {
+  return request(`/api/trainings/${encodeURIComponent(trainingId)}/steps`);
 }
 
 // listTemplates returns all templates.

@@ -207,7 +207,7 @@ export function WorkoutSubsetEditor({
         subsetExercises.map((exercise, exIdx) => (
           <WorkoutExerciseRow
             key={`${subset.id || `${stepIdx}-${subsetIdx}`}-${exIdx}`}
-            sessionKey={`${step.id || "step"}:${subset.id || "subset"}`}
+            trainingKey={`${step.id || "step"}:${subset.id || "subset"}`}
             stepIdx={stepIdx}
             subsetIdx={subsetIdx}
             exIdx={exIdx}

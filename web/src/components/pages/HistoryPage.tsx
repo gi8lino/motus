@@ -1,28 +1,28 @@
 import { useState } from "react";
 
-import type { TrainHistoryItem, TrainState, Workout } from "../../types";
+import type { TrainngHistoryItem, TrainngState, Workout } from "../../types";
 import { HistoryList } from "../history/HistoryCard";
 import { HistoryPreviewModal } from "../history/HistoryPreviewModal";
 
-// HistoryView lists logged sessions and opens a session preview.
+// HistoryView lists logged trainings and opens a training preview.
 export function HistoryView({
   items,
-  activeSession,
+  activeTraining,
   onResume,
   loadWorkout,
   onCopySummary,
 }: {
-  items: TrainHistoryItem[];
-  activeSession: TrainState | null;
+  items: TrainngHistoryItem[];
+  activeTraining: TrainngState | null;
   onResume: () => void;
   loadWorkout: (id: string) => Promise<Workout>;
   onCopySummary: () => void;
 }) {
-  const [preview, setPreview] = useState<TrainHistoryItem | null>(null);
+  const [preview, setPreview] = useState<TrainngHistoryItem | null>(null);
   const [previewWorkout, setPreviewWorkout] = useState<Workout | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  // handleSelect loads preview details for a selected session.
-  const handleSelect = (item: TrainHistoryItem) => {
+  // handleSelect loads preview details for a selected training.
+  const handleSelect = (item: TrainngHistoryItem) => {
     setPreview(item);
     setPreviewLoading(true);
     loadWorkout(item.workoutId)
@@ -44,7 +44,7 @@ export function HistoryView({
         </div>
         <HistoryList
           items={items}
-          activeSession={activeSession}
+          activeTraining={activeTraining}
           onResume={onResume}
           onSelect={handleSelect}
         />

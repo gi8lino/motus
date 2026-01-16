@@ -1,4 +1,4 @@
-package sessions
+package trainings
 
 import (
 	"testing"
@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSessionStepState(t *testing.T) {
+func TestTrainingStepState(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ZeroValues", func(t *testing.T) {
 		t.Parallel()
-		step := SessionStepState{}
+		step := TrainingStepState{}
 		assert.False(t, step.Running)
 		assert.False(t, step.Completed)
 		assert.Zero(t, step.EstimatedSeconds)

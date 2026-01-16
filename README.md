@@ -12,7 +12,7 @@
 
 ---
 
-Motus is a training companion for circuit and round-based workouts. It keeps track of which exercise comes next, how many reps you need, and when to take a break. Timers run in the browser, while sessions, workouts, templates, and history are stored in PostgreSQL.
+Motus is a training companion for circuit and round-based workouts. It keeps track of which exercise comes next, how many reps you need, and when to take a break. Timers run in the browser, while trainings, workouts, templates, and history are stored in PostgreSQL.
 
 ## Features
 
@@ -22,23 +22,23 @@ Motus is a training companion for circuit and round-based workouts. It keeps tra
 - Maintain a global exercise catalog with Core + Personal exercises.
 - Share workouts as templates and apply them to create new workouts.
 - Choose from bundled sound cues for steps and countdowns.
-- Track sessions with history, summaries, and per-step timing.
+- Track trainings with history, summaries, and per-step timing.
 - Export/import workouts as JSON for backup or sharing.
 - Support dark/light/auto themes and per-user settings.
 
 ## How it works
 
-Motus separates session timing from data storage:
+Motus separates training timing from data storage:
 
 - The browser runs timers and sounds for steps.
-- The backend stores workouts, exercises, templates, sessions, and history.
-- When a session finishes, a summary is generated for copying into an AI or notes app.
+- The backend stores workouts, exercises, templates, trainings, and history.
+- When a training finishes, a summary is generated for copying into an AI or notes app.
 
 ## Using the app
 
 1. **Log in or register** (local mode) or rely on proxy auth (auth-header mode).
 2. **Create workouts** in the Workouts tab. Add sets and pauses.
-3. **Select a workout** in Sessions and click Start Session to begin.
+3. **Select a workout** in Train and click Start to begin.
 4. **Pause/resume/advance** steps, and use the summary when finished.
 5. **Review history** to inspect per-step target vs. actual timing.
 6. **Manage exercises** in the Exercises tab (Core vs Personal).
@@ -50,7 +50,7 @@ Motus separates session timing from data storage:
 - **Pause**: a rest block; can auto-advance on a countdown.
 - **Repeat options**: repeat a set multiple times with a configurable pause between repeats.
 
-Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Session summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
+Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Training summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
 
 ## Running locally
 
@@ -150,7 +150,7 @@ Bundled audio files live in `web/assets/sounds`. The UI exposes them in each ste
 
 ## Templates
 
-Use the Workouts tab to design sessions. When you’re ready to share one, select it and hit “Share”. The Templates tab lists all shared workouts and lets you instantiate a new workout in one click.
+Use the Workouts tab to design trainings. When you’re ready to share one, select it and hit “Share”. The Templates tab lists all shared workouts and lets you instantiate a new workout in one click.
 
 ## License
 

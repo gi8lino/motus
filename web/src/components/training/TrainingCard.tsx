@@ -1,7 +1,7 @@
 import { useCallback, useMemo, type RefObject } from "react";
 import { formatExerciseLine, formatMillis } from "../../utils/format";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
-import type { Exercise, TrainState, TrainStepState } from "../../types";
+import type { Exercise, TrainngState, TrainngStepState } from "../../types";
 
 type AnyStep = any;
 
@@ -66,13 +66,13 @@ type StepGroup = {
   estimatedSeconds: number;
 };
 
-// TrainCard renders the main session status card and controls.
+// TrainCard renders the main training status card and controls.
 // NOTE: This component is intentionally "dumb":
 // - no timers
 // - no scheduling
 // - no logging
 export function TrainCard({
-  session,
+  training,
   currentStep,
   elapsed,
   workoutName,
@@ -84,8 +84,8 @@ export function TrainCard({
   runButtonRef,
   nextButtonRef,
 }: {
-  session: TrainState | null;
-  currentStep: TrainStepState | null;
+  training: TrainngState | null;
+  currentStep: TrainngStepState | null;
   elapsed: number;
   workoutName?: string;
   onStart: () => void;
@@ -96,18 +96,18 @@ export function TrainCard({
   runButtonRef?: RefObject<HTMLButtonElement>;
   nextButtonRef?: RefObject<HTMLButtonElement>;
 }) {
-  const running = session?.running;
-  const done = session?.done;
+  const running = training?.running;
+  const done = training?.done;
 
   const isLastStep =
-    session && session.steps.length
-      ? session.currentIndex >= session.steps.length - 1
+    training && training.steps.length
+      ? training.currentIndex >= training.steps.length - 1
       : false;
 
-  const hasProgress = session?.steps?.some(
+  const hasProgress = training?.steps?.some(
     (s: any) => (s.elapsedMillis || 0) > 0 || Boolean(s.completed),
   );
-  const hasStarted = Boolean(session?.running) || Boolean(hasProgress);
+  const hasStarted = Boolean(training?.running) || Boolean(hasProgress);
 
   // If the step is auto-advance (countdown/pause with autoAdvance) and has a target,
   // show remaining; otherwise show elapsed.
@@ -118,7 +118,7 @@ export function TrainCard({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Boolean((currentStep as any)?.autoAdvance);
 
-  const startLabel = session?.running
+  const startLabel = training?.running
     ? "Pause"
     : hasStarted
       ? "Continue"
@@ -159,7 +159,7 @@ export function TrainCard({
   }, [currentStep]);
 
   const extractExerciseLabels = useCallback(
-    (step: TrainStepState | null, startIndex = 0) => {
+    (step: TrainngStepState | null, startIndex = 0) => {
       if (!step) return [];
 
       if (step.type === STEP_TYPE_PAUSE) {
@@ -170,12 +170,12 @@ export function TrainCard({
         return [pauseText];
       }
 
-      if (step.superset && step.subsetId && session?.steps?.length) {
+      if (step.superset && step.subsetId && training?.steps?.length) {
         const subsetId = step.subsetId;
         const seen = new Set<string>();
         const labels: string[] = [];
-        for (let idx = startIndex; idx < session.steps.length; idx += 1) {
-          const candidate = session.steps[idx];
+        for (let idx = startIndex; idx < training.steps.length; idx += 1) {
+          const candidate = training.steps[idx];
           if (candidate.subsetId !== subsetId) continue;
           for (const ex of getExercises(candidate)) {
             const text = formatExerciseLine(ex);
@@ -192,7 +192,7 @@ export function TrainCard({
         .map((ex) => formatExerciseLine(ex))
         .filter(Boolean);
     },
-    [session?.steps],
+    [training?.steps],
   );
 
   const currentStepPills = useMemo(
@@ -200,12 +200,12 @@ export function TrainCard({
     [currentStep, extractExerciseLabels],
   );
 
-  const totalSteps = session?.steps?.length || 0;
-  const currentNumber = session ? session.currentIndex + 1 : 0;
+  const totalSteps = training?.steps?.length || 0;
+  const currentNumber = training ? training.currentIndex + 1 : 0;
 
   const remainingSteps = useMemo(
-    () => (session?.steps || []).filter((s: any) => !s.completed),
-    [session?.sessionId, session?.steps],
+    () => (training?.steps || []).filter((s: any) => !s.completed),
+    [training?.trainingId, training?.steps],
   );
 
   const groupedSteps = useMemo(() => {
@@ -278,36 +278,38 @@ export function TrainCard({
 
   // Next step name (just for the right panel)
   const nextStep = useMemo(() => {
-    if (!session) return null;
+    if (!training) return null;
 
-    if (!session.running) {
-      return session.steps[session.currentIndex];
+    if (!training.running) {
+      return training.steps[training.currentIndex];
     }
 
-    let idx = session.currentIndex;
-    while (idx < session.steps.length && session.steps[idx].completed) idx += 1;
+    let idx = training.currentIndex;
+    while (idx < training.steps.length && training.steps[idx].completed)
+      idx += 1;
     idx += 1;
-    while (idx < session.steps.length && session.steps[idx].completed) idx += 1;
+    while (idx < training.steps.length && training.steps[idx].completed)
+      idx += 1;
 
-    return idx < session.steps.length ? session.steps[idx] : null;
-  }, [session]);
+    return idx < training.steps.length ? training.steps[idx] : null;
+  }, [training]);
 
   const nextSubsetStep = useMemo(() => {
-    if (!session || !session.steps.length || !currentStep?.subsetId)
+    if (!training || !training.steps.length || !currentStep?.subsetId)
       return null;
 
     const subsetId = currentStep.subsetId;
-    const startIdx = Math.max(session.currentIndex + 1, 0);
+    const startIdx = Math.max(training.currentIndex + 1, 0);
 
-    for (let idx = startIdx; idx < session.steps.length; idx += 1) {
-      const candidate = session.steps[idx];
+    for (let idx = startIdx; idx < training.steps.length; idx += 1) {
+      const candidate = training.steps[idx];
       if (!candidate) continue;
       if (!candidate.subsetId) continue;
       if (candidate.subsetId !== subsetId) return candidate;
     }
 
     return null;
-  }, [session, currentStep?.subsetId]);
+  }, [training, currentStep?.subsetId]);
 
   const nextStepExerciseLabels = useMemo(
     () => extractExerciseLabels(nextStep),
@@ -315,12 +317,12 @@ export function TrainCard({
   );
 
   const hasFollowingSubsetExercises = useMemo(() => {
-    if (!session || !nextStep?.subsetId) return false;
+    if (!training || !nextStep?.subsetId) return false;
     const subsetId = nextStep.subsetId;
-    return session.steps.some(
-      (step, idx) => idx > session.currentIndex && step.subsetId === subsetId,
+    return training.steps.some(
+      (step, idx) => idx > training.currentIndex && step.subsetId === subsetId,
     );
-  }, [session, nextStep]);
+  }, [training, nextStep]);
 
   const shouldShowNextExercises =
     Boolean(
@@ -336,8 +338,8 @@ export function TrainCard({
     : (nextSubsetStep ?? nextStep);
 
   return (
-    <div className="session-card">
-      <div className="session-main">
+    <div className="training-card">
+      <div className="training-main">
         <div className="current-card">
           <div className="label muted">Now</div>
 
@@ -345,7 +347,7 @@ export function TrainCard({
             <div className="muted small">{workoutName}</div>
           ) : null}
 
-          {session ? (
+          {training ? (
             <div className="muted small">
               Step {currentNumber}/{totalSteps}
             </div>
@@ -394,12 +396,12 @@ export function TrainCard({
             )}
           </div>
 
-          <div className="actions vertical session-actions">
+          <div className="actions vertical training-actions">
             <button
               ref={runButtonRef}
               className="btn primary"
               onClick={running ? onPause : onStart}
-              disabled={!session || done}
+              disabled={!training || done}
             >
               {startLabel}
             </button>
@@ -408,7 +410,7 @@ export function TrainCard({
               ref={nextButtonRef}
               className="btn large next"
               onClick={handleNext}
-              disabled={!session || done || !session.startedAt}
+              disabled={!training || done || !training.startedAt}
             >
               {isLastStep ? "Finish" : "Next"}
             </button>
@@ -416,8 +418,10 @@ export function TrainCard({
         </div>
       </div>
 
-      <div className="session-steps-cards">
-        {!session ? <p className="muted">Start training to see sets.</p> : null}
+      <div className="training-steps-cards">
+        {!training ? (
+          <p className="muted">Start training to see sets.</p>
+        ) : null}
 
         {groupedSteps.map((group) => {
           const roundText =

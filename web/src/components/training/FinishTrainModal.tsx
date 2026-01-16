@@ -1,4 +1,4 @@
-type TrainFinishModalProps = {
+type TrainingFinishModalProps = {
   summary: string | null;
   onClose: () => void;
   onCopySummary: () => void;
@@ -12,12 +12,12 @@ const copySummary = (summary: string, onCopySummary: () => void) => {
   onCopySummary();
 };
 
-// SessionFinishModal shows the end-of-session summary overlay.
-export function TrainFinishModal({
+// TrainingFinishModal shows the end-of-training summary overlay.
+export function TrainingFinishModal({
   summary,
   onClose,
   onCopySummary,
-}: TrainFinishModalProps) {
+}: TrainingFinishModalProps) {
   if (!summary) return null;
 
   return (

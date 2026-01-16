@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
-  TrainState,
-  TrainStepState,
+  TrainngState,
+  TrainngStepState,
   SoundOption,
   Workout,
 } from "../../types";
 import { formatMillis } from "../../utils/format";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
-import { TrainCard } from "../train/TrainCard";
+import { TrainCard } from "../training/TrainingCard";
 import { WorkoutPicker } from "../workouts/WorkoutPicker";
-import { TrainFinishModal } from "../train/FinishTrainModal";
-import { TrainOverrunModal } from "../train/OverrunTrainModal";
+import { TrainingFinishModal } from "../training/FinishTrainModal";
+import { TrainingOverrunModal } from "../training/OverrunTrainModal";
 
 type OverrunState = {
   show: boolean;
@@ -36,7 +36,7 @@ const OVERRUN_GRACE_MS = 30_000;
 const OVERRUN_MODAL_MS = 60_000;
 const OVERRUN_COUNTDOWN_TICK_MS = 250;
 
-// Train runs the active workout session.
+// Train runs the active workout training.
 export function TrainView({
   workouts,
   selectedWorkoutId,
@@ -44,7 +44,7 @@ export function TrainView({
   onStartTrain,
   startDisabled,
   startTitle,
-  session,
+  training,
   currentStep,
   elapsed,
   workoutName,
@@ -64,8 +64,8 @@ export function TrainView({
   onStartTrain: () => void | Promise<void>;
   startDisabled: boolean;
   startTitle?: string;
-  session: TrainState | null;
-  currentStep: TrainStepState | null;
+  training: TrainngState | null;
+  currentStep: TrainngStepState | null;
   elapsed: number;
   workoutName: string;
   sounds: SoundOption[];
@@ -86,14 +86,14 @@ export function TrainView({
   const now = () => Date.now();
 
   // ---------- Refs for stable handlers ----------
-  const sessionRef = useRef<TrainState | null>(session);
-  const currentStepRef = useRef<TrainStepState | null>(currentStep);
+  const trainingRef = useRef<TrainngState | null>(training);
+  const currentStepRef = useRef<TrainngStepState | null>(currentStep);
   const elapsedRef = useRef(elapsed);
   const overrunModalRef = useRef<OverrunState | null>(overrunModal);
 
   useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+    trainingRef.current = training;
+  }, [training]);
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
@@ -196,7 +196,7 @@ export function TrainView({
   }, [handlePause, resetOverrunState]);
 
   const handleOverrunPostpone = useCallback(() => {
-    const s = sessionRef.current;
+    const s = trainingRef.current;
     if (!s?.running) return;
 
     overrunRef.current.postponedUntilMs = elapsedRef.current + OVERRUN_GRACE_MS;
@@ -207,8 +207,8 @@ export function TrainView({
   useEffect(() => () => resetOverrunState(), [resetOverrunState]);
 
   useEffect(() => {
-    if (!session?.running) resetOverrunState();
-  }, [session?.running, resetOverrunState]);
+    if (!training?.running) resetOverrunState();
+  }, [training?.running, resetOverrunState]);
 
   useEffect(() => {
     resetOverrunState();
@@ -218,8 +218,8 @@ export function TrainView({
       : 0;
 
     const key =
-      session?.sessionId && typeof session.currentIndex === "number"
-        ? `${session.sessionId}:${session.currentIndex}:${currentStep?.id || ""}`
+      training?.trainingId && typeof training.currentIndex === "number"
+        ? `${training.trainingId}:${training.currentIndex}:${currentStep?.id || ""}`
         : null;
 
     overrunRef.current.key = key;
@@ -228,15 +228,15 @@ export function TrainView({
     overrunRef.current.postponedUntilMs = null;
     overrunRef.current.hasShown = false;
   }, [
-    session?.sessionId,
-    session?.currentIndex,
+    training?.trainingId,
+    training?.currentIndex,
     currentStep?.id,
     currentStep?.estimatedSeconds,
     resetOverrunState,
   ]);
 
   useEffect(() => {
-    if (!session?.running || !currentStep?.estimatedSeconds) return;
+    if (!training?.running || !currentStep?.estimatedSeconds) return;
     if (overrunModal?.show) return;
 
     const thresholdMs = overrunRef.current.thresholdMs;
@@ -266,7 +266,7 @@ export function TrainView({
       setOverrunCountdown(Math.max(0, deadlineMs - now()));
     }, OVERRUN_COUNTDOWN_TICK_MS);
   }, [
-    session?.running,
+    training?.running,
     currentStep?.estimatedSeconds,
     elapsed,
     overrunModal?.show,
@@ -294,7 +294,7 @@ export function TrainView({
     }
 
     const handleVisibility = () => {
-      const s = sessionRef.current;
+      const s = trainingRef.current;
       if (document.hidden) {
         if (s?.running) {
           pauseActiveAudio();
@@ -314,17 +314,17 @@ export function TrainView({
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [pauseOnTabHidden, onPause, onToast, pauseActiveAudio]);
 
-  // ---------- Per-session sound tracking ----------
-  const sessionIdRef = useRef<string | null>(null);
+  // ---------- Per-training sound tracking ----------
+  const trainingIdRef = useRef<string | null>(null);
   const subsetSoundPlayedRef = useRef(new Set<string>());
 
   useEffect(() => {
-    const currentSessionId = session?.sessionId || null;
-    if (sessionIdRef.current !== currentSessionId) {
-      sessionIdRef.current = currentSessionId;
+    const currentTrainingId = training?.trainingId || null;
+    if (trainingIdRef.current !== currentTrainingId) {
+      trainingIdRef.current = currentTrainingId;
       subsetSoundPlayedRef.current = new Set();
     }
-  }, [session?.sessionId]);
+  }, [training?.trainingId]);
 
   // ---------- Sound scheduling ----------
   const stepSoundTimerRef = useRef<number | null>(null);
@@ -371,7 +371,7 @@ export function TrainView({
 
   // Schedule subset and exercise target sounds (NO timer logging here).
   useEffect(() => {
-    if (!currentStep || !session?.running) {
+    if (!currentStep || !training?.running) {
       clearSoundTimers();
       if (!currentStep) stopActiveAudio();
       else pauseActiveAudio();
@@ -459,7 +459,7 @@ export function TrainView({
           };
 
           const subsetElapsedMs = (() => {
-            const s = sessionRef.current;
+            const s = trainingRef.current;
             const stepNow = currentStepRef.current;
             if (!s || !stepNow?.subsetId) return 0;
 
@@ -517,7 +517,7 @@ export function TrainView({
       );
       const triggerMs = Math.max(0, stepTargetMs - leadMs);
 
-      const scheduleKey = `${currentStep.id || `${session.sessionId}-${session.currentIndex}`}:${stepTargetMs}:${exerciseSoundUrl}`;
+      const scheduleKey = `${currentStep.id || `${training.trainingId}-${training.currentIndex}`}:${stepTargetMs}:${exerciseSoundUrl}`;
       const existing = stepSoundScheduleRef.current;
 
       if (existing.key !== scheduleKey) {
@@ -573,10 +573,10 @@ export function TrainView({
     currentStep?.exercises?.[0]?.soundKey,
     currentStep?.subsetId,
     currentStep?.loopIndex,
-    session?.sessionId,
-    session?.currentIndex,
-    session?.running,
-    session?.steps,
+    training?.trainingId,
+    training?.currentIndex,
+    training?.running,
+    training?.steps,
     sounds,
     markSoundPlayed,
     pauseActiveAudio,
@@ -593,7 +593,7 @@ export function TrainView({
       if (e.repeat) return;
 
       const overrun = overrunModalRef.current;
-      const s = sessionRef.current;
+      const s = trainingRef.current;
 
       if (overrun?.show) {
         if (e.code === "Enter") {
@@ -656,20 +656,20 @@ export function TrainView({
   }, [onFinishTrain]);
 
   const headerStatus = useMemo(() => {
-    if (!session) return null;
+    if (!training) return null;
 
-    const total = session.steps?.length || 0;
+    const total = training.steps?.length || 0;
     const current =
-      typeof session.currentIndex === "number" ? session.currentIndex + 1 : 0;
+      typeof training.currentIndex === "number" ? training.currentIndex + 1 : 0;
 
-    if (session.done) return `Finished • ${total} steps`;
-    if (!session.startedAt) return `Ready • ${total} steps`;
-    if (session.running) return `Running • step ${current}/${total}`;
+    if (training.done) return `Finished • ${total} steps`;
+    if (!training.startedAt) return `Ready • ${total} steps`;
+    if (training.running) return `Running • step ${current}/${total}`;
     return `Paused • step ${current}/${total}`;
-  }, [session]);
+  }, [training]);
 
   const startLabel =
-    selectedWorkoutId && session?.workoutId === selectedWorkoutId
+    selectedWorkoutId && training?.workoutId === selectedWorkoutId
       ? "New"
       : "Select";
 
@@ -713,7 +713,7 @@ export function TrainView({
         </div>
 
         <TrainCard
-          session={session}
+          training={training}
           currentStep={currentStep}
           elapsed={elapsed}
           workoutName={workoutName}
@@ -730,12 +730,12 @@ export function TrainView({
         />
       </section>
 
-      <TrainFinishModal
+      <TrainingFinishModal
         summary={finishSummary}
         onClose={() => setFinishSummary(null)}
         onCopySummary={onCopySummary}
       />
-      <TrainOverrunModal
+      <TrainingOverrunModal
         show={Boolean(overrunModal?.show)}
         countdown={overrunCountdown}
         onPause={handleOverrunPause}

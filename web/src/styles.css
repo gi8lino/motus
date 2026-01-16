@@ -951,18 +951,18 @@ select {
     font-size: 14px;
   }
 
-  .session-actions .btn {
+  .training-actions .btn {
     width: 100%;
   }
 }
 
-.session-card {
+.training-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.session-main {
+.training-main {
   display: grid;
   grid-template-columns: 1fr minmax(220px, 280px);
   gap: 16px;
@@ -1026,7 +1026,7 @@ select {
 }
 
 @media (max-width: 900px) {
-  .session-main {
+  .training-main {
     grid-template-columns: 1fr;
   }
 }
@@ -1101,7 +1101,7 @@ select {
   text-align: center;
 }
 
-.session-steps {
+.training-steps {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1133,7 +1133,7 @@ select {
   align-items: center;
 }
 
-.session-meta {
+.training-meta {
   border-top: 1px solid var(--outline);
   padding-top: 8px;
 }
@@ -1182,7 +1182,7 @@ select {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
-.session-steps-cards {
+.training-steps-cards {
   display: flex;
   flex-direction: column;
   gap: 10px;

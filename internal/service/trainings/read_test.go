@@ -1,4 +1,4 @@
-package sessions
+package trainings
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-func TestSessionStateFromWorkout(t *testing.T) {
+func TestTrainingStateFromWorkout(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Auto-advance pause detected", func(t *testing.T) {
@@ -33,7 +33,7 @@ func TestSessionStateFromWorkout(t *testing.T) {
 			},
 		}
 
-		state := SessionStateFromWorkout(workout, func(key string) string { return "/" + key })
+		state := TrainingStateFromWorkout(workout, func(key string) string { return "/" + key })
 		require.Len(t, state.Steps, 1)
 		step := state.Steps[0]
 		assert.True(t, step.PauseOptions.AutoAdvance)
@@ -113,8 +113,8 @@ func TestFetchStepTimingsMethod(t *testing.T) {
 		t.Parallel()
 
 		store := &fakeStore{
-			stepTimingsFn: func(context.Context, string) ([]SessionStepLog, error) {
-				return []SessionStepLog{{ID: "step"}}, nil
+			stepTimingsFn: func(context.Context, string) ([]TrainingStepLog, error) {
+				return []TrainingStepLog{{ID: "step"}}, nil
 			},
 		}
 		svc := New(store, func(string) string { return "" })
@@ -128,19 +128,19 @@ func TestFetchStepTimingsMethod(t *testing.T) {
 	})
 }
 
-func TestBuildSessionHistory(t *testing.T) {
+func TestBuildTrainingHistory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
 
 		store := &fakeStore{
-			stepTimingsFn: func(context.Context, string) ([]SessionStepLog, error) {
-				return []SessionStepLog{{ID: "s1-0", SessionID: "s1", StepOrder: 0}}, nil
+			stepTimingsFn: func(context.Context, string) ([]TrainingStepLog, error) {
+				return []TrainingStepLog{{ID: "s1-0", TrainingID: "s1", StepOrder: 0}}, nil
 			},
 		}
-		history := []SessionLog{{ID: "s1", WorkoutID: "w1"}}
-		items, err := BuildSessionHistory(context.Background(), store, history)
+		history := []TrainingLog{{ID: "s1", WorkoutID: "w1"}}
+		items, err := BuildTrainingHistory(context.Background(), store, history)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -150,21 +150,21 @@ func TestBuildSessionHistory(t *testing.T) {
 	})
 }
 
-func TestBuildSessionHistoryMethod(t *testing.T) {
+func TestBuildTrainingHistoryMethod(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Validation", func(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{}, func(string) string { return "" })
-		_, err := svc.BuildSessionHistory(context.Background(), " ", 10)
+		_, err := svc.BuildTrainingHistory(context.Background(), " ", 10)
 		if err == nil {
 			t.Fatalf("expected error")
 		}
 	})
 }
 
-func TestBuildSessionHistoryItems(t *testing.T) {
+func TestBuildTrainingHistoryItems(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Maps logs into response", func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestBuildSessionHistoryItems(t *testing.T) {
 
 		started := time.Now().Add(-2 * time.Hour)
 		completed := time.Now().Add(-time.Hour)
-		logs := []SessionLog{{
+		logs := []TrainingLog{{
 			ID:          "s1",
 			WorkoutID:   "w1",
 			WorkoutName: "Workout",
@@ -180,13 +180,13 @@ func TestBuildSessionHistoryItems(t *testing.T) {
 			StartedAt:   started,
 			CompletedAt: completed,
 		}}
-		stepMap := map[string][]SessionStepLog{
-			"s1": {{ID: "s1-0", SessionID: "s1", StepOrder: 0}},
+		stepMap := map[string][]TrainingStepLog{
+			"s1": {{ID: "s1-0", TrainingID: "s1", StepOrder: 0}},
 		}
 
-		items := BuildSessionHistoryItems(logs, stepMap)
+		items := BuildTrainingHistoryItems(logs, stepMap)
 		require.Len(t, items, 1)
-		assert.Equal(t, "s1", items[0].SessionID)
+		assert.Equal(t, "s1", items[0].TrainingID)
 		assert.Equal(t, "w1", items[0].WorkoutID)
 		require.Len(t, items[0].Steps, 1)
 	})

@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 
-import type { TrainHistoryItem, TrainStepLog, Workout } from "../../types";
+import type { TrainngHistoryItem, TrainngStepLog, Workout } from "../../types";
 import { formatExerciseLine, formatMillis } from "../../utils/format";
 import { buildSummary } from "../../utils/summary";
 import { expandWorkoutSteps } from "../../utils/workout";
 import { AISummary } from "./HistoryCard";
 
 type HistoryPreviewModalProps = {
-  preview: TrainHistoryItem | null;
+  preview: TrainngHistoryItem | null;
   workout: Workout | null;
   loading: boolean;
   onClose: () => void;
@@ -15,7 +15,7 @@ type HistoryPreviewModalProps = {
 };
 
 // mapHistoryDurations builds an elapsed duration lookup by step order.
-const mapHistoryDurations = (steps: TrainStepLog[]) => {
+const mapHistoryDurations = (steps: TrainngStepLog[]) => {
   const map: Record<string, number> = {};
   steps.forEach((s) => {
     const key = `order-${s.stepOrder}`;
@@ -58,7 +58,7 @@ const formatDuration = (startedAt?: string, completedAt?: string) => {
   return `${mins}:${secs}`;
 };
 
-// HistoryPreviewModal shows a session preview overlay.
+// HistoryPreviewModal shows a training preview overlay.
 export function HistoryPreviewModal({
   preview,
   workout,
@@ -83,7 +83,7 @@ export function HistoryPreviewModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Training overview</h3>
         <p className="muted small">
-          Training ID: {preview.sessionId || preview.id}
+          Training ID: {preview.trainingId || preview.id}
         </p>
         <div className="stack">
           <div>

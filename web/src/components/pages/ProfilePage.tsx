@@ -188,7 +188,7 @@ export function ProfileView({
               </label>
               <label
                 className="switch"
-                title="Pause session when tab is hidden"
+                title="Pause training when tab is hidden"
               >
                 <input
                   type="checkbox"
@@ -197,7 +197,7 @@ export function ProfileView({
                 />
                 <span className="switch-slider" aria-hidden="true" />
                 <span className="switch-label">
-                  Pause session when tab is hidden
+                  Pause training when tab is hidden
                 </span>
               </label>
             </div>

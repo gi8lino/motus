@@ -19,7 +19,12 @@ type UseWorkoutFormActionsArgs = {
     message: string,
     options?: AskConfirmOptions,
   ) => Promise<boolean>;
+  notify?: (message: string) => Promise<void>;
 };
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback;
+}
 
 // useWorkoutFormActions centralizes create/update/close workflow for workouts.
 export function useWorkoutFormActions({
@@ -32,6 +37,7 @@ export function useWorkoutFormActions({
   setWorkouts,
   reloadWorkouts,
   askConfirm,
+  notify,
 }: UseWorkoutFormActionsArgs) {
   // saveWorkout creates a new workout for the current user.
   const saveWorkout = async (payload: {
@@ -39,17 +45,26 @@ export function useWorkoutFormActions({
     steps: WorkoutStep[];
   }) => {
     // Guard: require an authenticated user before saving.
-    if (!currentUserId) return;
-    const created = await createWorkout({
-      userId: currentUserId,
-      name: payload.name,
-      steps: payload.steps,
-    });
-    // Prepend the new workout to local state.
-    setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
-    setSelectedWorkoutId(created.id);
-    setEditingWorkout(null);
-    setWorkoutDirty(false);
+    if (!currentUserId) {
+      await notify?.("You must be logged in to save workouts.");
+      return;
+    }
+
+    try {
+      const created = await createWorkout({
+        userId: currentUserId,
+        name: payload.name,
+        steps: payload.steps,
+      });
+
+      // Prepend the new workout to local state.
+      setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
+      setSelectedWorkoutId(created.id);
+      setEditingWorkout(created);
+      setWorkoutDirty(false);
+    } catch (err) {
+      await notify?.(errorMessage(err, "Unable to save workout"));
+    }
   };
 
   // updateWorkout persists updates and refreshes local cache.
@@ -59,25 +74,38 @@ export function useWorkoutFormActions({
     steps: WorkoutStep[];
   }) => {
     // Guard: require an authenticated user before updating.
-    if (!currentUserId) return;
-    const updated = await updateWorkoutApi(payload.id, {
-      userId: currentUserId,
-      name: payload.name,
-      steps: payload.steps,
-    });
-    let fresh = updated;
-    try {
-      fresh = await getWorkout(updated.id);
-    } catch {
-      // ignore and fallback to response
+    if (!currentUserId) {
+      await notify?.("You must be logged in to update workouts.");
+      return;
     }
-    setWorkouts((prev) =>
-      prev ? prev.map((w) => (w.id === fresh.id ? fresh : w)) : [fresh],
-    );
-    reloadWorkouts?.();
-    setSelectedWorkoutId(fresh.id);
-    setEditingWorkout(fresh);
-    setWorkoutDirty(false);
+
+    try {
+      const updated = await updateWorkoutApi(payload.id, {
+        userId: currentUserId,
+        name: payload.name,
+        steps: payload.steps,
+      });
+
+      // Prefer fetching fresh data if the API response is partial.
+      let fresh = updated;
+      try {
+        fresh = await getWorkout(updated.id);
+      } catch {
+        // ignore and fallback to update response
+      }
+
+      setWorkouts((prev) =>
+        prev ? prev.map((w) => (w.id === fresh.id ? fresh : w)) : [fresh],
+      );
+
+      reloadWorkouts?.();
+
+      setSelectedWorkoutId(fresh.id);
+      setEditingWorkout(fresh);
+      setWorkoutDirty(false);
+    } catch (err) {
+      await notify?.(errorMessage(err, "Unable to update workout"));
+    }
   };
 
   // closeWorkoutModal hides the modal and guards against unsaved edits.

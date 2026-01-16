@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { logSessionCompletion } from "../api";
-import type { TrainState, TrainStepState } from "../types";
+import { logTrainingCompletion } from "../api";
+import type { TrainngState, TrainngStepState } from "../types";
 import { normalizeTimestamp, parseDurationSeconds } from "../utils/time";
 import {
   STEP_TYPE_PAUSE,
@@ -14,17 +14,17 @@ import {
 } from "../utils/exercise";
 import { logTimerEvent } from "../utils/timerLogger";
 
-// STORAGE_KEY stores the persisted session payload.
-const STORAGE_KEY = "motus:session";
+// STORAGE_KEY stores the persisted train payload.
+const STORAGE_KEY = "motus:train";
 
-// UseSessionTimerArgs configures the session timer hook.
-type UseSessionTimerArgs = {
+// UseTrainingTimerArgs configures the train timer hook.
+type UseTrainTimerArgs = {
   currentUserId?: string | null;
-  onChange?: (state: TrainState | null) => void;
+  onChange?: (state: TrainngState | null) => void;
 };
 
-// NormalizedState adds bookkeeping metadata to session state.
-type NormalizedState = TrainState & { lastUpdatedAt: number };
+// NormalizedState adds bookkeeping metadata to train state.
+type NormalizedState = TrainngState & { lastUpdatedAt: number };
 
 // now returns the current timestamp in milliseconds.
 function now() {
@@ -41,7 +41,7 @@ function structuredCloneSafe<T>(value: T): T {
 }
 
 // isAutoAdvanceStep returns true when a step should auto-advance at timer end.
-function isAutoAdvanceStep(step: TrainStepState | null | undefined): boolean {
+function isAutoAdvanceStep(step: TrainngStepState | null | undefined): boolean {
   if (!step) return false;
   if (step.type === STEP_TYPE_PAUSE) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,8 +51,8 @@ function isAutoAdvanceStep(step: TrainStepState | null | undefined): boolean {
   return Boolean((step as any).autoAdvance);
 }
 
-// normalizeSession sanitizes stored session data into a consistent shape.
-function normalizeSession(raw: TrainState): NormalizedState {
+// normalizeTrain sanitizes stored train data into a consistent shape.
+function normalizeTrain(raw: TrainngState): NormalizedState {
   const base: NormalizedState = {
     ...raw,
     running: Boolean(raw.running && !raw.done),
@@ -75,7 +75,7 @@ function normalizeSession(raw: TrainState): NormalizedState {
   );
 
   rawSteps.forEach((step, idx) => {
-    const normalized: TrainStepState = {
+    const normalized: TrainngStepState = {
       ...step,
       type: normalizeStepType(step.type),
       elapsedMillis: step.elapsedMillis || 0,
@@ -102,8 +102,8 @@ function normalizeSession(raw: TrainState): NormalizedState {
 }
 
 // expandExerciseSteps expands set exercises into per-exercise steps with timing.
-function expandExerciseSteps(state: TrainState): TrainState {
-  const expanded: TrainState = { ...state, steps: [] };
+function expandExerciseSteps(state: TrainngState): TrainngState {
+  const expanded: TrainngState = { ...state, steps: [] };
   const sourceSteps = Array.isArray(state.steps) ? state.steps : [];
 
   sourceSteps.forEach((step) => {
@@ -155,8 +155,8 @@ function expandExerciseSteps(state: TrainState): TrainState {
   return expanded;
 }
 
-// persistSession stores the current session state in localStorage.
-function persistSession(state: NormalizedState | null) {
+// persistTrain stores the current train state in localStorage.
+function persistTrain(state: NormalizedState | null) {
   if (!state || state.done) {
     localStorage.removeItem(STORAGE_KEY);
     return;
@@ -170,16 +170,16 @@ function persistSession(state: NormalizedState | null) {
   );
 }
 
-// loadPersistedSession restores the last session state from localStorage.
-function loadPersistedSession(): NormalizedState | null {
+// loadPersistedTrain restores the last train state from localStorage.
+function loadPersistedTrain(): NormalizedState | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
 
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed?.sessionId) return null;
+    if (!parsed?.trainingId) return null;
 
-    const state = normalizeSession(parsed);
+    const state = normalizeTrain(parsed);
 
     // Never resume "running" from storage. Restore elapsed (capped) then pause.
     const delta = parsed.lastUpdatedAt
@@ -199,18 +199,18 @@ function loadPersistedSession(): NormalizedState | null {
     state.lastUpdatedAt = now();
     return state;
   } catch (err) {
-    console.warn("unable to load session", err);
+    console.warn("unable to load train", err);
     localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
-// clearPersistedSession removes stored session data.
-function clearPersistedSession() {
+// clearPersistedTraining removes stored train data.
+function clearPersistedTraining() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-// ensureStartedAt records the session start timestamp when missing.
+// ensureStartedAt records the train start timestamp when missing.
 function ensureStartedAt(state: NormalizedState) {
   if (!state.startedAt) state.startedAt = new Date().toISOString();
 }
@@ -317,8 +317,8 @@ function advanceIndex(state: NormalizedState) {
   applyStepFlags(state);
 }
 
-// completeSession stamps done state + stable timestamps based on elapsed sum.
-function completeSession(state: NormalizedState) {
+// completeTraining stamps done state + stable timestamps based on elapsed sum.
+function completeTraining(state: NormalizedState) {
   ensureStartedAt(state);
   state.done = true;
   state.running = false;
@@ -352,24 +352,24 @@ function completeSession(state: NormalizedState) {
   }));
 }
 
-export function useSessionTimer({
+export function useTrainingTimer({
   currentUserId,
   onChange,
-}: UseSessionTimerArgs) {
-  const initialSession = loadPersistedSession();
+}: UseTrainTimerArgs) {
+  const initialTraining = loadPersistedTrain();
 
-  const [restoredSessionId, setRestoredSessionId] = useState<string | null>(
-    initialSession?.sessionId || null,
+  const [restoredTrainingId, setRestoredTrainingId] = useState<string | null>(
+    initialTraining?.trainingId || null,
   );
-  const [session, setSession] = useState<NormalizedState | null>(
-    () => initialSession,
+  const [training, setTraining] = useState<NormalizedState | null>(
+    () => initialTraining,
   );
 
   // Render clock driven by RAF while running (avoids interval clamping).
   const [nowMs, setNowMs] = useState(() => now());
   const rafIdRef = useRef<number | null>(null);
 
-  const sessionRef = useRef<NormalizedState | null>(initialSession);
+  const trainingRef = useRef<NormalizedState | null>(initialTraining);
 
   // Auto-advance scheduler.
   const autoAdvanceRef = useRef<{
@@ -387,20 +387,20 @@ export function useSessionTimer({
   const finishingRef = useRef<string | null>(null);
 
   useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+    trainingRef.current = training;
+  }, [training]);
 
   // Persist + notify parent.
   useEffect(() => {
-    persistSession(session);
-    if (!session) setRestoredSessionId(null);
-    onChange?.(session);
-  }, [session, onChange]);
+    persistTrain(training);
+    if (!training) setRestoredTrainingId(null);
+    onChange?.(training);
+  }, [training, onChange]);
 
-  // update applies a mutable update to the session state, with consistent elapsed accumulation.
+  // update applies a mutable update to the train state, with consistent elapsed accumulation.
   const update = useCallback(
     (mutator: (next: NormalizedState) => NormalizedState | null) => {
-      setSession((prev) => {
+      setTraining((prev) => {
         if (!prev) return prev;
 
         const at = now();
@@ -419,11 +419,11 @@ export function useSessionTimer({
     [],
   );
 
-  // startFromState initializes the session from server state.
+  // startFromState initializes the train from server state.
   const startFromState = useCallback(
-    (raw: TrainState) => {
+    (raw: TrainngState) => {
       const expanded = expandExerciseSteps(raw);
-      const normalized = normalizeSession(expanded);
+      const normalized = normalizeTrain(expanded);
 
       if (!normalized.userId && currentUserId) {
         normalized.userId = currentUserId;
@@ -435,7 +435,7 @@ export function useSessionTimer({
       // Reset step run wall-clock anchor.
       stepRunRef.current = { key: null, startedAtMs: 0 };
 
-      setSession(normalized);
+      setTraining(normalized);
       return normalized;
     },
     [currentUserId],
@@ -451,11 +451,11 @@ export function useSessionTimer({
 
   // pause stops the timer without completing the step.
   const pause = useCallback(() => {
-    const cur = sessionRef.current;
+    const cur = trainingRef.current;
     if (cur) {
       const at = now();
       logTimerEvent("pause-step", {
-        sessionId: cur.sessionId,
+        trainingId: cur.trainingId,
         currentIndex: cur.currentIndex ?? 0,
         stepId: cur.steps?.[cur.currentIndex ?? 0]?.id,
         elapsedMs: currentStepElapsedNow(cur, at),
@@ -471,12 +471,12 @@ export function useSessionTimer({
   // nextStep completes the current step and advances to the next one.
   const nextStep = useCallback(
     (reason: "manual" | "auto" = "manual") => {
-      const cur = sessionRef.current;
+      const cur = trainingRef.current;
       if (cur) {
         const at = now();
         const step = cur.steps?.[cur.currentIndex ?? 0];
         const payload = {
-          sessionId: cur.sessionId,
+          trainingId: cur.trainingId,
           currentIndex: cur.currentIndex ?? 0,
           stepId: step?.id || step?.name,
           elapsedMs: currentStepElapsedNow(cur, at),
@@ -505,15 +505,15 @@ export function useSessionTimer({
     [update],
   );
 
-  // finishAndLog completes the session and sends it to the backend.
+  // finishAndLog completes the train and sends it to the backend.
   const finishAndLog = useCallback(async () => {
-    const cur = sessionRef.current || loadPersistedSession();
-    if (!cur) return { ok: false, error: "no session" };
+    const cur = trainingRef.current || loadPersistedTrain();
+    if (!cur) return { ok: false, error: "no train" };
 
-    if (finishingRef.current === cur.sessionId) {
+    if (finishingRef.current === cur.trainingId) {
       return { ok: false, error: "already finishing" };
     }
-    finishingRef.current = cur.sessionId;
+    finishingRef.current = cur.trainingId;
 
     try {
       const at = now();
@@ -522,7 +522,7 @@ export function useSessionTimer({
       // Finalize elapsed if running.
       addRunningDeltaToCurrentStep(next, at);
 
-      completeSession(next);
+      completeTraining(next);
 
       // Preserve prior behavior: if last step is auto-advance, nudge index.
       const last = next.steps?.[next.currentIndex];
@@ -533,18 +533,18 @@ export function useSessionTimer({
         );
       }
 
-      setSession(next);
+      setTraining(next);
 
-      logTimerEvent("finish-session", {
-        sessionId: next.sessionId,
+      logTimerEvent("finish-train", {
+        trainingId: next.trainingId,
         workoutId: next.workoutId,
         currentIndex: next.currentIndex ?? 0,
         steps: next.steps?.length || 0,
       });
 
       try {
-        await logSessionCompletion({
-          sessionId: next.sessionId,
+        await logTrainingCompletion({
+          trainingId: next.trainingId,
           workoutId: next.workoutId,
           workoutName: next.workoutName,
           userId: next.userId || currentUserId || "",
@@ -559,15 +559,15 @@ export function useSessionTimer({
           })),
         });
 
-        setSession((prev) =>
-          prev && prev.sessionId === next.sessionId
+        setTraining((prev) =>
+          prev && prev.trainingId === next.trainingId
             ? { ...prev, logged: true }
             : prev,
         );
 
-        return { ok: true, session: next };
+        return { ok: true, train: next };
       } catch (err: any) {
-        console.warn("log session failed", err);
+        console.warn("log train failed", err);
         return { ok: false, error: err?.message || "log failed" };
       }
     } finally {
@@ -593,7 +593,7 @@ export function useSessionTimer({
       }
     };
 
-    if (!session?.running) {
+    if (!training?.running) {
       stop();
       return;
     }
@@ -614,7 +614,7 @@ export function useSessionTimer({
       cancelled = true;
       stop();
     };
-  }, [session?.running]);
+  }, [training?.running]);
 
   // Auto-advance timed steps:
   // - schedules once per run instance
@@ -629,7 +629,7 @@ export function useSessionTimer({
       autoAdvanceRef.current.key = null;
     };
 
-    const s = session;
+    const s = training;
     if (!s || !s.running || s.done) {
       clear();
       return;
@@ -647,7 +647,7 @@ export function useSessionTimer({
       return;
     }
 
-    const runKey = `${s.sessionId}:${s.currentIndex}:${step.id || ""}:${s.runningSince || 0}:${estimatedSeconds}`;
+    const runKey = `${s.trainingId}:${s.currentIndex}:${step.id || ""}:${s.runningSince || 0}:${estimatedSeconds}`;
 
     if (stepRunRef.current.key !== runKey) {
       const at = now();
@@ -674,14 +674,14 @@ export function useSessionTimer({
     autoAdvanceRef.current.key = runKey;
 
     const fire = () => {
-      const cur = sessionRef.current;
+      const cur = trainingRef.current;
       if (!cur || !cur.running || cur.done) return;
 
       const curStep = cur.steps?.[cur.currentIndex ?? 0];
       if (!curStep) return;
 
       const stillSameRun =
-        cur.sessionId === s.sessionId &&
+        cur.trainingId === s.trainingId &&
         cur.currentIndex === s.currentIndex &&
         (cur.runningSince || 0) === (s.runningSince || 0) &&
         (curStep.id || "") === (step.id || "") &&
@@ -711,18 +711,18 @@ export function useSessionTimer({
     autoAdvanceRef.current.timeoutId = window.setTimeout(fire, remainingMs);
     return clear;
   }, [
-    session?.sessionId,
-    session?.currentIndex,
-    session?.running,
-    session?.runningSince,
-    session?.done,
-    session?.steps?.[session?.currentIndex ?? 0]?.id,
-    session?.steps?.[session?.currentIndex ?? 0]?.type,
-    session?.steps?.[session?.currentIndex ?? 0]?.estimatedSeconds,
+    training?.trainingId,
+    training?.currentIndex,
+    training?.running,
+    training?.runningSince,
+    training?.done,
+    training?.steps?.[training?.currentIndex ?? 0]?.id,
+    training?.steps?.[training?.currentIndex ?? 0]?.type,
+    training?.steps?.[training?.currentIndex ?? 0]?.estimatedSeconds,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (session?.steps?.[session?.currentIndex ?? 0] as any)?.autoAdvance,
+    (training?.steps?.[training?.currentIndex ?? 0] as any)?.autoAdvance,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (session?.steps?.[session?.currentIndex ?? 0] as any)?.pauseOptions
+    (training?.steps?.[training?.currentIndex ?? 0] as any)?.pauseOptions
       ?.autoAdvance,
     nextStep,
   ]);
@@ -730,7 +730,7 @@ export function useSessionTimer({
   // Persist state on page hide/unload (finalize elapsed, then stop).
   useEffect(() => {
     const handlePageHide = () => {
-      setSession((prev) => {
+      setTraining((prev) => {
         if (!prev) return prev;
 
         const at = now();
@@ -743,7 +743,7 @@ export function useSessionTimer({
         next.lastUpdatedAt = at;
         applyStepFlags(next);
 
-        persistSession(next);
+        persistTrain(next);
         return next;
       });
     };
@@ -756,50 +756,50 @@ export function useSessionTimer({
     };
   }, []);
 
-  // Submit a finished session if needed (no extra timer logs).
+  // Submit a finished train if needed (no extra timer logs).
   useEffect(() => {
     const logCompletion = async () => {
-      if (!session || !session.done || session.logged) return;
-      if (!session.startedAt || !session.completedAt) return;
+      if (!training || !training.done || training.logged) return;
+      if (!training.startedAt || !training.completedAt) return;
 
       try {
-        await logSessionCompletion({
-          sessionId: session.sessionId,
-          workoutId: session.workoutId,
-          workoutName: session.workoutName,
-          userId: session.userId || currentUserId || "",
-          startedAt: session.startedAt,
-          completedAt: session.completedAt,
+        await logTrainingCompletion({
+          trainingId: training.trainingId,
+          workoutId: training.workoutId,
+          workoutName: training.workoutName,
+          userId: training.userId || currentUserId || "",
+          startedAt: training.startedAt,
+          completedAt: training.completedAt,
         });
 
-        setSession((prev) =>
-          prev && prev.sessionId === session.sessionId
+        setTraining((prev) =>
+          prev && prev.trainingId === training.trainingId
             ? { ...prev, logged: true }
             : prev,
         );
       } catch (err) {
-        console.warn("log session failed", err);
+        console.warn("log train failed", err);
       }
     };
     logCompletion();
-  }, [session, currentUserId]);
+  }, [training, currentUserId]);
 
   const currentStep = useMemo(() => {
-    if (!session || !session.steps?.length) return null;
-    return session.steps[session.currentIndex] || null;
-  }, [session]);
+    if (!training || !training.steps?.length) return null;
+    return training.steps[training.currentIndex] || null;
+  }, [training]);
 
   const displayedElapsed = useMemo(() => {
-    if (!session || !currentStep) return 0;
-    if (!session.running) return currentStep.elapsedMillis || 0;
-    return currentStepElapsedNow(session, nowMs);
-  }, [session, currentStep, nowMs]);
+    if (!training || !currentStep) return 0;
+    if (!training.running) return currentStep.elapsedMillis || 0;
+    return currentStepElapsedNow(training, nowMs);
+  }, [training, currentStep, nowMs]);
 
   return {
-    session,
+    training,
     currentStep,
     displayedElapsed,
-    restoredFromStorage: Boolean(restoredSessionId),
+    restoredFromStorage: Boolean(restoredTrainingId),
     startFromState,
     startCurrentStep,
     pause,
@@ -807,9 +807,9 @@ export function useSessionTimer({
     finishAndLog,
     markSoundPlayed,
     clear: () => {
-      setSession(null);
-      setRestoredSessionId(null);
-      clearPersistedSession();
+      setTraining(null);
+      setRestoredTrainingId(null);
+      clearPersistedTraining();
     },
   };
 }

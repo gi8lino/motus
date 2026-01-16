@@ -28,17 +28,26 @@ export const useDialog = (): UseDialogResult => {
     setDialog(null);
   }, []);
 
+  // Always close the dialog when resolving, so consumers can't forget.
+  const resolveAndClose = useCallback(
+    <T>(resolve: (val: T) => void, val: T) => {
+      closeDialog();
+      resolve(val);
+    },
+    [closeDialog],
+  );
+
   const notify = useCallback(
     (message: string) =>
       new Promise<void>((resolve) => {
         setDialog({
           type: "alert",
           message,
-          resolve: () => resolve(),
+          resolve: () => resolveAndClose(resolve, undefined),
         });
         setDialogValue("");
       }),
-    [],
+    [resolveAndClose],
   );
 
   const askConfirm = useCallback(
@@ -50,11 +59,11 @@ export const useDialog = (): UseDialogResult => {
           title: options?.title,
           confirmLabel: options?.confirmLabel,
           cancelLabel: options?.cancelLabel,
-          resolve: (val: boolean) => resolve(val),
+          resolve: (val: boolean) => resolveAndClose(resolve, val),
         });
         setDialogValue("");
       }),
-    [],
+    [resolveAndClose],
   );
 
   const askPrompt = useCallback(
@@ -65,11 +74,11 @@ export const useDialog = (): UseDialogResult => {
           message,
           defaultValue,
           placeholder,
-          resolve: (val: string | null) => resolve(val),
+          resolve: (val: string | null) => resolveAndClose(resolve, val),
         });
         setDialogValue(defaultValue);
       }),
-    [],
+    [resolveAndClose],
   );
 
   return {

@@ -1,4 +1,4 @@
-package sessions
+package trainings
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-// NewStateFromWorkout builds a SessionState for the SPA from the stored workout definition.
-func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) SessionState {
-	state := SessionState{
-		SessionID:    utils.NewID(),
+// NewStateFromWorkout builds a TrainingState for the SPA from the stored workout definition.
+func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) TrainingState {
+	state := TrainingState{
+		TrainingID:   utils.NewID(),
 		WorkoutID:    workout.ID,
 		UserID:       workout.UserID,
 		WorkoutName:  workout.Name,
@@ -27,7 +27,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Se
 			}
 
 			if st.Type == utils.StepTypePause.String() {
-				pauseState := SessionStepState{
+				pauseState := TrainingStepState{
 					ID:               idBase,
 					Name:             st.Name,
 					Type:             utils.StepTypePause.String(),
@@ -53,7 +53,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Se
 				subsetBase := fmt.Sprintf("%s-sub-%d", idBase, subsetIdx+1)
 				subsetLabel := strings.TrimSpace(sub.Name)
 				if sub.Superset {
-					stepState := SessionStepState{
+					stepState := TrainingStepState{
 						ID:                     subsetBase,
 						Name:                   sub.Name,
 						Type:                   st.Type,
@@ -80,7 +80,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Se
 				for exIdx, ex := range sub.Exercises {
 					stepID := fmt.Sprintf("%s-ex-%d", subsetBase, exIdx+1)
 					estimatedSeconds, autoAdvance := deriveExerciseDuration(ex, sub)
-					stepState := SessionStepState{
+					stepState := TrainingStepState{
 						ID:                     stepID,
 						Name:                   ex.Name,
 						Type:                   st.Type,
@@ -105,7 +105,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Se
 			}
 
 			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
-				restState := SessionStepState{
+				restState := TrainingStepState{
 					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
 					Name:             "Pause",
 					Type:             utils.StepTypePause.String(),

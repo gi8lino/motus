@@ -7,14 +7,14 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// RecordSession stores a completed workout session and optional step timings. Duplicate IDs are ignored.
-func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []SessionStepLog) error {
-	// Persist the session log and optional step timings in one transaction.
+// RecordTraining stores a completed workout training and optional step timings. Duplicate IDs are ignored.
+func (s *Store) RecordTraining(ctx context.Context, log TrainingLog, steps []TrainingStepLog) error {
+	// Persist the training log and optional step timings in one transaction.
 	if log.ID == "" {
-		return fmt.Errorf("session id required")
+		return fmt.Errorf("training id required")
 	}
 	if log.StartedAt.IsZero() || log.CompletedAt.IsZero() {
-		return fmt.Errorf("session timestamps required")
+		return fmt.Errorf("training timestamps required")
 	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -22,7 +22,7 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO workout_sessions(
+		INSERT INTO workout_trainings(
 			id,
 			workout_id,
 			workout_name,
@@ -42,9 +42,9 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 		for _, st := range steps {
 			batch.Queue(
 				`
-					INSERT INTO session_steps(
+					INSERT INTO training_steps(
 						id,
-						session_id,
+						training_id,
 						step_order,
 						step_type,
 						name,
@@ -64,13 +64,13 @@ func (s *Store) RecordSession(ctx context.Context, log SessionLog, steps []Sessi
 	return tx.Commit(ctx)
 }
 
-// SessionHistory returns recent sessions for a user.
-func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([]SessionLog, error) {
-	// Load recent session logs for a user.
+// TrainingHistory returns recent trainings for a user.
+func (s *Store) TrainingHistory(ctx context.Context, userID string, limit int) ([]TrainingLog, error) {
+	// Load recent training logs for a user.
 	limit = max(limit, 25)
 	rows, err := s.pool.Query(ctx, `
 		SELECT ws.id, ws.workout_id, COALESCE(w.name, ''), ws.user_id, ws.started_at, ws.completed_at
-		FROM workout_sessions ws
+		FROM workout_trainings ws
 		LEFT JOIN workouts w ON ws.workout_id = w.id
 		WHERE ws.user_id=$1
 		ORDER BY ws.started_at DESC
@@ -79,10 +79,10 @@ func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([
 		return nil, err
 	}
 	defer rows.Close()
-	var history []SessionLog
-	// Collect each session log row.
+	var history []TrainingLog
+	// Collect each training log row.
 	for rows.Next() {
-		var entry SessionLog
+		var entry TrainingLog
 		if err := rows.Scan(&entry.ID, &entry.WorkoutID, &entry.WorkoutName, &entry.UserID, &entry.StartedAt, &entry.CompletedAt); err != nil {
 			return nil, err
 		}
@@ -91,23 +91,23 @@ func (s *Store) SessionHistory(ctx context.Context, userID string, limit int) ([
 	return history, rows.Err()
 }
 
-// SessionStepTimings returns stored step durations for a session.
-func (s *Store) SessionStepTimings(ctx context.Context, sessionID string) ([]SessionStepLog, error) {
-	// Load stored step durations for a session.
+// TrainingStepTimings returns stored step durations for a training.
+func (s *Store) TrainingStepTimings(ctx context.Context, trainingID string) ([]TrainingStepLog, error) {
+	// Load stored step durations for a training.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, session_id, step_order, step_type, name, estimated_seconds, elapsed_millis
-		FROM session_steps
-		WHERE session_id=$1
-		ORDER BY step_order ASC`, sessionID)
+		SELECT id, training_id, step_order, step_type, name, estimated_seconds, elapsed_millis
+		FROM training_steps
+		WHERE training_id=$1
+		ORDER BY step_order ASC`, trainingID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var steps []SessionStepLog
+	var steps []TrainingStepLog
 	// Collect each step timing row.
 	for rows.Next() {
-		var st SessionStepLog
-		if err := rows.Scan(&st.ID, &st.SessionID, &st.StepOrder, &st.Type, &st.Name, &st.EstimatedSeconds, &st.ElapsedMillis); err != nil {
+		var st TrainingStepLog
+		if err := rows.Scan(&st.ID, &st.TrainingID, &st.StepOrder, &st.Type, &st.Name, &st.EstimatedSeconds, &st.ElapsedMillis); err != nil {
 			return nil, err
 		}
 		steps = append(steps, st)

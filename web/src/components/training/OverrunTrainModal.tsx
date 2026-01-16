@@ -1,19 +1,19 @@
 import { formatMillis } from "../../utils/format";
 
-type TrainOverrunModalProps = {
+type TrainingOverrunModalProps = {
   show: boolean;
   countdown: number;
   onPause: () => void;
   onPostpone: () => void;
 };
 
-// TrainOverrunModal prompts when a target duration has elapsed.
-export function TrainOverrunModal({
+// TrainingOverrunModal prompts when a target duration has elapsed.
+export function TrainingOverrunModal({
   show,
   countdown,
   onPause,
   onPostpone,
-}: TrainOverrunModalProps) {
+}: TrainingOverrunModalProps) {
   if (!show) return null;
 
   return (

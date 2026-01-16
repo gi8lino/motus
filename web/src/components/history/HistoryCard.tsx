@@ -1,30 +1,30 @@
-import type { TrainHistoryItem, TrainState } from "../../types";
+import type { TrainngHistoryItem, TrainngState } from "../../types";
 
-// HistoryList renders past sessions and supports selection/resume.
+// HistoryList renders past trainings and supports selection/resume.
 export function HistoryList({
   items,
-  activeSession,
+  activeTraining,
   onResume,
   onSelect,
 }: {
-  items: TrainHistoryItem[];
-  activeSession?: TrainState | null;
+  items: TrainngHistoryItem[];
+  activeTraining?: TrainngState | null;
   onResume?: () => void;
-  onSelect?: (item: TrainHistoryItem) => void;
+  onSelect?: (item: TrainngHistoryItem) => void;
 }) {
-  const hasActive = activeSession && !activeSession.done;
+  const hasActive = activeTraining && !activeTraining.done;
   if (!items.length && !hasActive)
     return <p className="muted">No history yet.</p>;
   return (
     <ul className="list">
-      {/* Active session banner */}
+      {/* Active training banner */}
       {hasActive && (
         <li className="list-item">
           <div className="list-row">
             <div>
               <strong>Active training</strong>
               <div className="muted small">
-                {activeSession?.workoutName || activeSession?.workoutId} • in
+                {activeTraining?.workoutName || activeTraining?.workoutId} • in
                 progress
               </div>
             </div>
