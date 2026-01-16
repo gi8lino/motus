@@ -5,6 +5,16 @@ import type { Exercise, TrainState, TrainStepState } from "../../types";
 
 type AnyStep = any;
 
+// formatCountdownMillis formats a remaining-time countdown so that
+// 19.9s displays as "00:20" (ceil), matching user expectation.
+function formatCountdownMillis(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 // getExercises normalizes the exercises list for a step payload.
 function getExercises(step: AnyStep): Exercise[] {
   if (!step) return [];
@@ -135,6 +145,13 @@ export function TrainCard({
     // Otherwise show elapsed.
     return elapsed;
   }, [currentStep, elapsed, isAutoAdvance]);
+
+  const clockText = useMemo(() => {
+    if (!currentStep) return "00:00";
+    return isAutoAdvance
+      ? formatCountdownMillis(displayMillis)
+      : formatMillis(displayMillis);
+  }, [currentStep, displayMillis, isAutoAdvance]);
 
   const currentExerciseLabel = useMemo(() => {
     if (!currentStep) return "No training";
@@ -335,9 +352,7 @@ export function TrainCard({
           ) : null}
 
           <div className="clock-row">
-            <div className="clock">
-              {currentStep ? formatMillis(displayMillis) : "00:00"}
-            </div>
+            <div className="clock">{clockText}</div>
           </div>
 
           <div className="current-step">
