@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, type RefObject } from "react";
+import { useCallback, useMemo, type RefObject } from "react";
 import { formatExerciseLine, formatMillis } from "../../utils/format";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
-import type { Exercise, SessionState, SessionStepState } from "../../types";
-import { logTimerEvent } from "../../utils/timerLogger";
+import type { Exercise, TrainState, TrainStepState } from "../../types";
 
 type AnyStep = any;
 
@@ -17,10 +16,13 @@ function getExercises(step: AnyStep): Exercise[] {
 function getStepName(step: AnyStep): string {
   const subsetLabel = String(step?.subsetLabel || "").trim();
   if (subsetLabel) return subsetLabel;
+
   const parent = String(step?.setName || "").trim();
   if (parent) return parent;
+
   const name = String(step?.name || "").trim();
   if (name) return name;
+
   if (step?.type === STEP_TYPE_PAUSE) return "Pause";
   return "Set";
 }
@@ -34,6 +36,7 @@ function getCurrentExerciseLabel(step: AnyStep): string {
   const formatted = exercise ? formatExerciseLine(exercise) : "";
   return formatted || getStepName(step);
 }
+
 type SubsetDisplay = {
   key: string;
   superset: boolean;
@@ -54,6 +57,10 @@ type StepGroup = {
 };
 
 // SessionCard renders the main session status card and controls.
+// NOTE: This component is intentionally "dumb":
+// - no timers
+// - no scheduling
+// - no logging
 export function SessionCard({
   session,
   currentStep,
@@ -67,8 +74,8 @@ export function SessionCard({
   runButtonRef,
   nextButtonRef,
 }: {
-  session: SessionState | null;
-  currentStep: SessionStepState | null;
+  session: TrainState | null;
+  currentStep: TrainStepState | null;
   elapsed: number;
   workoutName?: string;
   onStart: () => void;
@@ -88,13 +95,17 @@ export function SessionCard({
       : false;
 
   const hasProgress = session?.steps?.some(
-    (s: any) => s.elapsedMillis > 0 || s.completed,
+    (s: any) => (s.elapsedMillis || 0) > 0 || Boolean(s.completed),
   );
   const hasStarted = Boolean(session?.running) || Boolean(hasProgress);
 
+  // If the step is auto-advance (countdown/pause with autoAdvance) and has a target,
+  // show remaining; otherwise show elapsed.
   const isAutoAdvance =
     (currentStep?.type === STEP_TYPE_PAUSE &&
-      (currentStep as any).pauseOptions?.autoAdvance) ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Boolean((currentStep as any).pauseOptions?.autoAdvance)) ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Boolean((currentStep as any)?.autoAdvance);
 
   const startLabel = session?.running
@@ -103,33 +114,37 @@ export function SessionCard({
       ? "Continue"
       : "Start";
 
-  // handleNext stops audio and advances or finishes the session.
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     onStopAudio?.();
     if (isLastStep) {
       onFinish();
       return;
     }
     onNext();
-  };
+  }, [isLastStep, onFinish, onNext, onStopAudio]);
 
-  const displayMillis =
-    currentStep && isAutoAdvance && currentStep.estimatedSeconds
-      ? Math.max(
-          0,
-          currentStep.estimatedSeconds * 1000 - Math.max(0, elapsed - 1000),
-        )
-      : elapsed;
+  const displayMillis = useMemo(() => {
+    if (!currentStep) return elapsed;
+
+    // For auto-advance steps with a duration, show remaining time.
+    if (isAutoAdvance && currentStep.estimatedSeconds) {
+      const durationMs = currentStep.estimatedSeconds * 1000;
+      return Math.max(0, durationMs - Math.max(0, elapsed));
+    }
+
+    // Otherwise show elapsed.
+    return elapsed;
+  }, [currentStep, elapsed, isAutoAdvance]);
 
   const currentExerciseLabel = useMemo(() => {
     if (!currentStep) return "No training";
     return getCurrentExerciseLabel(currentStep as any);
   }, [currentStep]);
 
-  // extractExerciseLabels collects display labels for the current step.
   const extractExerciseLabels = useCallback(
-    (step: SessionStepState | null, startIndex = 0) => {
+    (step: TrainStepState | null, startIndex = 0) => {
       if (!step) return [];
+
       if (step.type === STEP_TYPE_PAUSE) {
         const durationText = step.estimatedSeconds
           ? formatMillis(step.estimatedSeconds * 1000)
@@ -168,55 +183,6 @@ export function SessionCard({
     [currentStep, extractExerciseLabels],
   );
 
-  // Schedule auto-advance for timed steps when enabled.
-  useEffect(() => {
-    // Auto-advance when a timed exercise or pause reaches zero.
-    if (
-      !session ||
-      !running ||
-      !currentStep ||
-      !isAutoAdvance ||
-      !currentStep.estimatedSeconds
-    ) {
-      return;
-    }
-    const remaining = currentStep.estimatedSeconds * 1000 - elapsed;
-    const autoAdvanceDetails = {
-      sessionId: session?.sessionId,
-      currentIndex: session?.currentIndex,
-      stepId: currentStep?.id,
-      remainingMs: remaining,
-    };
-    if (remaining <= 0) {
-      logTimerEvent("auto-advance-step", {
-        ...autoAdvanceDetails,
-        triggered: true,
-      });
-      onNext();
-      return;
-    }
-    logTimerEvent("auto-advance-step", {
-      ...autoAdvanceDetails,
-      scheduledInMs: remaining,
-    });
-    const timer = setTimeout(() => {
-      logTimerEvent("auto-advance-step", {
-        ...autoAdvanceDetails,
-        triggered: true,
-      });
-      onNext();
-    }, remaining);
-    return () => clearTimeout(timer);
-  }, [
-    session?.sessionId,
-    session?.currentIndex,
-    running,
-    currentStep,
-    isAutoAdvance,
-    elapsed,
-    onNext,
-  ]);
-
   const totalSteps = session?.steps?.length || 0;
   const currentNumber = session ? session.currentIndex + 1 : 0;
 
@@ -227,14 +193,17 @@ export function SessionCard({
 
   const groupedSteps = useMemo(() => {
     if (!remainingSteps.length) return [];
+
     const groups: StepGroup[] = [];
     let currentGroup: StepGroup | null = null;
+
     for (const step of remainingSteps) {
       const setName =
         String(step?.setName || step?.name || "").trim() || "Step";
       const loopIndex = step?.loopIndex ?? 0;
       const loopTotal = step?.loopTotal ?? 0;
       const type = step?.type || "set";
+
       const needsNewGroup =
         !currentGroup ||
         currentGroup.setName !== setName ||
@@ -260,14 +229,13 @@ export function SessionCard({
       }
 
       if (!currentGroup) continue;
-      if (type === STEP_TYPE_PAUSE) {
-        continue;
-      }
+      if (type === STEP_TYPE_PAUSE) continue;
 
       const subsetKey = String(
         step?.subsetId || step?.id || `${setName}-${loopIndex}-${loopTotal}`,
       );
       let subset = currentGroup.subsets.find((item) => item.key === subsetKey);
+
       if (!subset) {
         subset = {
           key: subsetKey,
@@ -284,45 +252,43 @@ export function SessionCard({
       }
 
       const exercises = getExercises(step);
-      if (exercises.length) {
-        subset.exercises.push(...exercises);
-      }
+      if (exercises.length) subset.exercises.push(...exercises);
       currentGroup.hasSuperset = currentGroup.hasSuperset || subset.superset;
     }
+
     return groups;
   }, [remainingSteps]);
 
   // Next step name (just for the right panel)
   const nextStep = useMemo(() => {
     if (!session) return null;
+
     if (!session.running) {
       return session.steps[session.currentIndex];
     }
+
     let idx = session.currentIndex;
-    while (idx < session.steps.length && session.steps[idx].completed) {
-      idx += 1;
-    }
+    while (idx < session.steps.length && session.steps[idx].completed) idx += 1;
     idx += 1;
-    while (idx < session.steps.length && session.steps[idx].completed) {
-      idx += 1;
-    }
+    while (idx < session.steps.length && session.steps[idx].completed) idx += 1;
+
     return idx < session.steps.length ? session.steps[idx] : null;
   }, [session]);
 
   const nextSubsetStep = useMemo(() => {
-    if (!session || !session.steps.length || !currentStep?.subsetId) {
+    if (!session || !session.steps.length || !currentStep?.subsetId)
       return null;
-    }
+
     const subsetId = currentStep.subsetId;
     const startIdx = Math.max(session.currentIndex + 1, 0);
+
     for (let idx = startIdx; idx < session.steps.length; idx += 1) {
       const candidate = session.steps[idx];
       if (!candidate) continue;
       if (!candidate.subsetId) continue;
-      if (candidate.subsetId !== subsetId) {
-        return candidate;
-      }
+      if (candidate.subsetId !== subsetId) return candidate;
     }
+
     return null;
   }, [session, currentStep?.subsetId]);
 
@@ -357,9 +323,11 @@ export function SessionCard({
       <div className="session-main">
         <div className="current-card">
           <div className="label muted">Now</div>
+
           {workoutName ? (
             <div className="muted small">{workoutName}</div>
           ) : null}
+
           {session ? (
             <div className="muted small">
               Step {currentNumber}/{totalSteps}
@@ -420,6 +388,7 @@ export function SessionCard({
             >
               {startLabel}
             </button>
+
             <button
               ref={nextButtonRef}
               className="btn large next"
@@ -428,13 +397,6 @@ export function SessionCard({
             >
               {isLastStep ? "Finish" : "Next"}
             </button>
-          </div>
-
-          <div
-            className="muted small shortcuts"
-            title="Space = pause/resume, Enter = next/finish"
-          >
-            Shortcuts ⓘ
           </div>
         </div>
       </div>
@@ -457,6 +419,7 @@ export function SessionCard({
               : group.type === STEP_TYPE_PAUSE
                 ? "Pause"
                 : "Step";
+
           const classes = [
             "set-card",
             group.hasSuperset ? "is-superset" : "is-normal",
@@ -482,6 +445,7 @@ export function SessionCard({
                   const pillKey = `${group.key}-${subset.key}`;
                   const applySuperset =
                     subset.superset || group.subsets.length > 1;
+
                   return (
                     <div
                       key={pillKey}
@@ -492,14 +456,16 @@ export function SessionCard({
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      {showSubsetLabel && (
+                      {showSubsetLabel ? (
                         <div className="subset-label muted small">
                           {subset.label}
                         </div>
-                      )}
+                      ) : null}
+
                       {subset.superset ? (
                         <span className="set-badge superset">Superset</span>
                       ) : null}
+
                       <div className="exercise-pills compact">
                         {subset.exercises.map((ex, idx) => {
                           const text = formatExerciseLine(ex);

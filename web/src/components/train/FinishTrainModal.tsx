@@ -1,4 +1,4 @@
-type SessionFinishModalProps = {
+type TrainFinishModalProps = {
   summary: string | null;
   onClose: () => void;
   onCopySummary: () => void;
@@ -13,11 +13,11 @@ const copySummary = (summary: string, onCopySummary: () => void) => {
 };
 
 // SessionFinishModal shows the end-of-session summary overlay.
-export function SessionFinishModal({
+export function TrainFinishModal({
   summary,
   onClose,
   onCopySummary,
-}: SessionFinishModalProps) {
+}: TrainFinishModalProps) {
   if (!summary) return null;
 
   return (

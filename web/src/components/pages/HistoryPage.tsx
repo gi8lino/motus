@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import type { SessionHistoryItem, SessionState, Workout } from "../../types";
-import { HistoryList } from "./HistoryCard";
-import { HistoryPreviewModal } from "./HistoryPreviewModal";
+import type { TrainHistoryItem, TrainState, Workout } from "../../types";
+import { HistoryList } from "../history/HistoryCard";
+import { HistoryPreviewModal } from "../history/HistoryPreviewModal";
 
 // HistoryView lists logged sessions and opens a session preview.
 export function HistoryView({
@@ -12,17 +12,17 @@ export function HistoryView({
   loadWorkout,
   onCopySummary,
 }: {
-  items: SessionHistoryItem[];
-  activeSession: SessionState | null;
+  items: TrainHistoryItem[];
+  activeSession: TrainState | null;
   onResume: () => void;
   loadWorkout: (id: string) => Promise<Workout>;
   onCopySummary: () => void;
 }) {
-  const [preview, setPreview] = useState<SessionHistoryItem | null>(null);
+  const [preview, setPreview] = useState<TrainHistoryItem | null>(null);
   const [previewWorkout, setPreviewWorkout] = useState<Workout | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   // handleSelect loads preview details for a selected session.
-  const handleSelect = (item: SessionHistoryItem) => {
+  const handleSelect = (item: TrainHistoryItem) => {
     setPreview(item);
     setPreviewLoading(true);
     loadWorkout(item.workoutId)

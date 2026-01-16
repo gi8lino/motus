@@ -1,20 +1,20 @@
 import { startSession as startSessionApi } from "../api";
-import type { AskConfirmOptions, SessionState } from "../types";
+import type { AskConfirmOptions, TrainState } from "../types";
 import { buildSummary } from "../utils/summary";
 
 // UseSessionActionsArgs describes dependencies for session actions.
 type UseSessionActionsArgs = {
   selectedWorkoutId: string | null;
-  session: SessionState | null;
+  session: TrainState | null;
   currentWorkoutName: string;
-  setSessionsView: () => void;
+  setTrainView: () => void;
   setPromptedResume: (next: boolean) => void;
   setResumeSuppressed: (next: boolean) => void;
-  startFromState: (state: SessionState) => void;
+  startFromState: (state: TrainState) => void;
   finishAndLog: () => Promise<{
     ok: boolean;
     error?: string;
-    session?: SessionState;
+    session?: TrainState;
   } | null>;
   historyReload: () => void;
   askConfirm: (
@@ -29,7 +29,7 @@ export function useSessionActions({
   selectedWorkoutId,
   session,
   currentWorkoutName,
-  setSessionsView,
+  setTrainView: setSessionsView,
   setPromptedResume,
   setResumeSuppressed,
   startFromState,

@@ -1,4 +1,4 @@
-import { LoginForm, UserForm } from "./AuthForms";
+import { LoginForm, UserForm } from "./../auth/AuthForm";
 
 // LoginView renders local login and optional registration.
 export function LoginView({

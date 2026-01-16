@@ -5,8 +5,8 @@ type WorkoutFormModalProps = WorkoutFormProps & {
   onClose: () => void;
 };
 
-// WorkoutFormModal wraps WorkoutForm in the shared modal shell.
-export function WorkoutFormModal({
+// WorkoutEditorModal wraps WorkoutForm in the shared modal shell.
+export function WorkoutEditorModal({
   open,
   onClose,
   ...formProps

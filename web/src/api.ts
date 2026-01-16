@@ -1,8 +1,8 @@
 import type {
   CatalogExercise,
-  SessionHistoryItem,
-  SessionState,
-  SessionStepLog,
+  TrainHistoryItem,
+  TrainState,
+  TrainStepLog,
   SoundOption,
   User,
   Workout,
@@ -225,8 +225,8 @@ export async function listSounds(): Promise<SoundOption[]> {
 }
 
 // startSession creates a new session for a workout.
-export async function startSession(workoutId: string): Promise<SessionState> {
-  const res = await request<{ sessionId: string; state: SessionState }>(
+export async function startSession(workoutId: string): Promise<TrainState> {
+  const res = await request<{ sessionId: string; state: TrainState }>(
     "/api/sessions",
     {
       method: "POST",
@@ -261,14 +261,14 @@ export async function logSessionCompletion(payload: {
 // listSessionHistory returns all completed sessions for a user.
 export async function listSessionHistory(
   userId: string,
-): Promise<SessionHistoryItem[]> {
+): Promise<TrainHistoryItem[]> {
   return request(`/api/users/${encodeURIComponent(userId)}/sessions/history`);
 }
 
 // getSessionSteps fetches stored per-step timings for a session.
 export async function getSessionSteps(
   sessionId: string,
-): Promise<SessionStepLog[]> {
+): Promise<TrainStepLog[]> {
   return request(`/api/sessions/${encodeURIComponent(sessionId)}/steps`);
 }
 

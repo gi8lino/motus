@@ -966,7 +966,7 @@ select {
   display: grid;
   grid-template-columns: 1fr minmax(220px, 280px);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .current-card,
@@ -975,6 +975,7 @@ select {
   border-radius: 12px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.02);
+  height: 100%;
 }
 
 .clock-row {
@@ -1149,10 +1150,6 @@ select {
 .next-name {
   font-size: 18px;
   font-weight: 700;
-}
-
-.shortcuts {
-  margin-top: 4px;
 }
 
 .btn.next {

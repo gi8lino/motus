@@ -1,4 +1,4 @@
-import type { SessionHistoryItem, SessionState } from "../../types";
+import type { TrainHistoryItem, TrainState } from "../../types";
 
 // HistoryList renders past sessions and supports selection/resume.
 export function HistoryList({
@@ -7,10 +7,10 @@ export function HistoryList({
   onResume,
   onSelect,
 }: {
-  items: SessionHistoryItem[];
-  activeSession?: SessionState | null;
+  items: TrainHistoryItem[];
+  activeSession?: TrainState | null;
   onResume?: () => void;
-  onSelect?: (item: SessionHistoryItem) => void;
+  onSelect?: (item: TrainHistoryItem) => void;
 }) {
   const hasActive = activeSession && !activeSession.done;
   if (!items.length && !hasActive)

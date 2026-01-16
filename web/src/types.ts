@@ -1,3 +1,8 @@
+import type { StepType } from "./utils/step";
+
+// ThemeMode controls the app theme selection.
+export type ThemeMode = "auto" | "dark" | "light";
+
 // Exercise describes a single exercise entry inside a workout step.
 export type Exercise = {
   exerciseId?: string;
@@ -26,26 +31,30 @@ export type WorkoutSubset = {
 };
 
 // WorkoutStep defines a single step inside a workout.
-import type { StepType } from "./utils/step";
-
 export type WorkoutStep = {
   id?: string;
   order?: number;
   type: StepType;
   name: string;
+
   duration?: string;
   estimatedSeconds?: number;
+
   soundKey?: string;
   soundUrl?: string;
+
   exercises?: Exercise[];
   subsets?: WorkoutSubset[];
+
   pauseOptions?: PauseOptions;
   autoAdvance?: boolean;
+
   repeatCount?: number;
   repeatRestSeconds?: number;
   repeatRestAfterLast?: boolean;
   repeatRestSoundKey?: string;
   repeatRestAutoAdvance?: boolean;
+
   loopIndex?: number;
   loopTotal?: number;
 };
@@ -82,28 +91,25 @@ export type User = {
   createdAt: string;
 };
 
-// SessionStepState captures a live session step.
-export type SessionStepState = WorkoutStep & {
-  id?: string;
+// TrainStepState captures a live session step.
+export type TrainStepState = WorkoutStep & {
   elapsedMillis: number;
   completed: boolean;
   current: boolean;
   running: boolean;
-  soundUrl?: string;
-  soundKey?: string;
+
   soundPlayed?: boolean;
-  pauseOptions?: PauseOptions;
+
   subsetId?: string;
   subsetLabel?: string;
   hasMultipleSubsets?: boolean;
   superset?: boolean;
   setName?: string;
   subsetEstimatedSeconds?: number;
-  autoAdvance?: boolean;
 };
 
-// SessionStepLog stores a completed step timing.
-export type SessionStepLog = {
+// TrainStepLog stores a completed step timing.
+export type TrainStepLog = {
   id: string;
   sessionId: string;
   stepOrder: number;
@@ -114,23 +120,26 @@ export type SessionStepLog = {
 };
 
 // SessionState tracks the active workout session.
-export type SessionState = {
+export type TrainState = {
   sessionId: string;
   workoutId: string;
   workoutName?: string;
   userId: string;
+
   currentIndex: number;
   running: boolean;
   runningSince?: number | null;
+
   done: boolean;
   startedAt?: string | null;
   completedAt?: string | null;
   logged?: boolean;
-  steps: SessionStepState[];
+
+  steps: TrainStepState[];
 };
 
-// SessionHistoryItem summarizes a completed session with optional steps.
-export type SessionHistoryItem = {
+// TrainHistoryItem summarizes a completed session with optional steps.
+export type TrainHistoryItem = {
   id: string;
   sessionId: string;
   workoutId: string;
@@ -138,7 +147,7 @@ export type SessionHistoryItem = {
   userId: string;
   startedAt?: string;
   completedAt?: string;
-  steps?: SessionStepLog[];
+  steps?: TrainStepLog[];
 };
 
 // SoundOption describes an available sound effect.

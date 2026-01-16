@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  FormEvent,
+  useCallback,
+} from "react";
 import type {
   CatalogExercise,
   Exercise,
@@ -7,19 +14,14 @@ import type {
   WorkoutSubset,
   WorkoutStep,
 } from "../../types";
-import { ExerciseSelect } from "./ExerciseSelect";
 import { PauseOptionsField } from "./PauseOptionsField";
 import { ArrowDownIcon } from "../icons/ArrowDownIcon";
 import { ArrowUpIcon } from "../icons/ArrowUpIcon";
-import { SoundIcon } from "../icons/SoundIcon";
 import { TrashIcon } from "../icons/TrashIcon";
 import { formatExerciseLine } from "../../utils/format";
 import { parseDurationSeconds, isGoDuration } from "../../utils/time";
-import { isRepRange } from "../../utils/validation";
 import {
-  EXERCISE_TYPE_COUNTDOWN,
   EXERCISE_TYPE_REP,
-  EXERCISE_TYPE_STOPWATCH,
   isDurationExercise,
   normalizeExerciseType,
 } from "../../utils/exercise";
@@ -29,8 +31,10 @@ import {
   isSetStepType,
   normalizeStepType,
 } from "../../utils/step";
+import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
+const KEY_COOLDOWN_MS = 500;
 
 // makeSubsetId creates a stable client id for new subsets.
 function makeSubsetId() {
@@ -42,7 +46,6 @@ function makeStepId() {
   return `step-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-// WorkoutForm lets you create or edit a workout with steps/exercises.
 export type WorkoutFormProps = {
   onSave: (payload: { name: string; steps: WorkoutStep[] }) => Promise<void>;
   onUpdate?: (payload: {
@@ -70,6 +73,8 @@ export type WorkoutFormProps = {
   onToast?: (message: string) => void;
 };
 
+type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
+
 export function WorkoutForm({
   onSave,
   onUpdate,
@@ -92,72 +97,119 @@ export function WorkoutForm({
   const [name, setName] = useState(DEFAULT_WORKOUT_NAME);
   const [steps, setSteps] = useState<WorkoutStep[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const dragIndex = useRef<number | null>(null);
-  const dragExerciseRef = useRef<{
-    stepIdx: number;
-    subsetIdx: number;
-    idx: number;
-  } | null>(null);
+
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
   const [expandedRepeats, setExpandedRepeats] = useState<Set<number>>(
     new Set(),
   );
   const [repeatRestInputs, setRepeatRestInputs] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
-  const [exerciseSoundPicker, setExerciseSoundPicker] = useState<{
-    stepIdx: number;
-    subsetIdx: number;
-    exIdx: number;
-  } | null>(null);
-  const soundPopoverRef = useRef<HTMLDivElement | null>(null);
+
   const catalog = exerciseCatalog || [];
   const catalogByName = useMemo(
     () => new Map(catalog.map((entry) => [entry.name.toLowerCase(), entry])),
     [catalog],
   );
 
-  const createBlankSubset = (): WorkoutSubset => ({
-    id: makeSubsetId(),
-    name: "",
-    duration: "",
-    soundKey: defaultStepSoundKey,
-    superset: false,
-    exercises: [] as Exercise[],
-  });
+  const dragIndex = useRef<number | null>(null);
+  const dragExerciseRef = useRef<DragExercise | null>(null);
 
-  const markDirty = () => {
+  const soundPopoverRef = useRef<HTMLDivElement | null>(null);
+
+  // single “open popover” state to avoid per-row local state explosion
+  const [openSoundPicker, setOpenSoundPicker] = useState<{
+    stepIdx: number;
+    subsetIdx: number;
+    exIdx: number;
+  } | null>(null);
+
+  const keyCooldownRef = useRef<Record<string, number>>({});
+  const buttonCooldownTimersRef = useRef<Record<string, number | null>>({});
+
+  const createBlankSubset = useCallback(
+    (): WorkoutSubset => ({
+      id: makeSubsetId(),
+      name: "",
+      duration: "",
+      soundKey: defaultStepSoundKey,
+      superset: false,
+      exercises: [] as Exercise[],
+    }),
+    [defaultStepSoundKey],
+  );
+
+  const markDirty = useCallback(() => {
     setDirty(true);
     onDirtyChange?.(true);
-  };
+  }, [onDirtyChange]);
 
-  const mutateSubsets = (
-    stepIdx: number,
-    mutator: (subsets: WorkoutSubset[]) => WorkoutSubset[],
-  ) => {
-    setSteps((prev) =>
-      prev.map((step, idx) => {
-        if (idx !== stepIdx) return step;
-        const subsets = mutator(step.subsets || []);
-        return { ...step, subsets };
-      }),
-    );
-    markDirty();
-  };
+  const mutateSubsets = useCallback(
+    (
+      stepIdx: number,
+      mutator: (subsets: WorkoutSubset[]) => WorkoutSubset[],
+    ) => {
+      setSteps((prev) =>
+        prev.map((step, idx) => {
+          if (idx !== stepIdx) return step;
+          const subsets = mutator(step.subsets || []);
+          return { ...step, subsets };
+        }),
+      );
+      markDirty();
+    },
+    [markDirty],
+  );
 
   // Dismiss the exercise sound popover on outside clicks.
   useEffect(() => {
-    if (!exerciseSoundPicker) return;
-    // handleClick closes the sound popover when clicking away.
+    if (!openSoundPicker) return;
+
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (soundPopoverRef.current?.contains(target)) return;
       if (target.closest(".sound-popover-toggle")) return;
-      setExerciseSoundPicker(null);
+      setOpenSoundPicker(null);
     };
+
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [exerciseSoundPicker]);
+  }, [openSoundPicker]);
+
+  // Clear button cooldown timers on unmount.
+  useEffect(() => {
+    return () => {
+      Object.values(buttonCooldownTimersRef.current).forEach((timer) => {
+        if (timer) window.clearTimeout(timer);
+      });
+    };
+  }, []);
+
+  const now = () => Date.now();
+
+  const tryConsumeKey = useCallback(
+    (code: string, button?: HTMLButtonElement | null) => {
+      const ts = now();
+      const last = keyCooldownRef.current[code];
+      if (last && ts - last < KEY_COOLDOWN_MS) return false;
+
+      keyCooldownRef.current[code] = ts;
+
+      if (button) {
+        button.classList.add("key-cooldown");
+        const existing = buttonCooldownTimersRef.current[code];
+        if (existing) window.clearTimeout(existing);
+
+        buttonCooldownTimersRef.current[code] = window.setTimeout(() => {
+          button.classList.remove("key-cooldown");
+          buttonCooldownTimersRef.current[code] = null;
+        }, KEY_COOLDOWN_MS);
+      }
+
+      return true;
+    },
+    [],
+  );
 
   // Normalize incoming workout data when editing or starting fresh.
   useEffect(() => {
@@ -175,6 +227,7 @@ export function WorkoutForm({
 
     setEditingId(editingWorkout.id);
     setName(editingWorkout.name);
+
     setSteps(
       (editingWorkout.steps || []).map((s) => {
         const subsets =
@@ -183,6 +236,7 @@ export function WorkoutForm({
             : isSetStepType(s.type)
               ? [createBlankSubset()]
               : [];
+
         const normalizedSubsets = subsets.map((subset) => ({
           ...subset,
           id: subset.id || makeSubsetId(),
@@ -204,6 +258,7 @@ export function WorkoutForm({
         }));
 
         const stepType = normalizeStepType(s.type);
+
         const step: WorkoutStep = {
           ...s,
           id: s.id || makeStepId(),
@@ -227,25 +282,31 @@ export function WorkoutForm({
               : true,
         };
 
-        if (isPauseStepType(step.type)) {
-          step.subsets = [];
-        }
+        if (isPauseStepType(step.type)) step.subsets = [];
         return step;
       }),
     );
+
     setRepeatRestInputs(
       (editingWorkout.steps || []).map((s) =>
         s.repeatRestSeconds ? `${s.repeatRestSeconds}s` : "",
       ),
     );
+
     setDirty(false);
     setExpandedRepeats(new Set());
     onDirtyChange?.(false);
-  }, [editingWorkout, onDirtyChange, repeatRestAfterLastDefault]);
+  }, [
+    editingWorkout,
+    onDirtyChange,
+    repeatRestAfterLastDefault,
+    createBlankSubset,
+  ]);
 
   // Resolve catalog exercise IDs when the catalog loads.
   useEffect(() => {
     if (!catalog.length) return;
+
     setSteps((prev) =>
       prev.map((step) => ({
         ...step,
@@ -262,7 +323,6 @@ export function WorkoutForm({
     );
   }, [catalogByName, catalog.length]);
 
-  // addStep appends a new default step and expands it for editing.
   const addStep = () =>
     setSteps((prev) => {
       const newStep: WorkoutStep = {
@@ -276,6 +336,7 @@ export function WorkoutForm({
         repeatRestAutoAdvance: true,
         subsets: [createBlankSubset()],
       };
+
       const next = [...prev, newStep];
       setExpandedSteps((exp) => new Set(exp).add(next.length - 1));
       setRepeatRestInputs((inputs) => [...inputs, ""]);
@@ -283,7 +344,6 @@ export function WorkoutForm({
       return next;
     });
 
-  // updateStep merges a partial update into a step at an index.
   const updateStep = (idx: number, patch: Partial<WorkoutStep>) => {
     setSteps((prev) =>
       prev.map((step, i) => (i === idx ? { ...step, ...patch } : step)),
@@ -317,24 +377,25 @@ export function WorkoutForm({
     });
   };
 
-  // removeStep deletes a step by index and collapses it.
   const removeStep = (idx: number) => {
     setSteps((prev) => prev.filter((_, i) => i !== idx));
+
     setExpandedSteps((prev) => {
       const next = new Set(prev);
       next.delete(idx);
       return next;
     });
+
     setExpandedRepeats((prev) => {
       const next = new Set(prev);
       next.delete(idx);
       return next;
     });
+
     setRepeatRestInputs((prev) => prev.filter((_, i) => i !== idx));
     markDirty();
   };
 
-  // moveStep reorders a step by a delta offset.
   const moveStep = (index: number, delta: number) => {
     setSteps((prev) => {
       const next = [...prev];
@@ -344,6 +405,7 @@ export function WorkoutForm({
       next.splice(target, 0, item);
       return next;
     });
+
     setRepeatRestInputs((prev) => {
       const next = [...prev];
       const target = index + delta;
@@ -352,22 +414,18 @@ export function WorkoutForm({
       next.splice(target, 0, item);
       return next;
     });
+
     markDirty();
   };
 
-  // toggleRepeatOptions expands or collapses the repeat settings for a step.
   const toggleRepeatOptions = (idx: number) =>
     setExpandedRepeats((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) {
-        next.delete(idx);
-      } else {
-        next.add(idx);
-      }
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
       return next;
     });
 
-  // moveExercise reorders an exercise inside a step.
   const moveExercise = (
     stepIdx: number,
     subsetIdx: number,
@@ -377,9 +435,11 @@ export function WorkoutForm({
     setSteps((prev) =>
       prev.map((step, idx) => {
         if (idx !== stepIdx) return step;
+
         const subsets = [...(step.subsets || [])];
         const subset = subsets[subsetIdx];
         if (!subset) return step;
+
         const updated = [...(subset.exercises || [])];
         const [item] = updated.splice(from, 1);
         updated.splice(to, 0, item);
@@ -390,7 +450,6 @@ export function WorkoutForm({
     markDirty();
   };
 
-  // updateExercise mutates an exercise at an index within a step.
   const updateExercise = (
     stepIdx: number,
     subsetIdx: number,
@@ -400,9 +459,11 @@ export function WorkoutForm({
     setSteps((prev) =>
       prev.map((step, idx) => {
         if (idx !== stepIdx) return step;
+
         const subsets = [...(step.subsets || [])];
         const subset = subsets[subsetIdx];
         if (!subset) return step;
+
         const updated = [...(subset.exercises || [])];
         updated[exIdx] = { ...updated[exIdx], ...patch };
         subsets[subsetIdx] = { ...subset, exercises: updated };
@@ -412,15 +473,16 @@ export function WorkoutForm({
     markDirty();
   };
 
-  // addExercise appends a blank exercise row to a step.
   const addExercise = (stepIdx: number, subsetIdx: number) => {
     setSteps((prev) =>
       prev.map((step, idx) => {
         if (idx !== stepIdx) return step;
+
         const subsets = [...(step.subsets || [])];
         const subset = subsets[subsetIdx];
         if (!subset) return step;
-        const exercises = [
+
+        const exercises: Exercise[] = [
           ...(subset.exercises || []),
           {
             name: "",
@@ -432,6 +494,7 @@ export function WorkoutForm({
             soundKey: "",
           },
         ];
+
         subsets[subsetIdx] = { ...subset, exercises };
         return { ...step, subsets };
       }),
@@ -439,7 +502,6 @@ export function WorkoutForm({
     markDirty();
   };
 
-  // removeExercise deletes an exercise row.
   const removeExercise = (
     stepIdx: number,
     subsetIdx: number,
@@ -448,11 +510,14 @@ export function WorkoutForm({
     setSteps((prev) =>
       prev.map((step, idx) => {
         if (idx !== stepIdx) return step;
+
         const subsets = [...(step.subsets || [])];
         const subset = subsets[subsetIdx];
         if (!subset) return step;
+
         const updated = [...(subset.exercises || [])];
         updated.splice(exIdx, 1);
+
         subsets[subsetIdx] = { ...subset, exercises: updated };
         return { ...step, subsets };
       }),
@@ -467,7 +532,6 @@ export function WorkoutForm({
     [],
   );
 
-  // renderRepeatToggle shows the repeat options trigger next to action buttons.
   function renderRepeatToggle(idx: number, step: WorkoutStep) {
     return (
       <>
@@ -487,9 +551,9 @@ export function WorkoutForm({
     );
   }
 
-  // renderRepeatFields shows expanded repeat settings under the action row.
   function renderRepeatFields(idx: number, step: WorkoutStep) {
     if (!expandedRepeats.has(idx)) return null;
+
     return (
       <>
         <div className="field">
@@ -499,12 +563,11 @@ export function WorkoutForm({
             min={1}
             value={step.repeatCount ?? 1}
             onChange={(e) =>
-              updateStep(idx, {
-                repeatCount: Number(e.target.value || 1),
-              })
+              updateStep(idx, { repeatCount: Number(e.target.value || 1) })
             }
           />
         </div>
+
         {Boolean(step.repeatCount && step.repeatCount > 1) && (
           <>
             <div className="divider" />
@@ -512,6 +575,7 @@ export function WorkoutForm({
             <div className="muted small hint">
               Configure the break between repeat rounds.
             </div>
+
             <div className="field">
               <label>{durationLabel.pause}</label>
               <input
@@ -532,248 +596,33 @@ export function WorkoutForm({
                 }}
               />
             </div>
+
+            <PauseOptionsField
+              autoAdvance={Boolean(step.repeatRestAutoAdvance)}
+              soundKey={step.repeatRestSoundKey || ""}
+              sounds={sounds}
+              onAutoAdvanceChange={(value) =>
+                updateStep(idx, { repeatRestAutoAdvance: value })
+              }
+              onSoundChange={(value) =>
+                updateStep(idx, { repeatRestSoundKey: value })
+              }
+              extra={
+                <label className="field checkbox">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(step.repeatRestAfterLast)}
+                    onChange={(e) =>
+                      updateStep(idx, { repeatRestAfterLast: e.target.checked })
+                    }
+                  />
+                  <span>Pause after last repeat</span>
+                </label>
+              }
+            />
           </>
         )}
-        {Boolean(step.repeatCount && step.repeatCount > 1) && (
-          <PauseOptionsField
-            autoAdvance={Boolean(step.repeatRestAutoAdvance)}
-            soundKey={step.repeatRestSoundKey || ""}
-            sounds={sounds}
-            onAutoAdvanceChange={(value) =>
-              updateStep(idx, { repeatRestAutoAdvance: value })
-            }
-            onSoundChange={(value) =>
-              updateStep(idx, { repeatRestSoundKey: value })
-            }
-            extra={
-              <label className="field checkbox">
-                <input
-                  type="checkbox"
-                  checked={Boolean(step.repeatRestAfterLast)}
-                  onChange={(e) =>
-                    updateStep(idx, {
-                      repeatRestAfterLast: e.target.checked,
-                    })
-                  }
-                />
-                <span>Pause after last repeat</span>
-              </label>
-            }
-          />
-        )}
       </>
-    );
-  }
-
-  function renderExerciseRow(
-    stepIdx: number,
-    subsetIdx: number,
-    exIdx: number,
-    ex: Exercise,
-  ) {
-    const kind = normalizeExerciseType(ex.type);
-    const showDuration = isDurationExercise(kind);
-    const amountLabel = showDuration ? "Duration" : "Reps";
-    const amountPlaceholder = showDuration ? "e.g. 45s" : "12";
-    const repsValue = (ex.reps || "").trim();
-    const durationValue = (ex.duration || "").trim();
-    const soundKey = (ex.soundKey || "").trim();
-    const soundLabel =
-      sounds.find((sound) => sound.key === soundKey)?.label || "Sound";
-    const soundSummary = soundKey ? soundLabel : "Subset sound";
-    const soundOpen =
-      exerciseSoundPicker?.stepIdx === stepIdx &&
-      exerciseSoundPicker?.subsetIdx === subsetIdx &&
-      exerciseSoundPicker?.exIdx === exIdx;
-    const repsInvalid =
-      !showDuration && repsValue !== "" && !isRepRange(repsValue);
-    const durationInvalid =
-      showDuration && durationValue !== "" && !isGoDuration(durationValue);
-
-    return (
-      <div
-        key={exIdx}
-        className="exercise-row"
-        draggable
-        onDragStart={(e) => {
-          e.stopPropagation();
-          dragExerciseRef.current = { stepIdx, subsetIdx, idx: exIdx };
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          const dragData = dragExerciseRef.current;
-          if (
-            !dragData ||
-            dragData.stepIdx !== stepIdx ||
-            dragData.subsetIdx !== subsetIdx
-          ) {
-            return;
-          }
-          if (dragData.idx === exIdx) return;
-          moveExercise(stepIdx, subsetIdx, dragData.idx, exIdx);
-          dragExerciseRef.current = { stepIdx, subsetIdx, idx: exIdx };
-        }}
-        onDragEnd={() => {
-          dragExerciseRef.current = null;
-        }}
-      >
-        <div className="field">
-          <label>Exercise</label>
-          <ExerciseSelect
-            catalog={catalog}
-            value={{ exerciseId: ex.exerciseId, name: ex.name }}
-            onSelect={(selected) =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                name: selected.name,
-                exerciseId: selected.id,
-              })
-            }
-            onClear={() =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                name: "",
-                exerciseId: "",
-              })
-            }
-            onAddNew={async () => {
-              const newName = await promptUser("Exercise name");
-              if (!newName || !newName.trim()) return;
-              try {
-                const created = await onCreateExercise(newName.trim());
-                updateExercise(stepIdx, subsetIdx, exIdx, {
-                  name: created.name,
-                  exerciseId: created.id,
-                });
-              } catch (err: any) {
-                await notifyUser(err.message || "Unable to create exercise");
-              }
-            }}
-          />
-        </div>
-        <div className="field compact">
-          <label>Exercise type</label>
-          <select
-            value={kind}
-            onChange={(e) =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                type: e.target.value as Exercise["type"],
-              })
-            }
-          >
-            <option value={EXERCISE_TYPE_REP}>Reps</option>
-            <option value={EXERCISE_TYPE_STOPWATCH}>Stopwatch</option>
-            <option value={EXERCISE_TYPE_COUNTDOWN}>Countdown</option>
-          </select>
-        </div>
-        <div className="field compact">
-          <label>{amountLabel}</label>
-          <input
-            value={showDuration ? ex.duration || "" : ex.reps || ""}
-            onChange={(e) =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                ...(showDuration
-                  ? { duration: e.target.value }
-                  : { reps: e.target.value }),
-              })
-            }
-            className={
-              repsInvalid || durationInvalid ? "input-error" : undefined
-            }
-            placeholder={amountPlaceholder}
-          />
-          {repsInvalid && <div className="helper error">Use 8 or 8-10</div>}
-          {durationInvalid && (
-            <div className="helper error">
-              Use Go duration like 45s or 1m30s
-            </div>
-          )}
-        </div>
-        <div className="field compact">
-          <label>Weight</label>
-          <input
-            value={ex.weight || ""}
-            onChange={(e) =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                weight: e.target.value,
-              })
-            }
-            placeholder="10kg"
-          />
-        </div>
-        <div className="field action compact sound">
-          <label>Sound</label>
-          <button
-            className={[
-              "btn",
-              "subtle",
-              "tiny",
-              "sound-popover-toggle",
-              "exercise-sound-button",
-              soundKey ? "is-override" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            type="button"
-            title={`Sound: ${soundSummary}`}
-            data-label={soundSummary}
-            onClick={() =>
-              setExerciseSoundPicker((prev) =>
-                prev &&
-                prev.stepIdx === stepIdx &&
-                prev.subsetIdx === subsetIdx &&
-                prev.exIdx === exIdx
-                  ? null
-                  : { stepIdx, subsetIdx, exIdx },
-              )
-            }
-          >
-            <SoundIcon />
-          </button>
-          {soundOpen && (
-            <div ref={soundPopoverRef} className="sound-popover">
-              <div className="sound-popover-title">Exercise sound</div>
-              <button
-                className="sound-popover-option"
-                type="button"
-                onClick={() => {
-                  updateExercise(stepIdx, subsetIdx, exIdx, { soundKey: "" });
-                  setExerciseSoundPicker(null);
-                }}
-              >
-                Use subset sound
-              </button>
-              {sounds.map((sound) => (
-                <button
-                  key={sound.key}
-                  className="sound-popover-option"
-                  type="button"
-                  onClick={() => {
-                    updateExercise(stepIdx, subsetIdx, exIdx, {
-                      soundKey: sound.key,
-                    });
-                    setExerciseSoundPicker(null);
-                  }}
-                >
-                  {sound.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="field action compact">
-          <button
-            className="btn icon delete mobile-full"
-            type="button"
-            onClick={() => removeExercise(stepIdx, subsetIdx, exIdx)}
-            title="Remove exercise"
-          >
-            <span className="desktop-only">
-              <TrashIcon />
-            </span>
-            <span className="mobile-only">Remove exercise</span>
-          </button>
-        </div>
-      </div>
     );
   }
 
@@ -801,150 +650,48 @@ export function WorkoutForm({
           </div>
         )}
 
-        {subsets.map((subset, subsetIdx) => {
-          const targetDurationValue = (subset.duration || "").trim();
-          const targetDurationInvalid =
-            targetDurationValue !== "" && !isGoDuration(targetDurationValue);
-          const hasMultiple = subsets.length > 1;
-          const subsetLabel = subset.name?.trim() || `Subset ${subsetIdx + 1}`;
-          const subsetExercises = subset.exercises || [];
-          const isSuperset = Boolean(subset.superset);
-          return (
-            <div
-              key={subset.id || `${idx}-${subsetIdx}`}
-              className="stack"
-              style={{
-                gap: 8,
-                borderBottom: "1px solid #eee",
-                paddingBottom: 16,
-              }}
-            >
-              {hasMultiple && (
-                <div className="set-header">
-                  <strong>{subsetLabel}</strong>
-                  <div className="subset-actions">
-                    <label
-                      className="switch superset-toggle"
-                      title="Superset: Next moves to the next subset."
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSuperset}
-                        onChange={(event) =>
-                          updateSubset(idx, subsetIdx, {
-                            superset: event.target.checked,
-                          })
-                        }
-                      />
-                      <span className="switch-slider" aria-hidden="true" />
-                      <span className="switch-label">Superset</span>
-                    </label>
-                    <button
-                      className="btn icon delete icon-only"
-                      type="button"
-                      onClick={() => removeSubset(idx, subsetIdx)}
-                      disabled={subsets.length <= 1}
-                      title="Remove subset"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="field">
-                <label>Name (optional)</label>
-                <input
-                  value={subset.name}
-                  onChange={(event) =>
-                    updateSubset(idx, subsetIdx, { name: event.target.value })
-                  }
-                />
-              </div>
-              <div className="field">
-                <label>Target time (optional, e.g. 45s)</label>
-                <input
-                  value={subset.duration || ""}
-                  onChange={(event) =>
-                    updateSubset(idx, subsetIdx, {
-                      duration: event.target.value,
-                    })
-                  }
-                  className={targetDurationInvalid ? "input-error" : undefined}
-                />
-                {targetDurationInvalid && (
-                  <div className="helper error">
-                    Use Go duration like 45s or 1m30s
-                  </div>
-                )}
-              </div>
-              <div className="field">
-                <label>Sound</label>
-                <select
-                  value={subset.soundKey || ""}
-                  onChange={(event) =>
-                    updateSubset(idx, subsetIdx, {
-                      soundKey: event.target.value,
-                    })
-                  }
-                >
-                  <option value="">None</option>
-                  {sounds.map((sound) => (
-                    <option key={sound.key} value={sound.key}>
-                      {sound.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {!hasMultiple && (
-                <div className="subset-actions superset-toggle-row">
-                  <label
-                    className="switch superset-toggle"
-                    title="Superset: Next moves to the next subset."
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSuperset}
-                      onChange={(event) =>
-                        updateSubset(idx, subsetIdx, {
-                          superset: event.target.checked,
-                        })
-                      }
-                    />
-                    <span className="switch-slider" aria-hidden="true" />
-                    <span className="switch-label">Superset</span>
-                  </label>
-                </div>
-              )}
-
-              {subsetExercises.length ? (
-                subsetExercises.map((exercise, exIdx) =>
-                  renderExerciseRow(idx, subsetIdx, exIdx, exercise),
-                )
-              ) : (
-                <div className="muted small">
-                  Add at least one exercise for this subset.
-                </div>
-              )}
-
-              <div className="btn-group">
-                <button
-                  className="btn outline"
-                  type="button"
-                  onClick={() => addExercise(idx, subsetIdx)}
-                >
-                  Add Exercise
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {subsets.map((subset, subsetIdx) => (
+          <WorkoutSubsetEditor
+            key={subset.id || `${idx}-${subsetIdx}`}
+            stepIdx={idx}
+            step={step}
+            subset={subset}
+            subsetIdx={subsetIdx}
+            subsetsLength={subsets.length}
+            sounds={sounds}
+            catalog={catalog}
+            addExercise={addExercise}
+            removeSubset={removeSubset}
+            updateSubset={updateSubset}
+            updateExercise={updateExercise}
+            removeExercise={removeExercise}
+            dragExerciseRef={dragExerciseRef}
+            moveExercise={moveExercise}
+            soundPopoverRef={soundPopoverRef}
+            isSoundOpen={(s, sub, ex) =>
+              Boolean(
+                openSoundPicker &&
+                  openSoundPicker.stepIdx === s &&
+                  openSoundPicker.subsetIdx === sub &&
+                  openSoundPicker.exIdx === ex,
+              )
+            }
+            setSoundOpen={(s, sub, ex, open) =>
+              setOpenSoundPicker(
+                open ? { stepIdx: s, subsetIdx: sub, exIdx: ex } : null,
+              )
+            }
+            promptUser={promptUser}
+            onCreateExercise={onCreateExercise}
+            notifyUser={notifyUser}
+          />
+        ))}
 
         {renderRepeatFields(idx, step)}
       </div>
     );
   }
 
-  // submit validates and saves the workout.
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!userId) {
@@ -955,32 +702,42 @@ export function WorkoutForm({
     const cleanSteps: WorkoutStep[] = steps
       .filter((s) => s.name.trim())
       .map((s, idx) => {
+        const type = normalizeStepType(s.type);
+
         const autoAdvance =
-          isPauseStepType(s.type) && s.pauseOptions?.autoAdvance;
-        const cleanSubsets = isSetStepType(s.type)
+          isPauseStepType(type) && s.pauseOptions?.autoAdvance;
+        const cleanSubsets = isSetStepType(type)
           ? (s.subsets || []).map((subset) => ({
               id: subset.id || makeSubsetId(),
               name: subset.name?.trim() || "",
               duration: subset.duration?.trim() || "",
               soundKey: subset.soundKey?.trim() || "",
               superset: Boolean(subset.superset),
-              exercises: (subset.exercises || []).map((ex) => {
-                const type = normalizeExerciseType(ex.type) as Exercise["type"];
-                return {
-                  exerciseId: ex.exerciseId,
-                  name: ex.name.trim(),
-                  type,
-                  reps: type === EXERCISE_TYPE_REP ? ex.reps?.trim() || "" : "",
-                  weight: ex.weight?.trim() || "",
-                  duration:
-                    type === EXERCISE_TYPE_REP ? "" : ex.duration?.trim() || "",
-                  soundKey: ex.soundKey?.trim() || "",
-                };
-              }),
+              exercises: (subset.exercises || [])
+                .map((ex) => {
+                  const exType = normalizeExerciseType(
+                    ex.type,
+                  ) as Exercise["type"];
+                  const isDur = isDurationExercise(exType);
+
+                  return {
+                    exerciseId: ex.exerciseId,
+                    name: ex.name.trim(),
+                    type: exType,
+                    reps:
+                      exType === EXERCISE_TYPE_REP ? ex.reps?.trim() || "" : "",
+                    weight: ex.weight?.trim() || "",
+                    duration: isDur ? ex.duration?.trim() || "" : "",
+                    soundKey: ex.soundKey?.trim() || "",
+                  };
+                })
+                .filter((ex) => ex.name.trim()),
             }))
           : [];
+
         return {
           ...s,
+          type,
           order: idx,
           pauseOptions: autoAdvance ? { autoAdvance: true } : undefined,
           duration: s.duration?.trim() || "",
@@ -1005,6 +762,7 @@ export function WorkoutForm({
       await notifyUser("Add at least one step.");
       return;
     }
+
     try {
       if (editingId && onUpdate) {
         await onUpdate({ id: editingId, name: name.trim(), steps: cleanSteps });
@@ -1019,15 +777,33 @@ export function WorkoutForm({
     }
   };
 
+  // Optional: keyboard QoL (consistent cooldown)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
+      if (e.code === "Enter") {
+        if (!dirty) return;
+        if (!tryConsumeKey("Enter")) return;
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [dirty, tryConsumeKey]);
+
   return (
     <form className="panel" onSubmit={submit}>
       <div className="panel-header with-close">
         <div>
           <p className="label">{editingId ? "Edit workout" : "New workout"}</p>
         </div>
+
         <button className="btn primary" type="submit" disabled={!dirty}>
           {editingId ? "Update Workout" : "Save Workout"}
         </button>
+
         {onClose && (
           <button
             className="btn icon close-btn"
@@ -1039,6 +815,7 @@ export function WorkoutForm({
           </button>
         )}
       </div>
+
       <div className="field">
         <label>Workout name</label>
         <input
@@ -1051,7 +828,7 @@ export function WorkoutForm({
           required
         />
       </div>
-      {/* Workout steps list */}
+
       <div className="steps">
         {steps.map((step, idx) => {
           const exerciseSummary = (step.subsets || [])
@@ -1059,10 +836,12 @@ export function WorkoutForm({
             .map((ex) => formatExerciseLine(ex))
             .filter(Boolean)
             .join(" | ");
+
           const subsetNames = (step.subsets || [])
             .map((subset) => subset.name?.trim())
             .filter(Boolean)
             .join(" | ");
+
           return (
             <div
               key={idx}
@@ -1073,29 +852,24 @@ export function WorkoutForm({
                 e.preventDefault();
                 if (dragIndex.current === null || dragIndex.current === idx)
                   return;
+
                 const from = dragIndex.current;
                 const to = idx;
+
                 setSteps((prev) => {
                   const next = [...prev];
                   const [item] = next.splice(from, 1);
                   next.splice(to, 0, item);
-                  setExpandedSteps((exp) => {
-                    const updated = new Set<number>();
-                    next.forEach((_, i) => {
-                      if (exp.has(i === to ? from : i === from ? to : i)) {
-                        updated.add(i);
-                      }
-                    });
-                    return updated;
-                  });
                   return next;
                 });
+
                 setRepeatRestInputs((prev) => {
                   const next = [...prev];
                   const [item] = next.splice(from, 1);
                   next.splice(to, 0, item);
                   return next;
                 });
+
                 dragIndex.current = idx;
                 markDirty();
               }}
@@ -1116,28 +890,29 @@ export function WorkoutForm({
                 <span className="chevron">
                   {expandedSteps.has(idx) ? "▼" : "▶"}
                 </span>
+
                 <select
                   value={step.type}
                   onChange={(e) => {
                     const nextType = e.target.value as WorkoutStep["type"];
                     const patch: Partial<WorkoutStep> = { type: nextType };
+
                     if (nextType === "pause") {
-                      if (!step.duration) {
+                      if (!step.duration)
                         patch.duration = defaultPauseDuration || "";
-                      }
-                      if (!step.soundKey) {
+                      if (!step.soundKey)
                         patch.soundKey =
                           defaultPauseSoundKey || defaultStepSoundKey || "";
-                      }
-                      if (defaultPauseAutoAdvance) {
+
+                      if (defaultPauseAutoAdvance)
                         patch.pauseOptions = { autoAdvance: true };
-                      } else {
-                        patch.pauseOptions = undefined;
-                      }
+                      else patch.pauseOptions = undefined;
+
                       patch.subsets = [];
                     } else {
                       patch.pauseOptions = undefined;
                     }
+
                     updateStep(idx, patch);
                   }}
                 >
@@ -1154,6 +929,7 @@ export function WorkoutForm({
                     Pause
                   </option>
                 </select>
+
                 <button
                   className="btn icon icon-only move"
                   type="button"
@@ -1163,6 +939,7 @@ export function WorkoutForm({
                 >
                   <ArrowUpIcon />
                 </button>
+
                 <button
                   className="btn icon icon-only move"
                   type="button"
@@ -1172,11 +949,12 @@ export function WorkoutForm({
                 >
                   <ArrowDownIcon />
                 </button>
+
                 <button
                   className="btn icon delete icon-only"
                   type="button"
                   onClick={() => removeStep(idx)}
-                  title="Remove set"
+                  title="Remove step"
                 >
                   <TrashIcon />
                 </button>
@@ -1212,6 +990,7 @@ export function WorkoutForm({
                       required={!isPauseStepType(step.type)}
                     />
                   </div>
+
                   {isPauseStepType(step.type) && (
                     <div className="field">
                       <label>{durationLabel.pause}</label>
@@ -1220,9 +999,22 @@ export function WorkoutForm({
                         onChange={(e) =>
                           updateStep(idx, { duration: e.target.value })
                         }
+                        className={
+                          (step.duration || "").trim() !== "" &&
+                          !isGoDuration((step.duration || "").trim())
+                            ? "input-error"
+                            : undefined
+                        }
                       />
+                      {(step.duration || "").trim() !== "" &&
+                        !isGoDuration((step.duration || "").trim()) && (
+                          <div className="helper error">
+                            Use Go duration like 45s or 1m30s
+                          </div>
+                        )}
                     </div>
                   )}
+
                   {isPauseStepType(step.type) && (
                     <PauseOptionsField
                       autoAdvance={Boolean(step.pauseOptions?.autoAdvance)}
@@ -1238,6 +1030,7 @@ export function WorkoutForm({
                       }
                     />
                   )}
+
                   {isSetStepType(step.type) && renderSubsetEditor(idx, step)}
                 </div>
               )}
@@ -1245,6 +1038,7 @@ export function WorkoutForm({
           );
         })}
       </div>
+
       <button className="btn outline" type="button" onClick={addStep}>
         Add Step
       </button>

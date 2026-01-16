@@ -1,125 +1,159 @@
 import { useCallback } from "react";
-
-import { deleteWorkout, shareTemplate } from "../api";
 import type { AskConfirmOptions, Workout } from "../types";
 
-// UseWorkoutActionsArgs wires workout list actions.
 type UseWorkoutActionsArgs = {
   workouts: Workout[];
-  editingWorkout: Workout | null;
+
   selectedWorkoutId: string | null;
+
   setEditingWorkout: (workout: Workout | null) => void;
-  setShowWorkoutForm: (open: boolean) => void;
   setSelectedWorkoutId: (id: string | null) => void;
+
   setWorkouts: (updater: (prev: Workout[] | null) => Workout[] | null) => void;
+
+  // Dialog helpers (match useDialog)
   askConfirm: (
     message: string,
     options?: AskConfirmOptions,
   ) => Promise<boolean>;
   askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
+
   notify: (message: string) => Promise<void>;
-  templatesReload: () => void;
+
+  // Optional: refresh templates list after “share”
+  templatesReload?: () => void;
+
+  /**
+   * Optional persistence hooks.
+   * If you already have API helpers (delete/share endpoints), plug them in here
+   * without changing the UI components.
+   */
+  deleteWorkoutApi?: (workoutId: string) => Promise<void>;
+  shareWorkoutApi?: (workoutId: string) => Promise<void>;
 };
 
-// useWorkoutActions provides handlers for workout list actions.
+/**
+ * useWorkoutActions wires up list-level actions for the workouts view:
+ * - new / edit selection
+ * - delete / share (optional persistence)
+ *
+ * IMPORTANT: This hook does NOT open/close modals or own UI state.
+ * UI components decide when to show the editor.
+ */
 export function useWorkoutActions({
   workouts,
-  editingWorkout,
   selectedWorkoutId,
   setEditingWorkout,
-  setShowWorkoutForm,
   setSelectedWorkoutId,
   setWorkouts,
   askConfirm,
   askPrompt,
   notify,
   templatesReload,
+  deleteWorkoutApi,
+  shareWorkoutApi,
 }: UseWorkoutActionsArgs) {
-  // newWorkout opens the workout creation modal.
   const newWorkout = useCallback(() => {
+    setSelectedWorkoutId(null);
     setEditingWorkout(null);
-    setShowWorkoutForm(true);
-  }, [setEditingWorkout, setShowWorkoutForm]);
+  }, [setEditingWorkout, setSelectedWorkoutId]);
 
-  // editWorkout opens the modal for the selected workout.
-  const editWorkout = useCallback(
-    (workoutId: string) => {
-      const found = workouts.find((w) => w.id === workoutId);
-      if (found) {
-        setEditingWorkout(found);
-        setShowWorkoutForm(true);
-      }
-    },
-    [workouts, setEditingWorkout, setShowWorkoutForm],
-  );
-
-  // editWorkoutFromList selects a workout and opens the modal.
   const editWorkoutFromList = useCallback(
     (workoutId: string) => {
+      const found = workouts.find((w) => w.id === workoutId) || null;
       setSelectedWorkoutId(workoutId);
-      editWorkout(workoutId);
-      setShowWorkoutForm(true);
+      setEditingWorkout(found);
     },
-    [editWorkout, setSelectedWorkoutId, setShowWorkoutForm],
+    [setEditingWorkout, setSelectedWorkoutId, workouts],
   );
 
-  // removeWorkout deletes a workout after confirmation.
   const removeWorkout = useCallback(
     async (workoutId: string) => {
-      const target = workouts.find((w) => w.id === workoutId);
-      const name = target?.name || "this workout";
-      const ok = await askConfirm(`Delete ${name}? This cannot be undone.`);
+      const workout = workouts.find((w) => w.id === workoutId);
+      const label = workout?.name ? `“${workout.name}”` : "this workout";
+
+      const ok = await askConfirm(`Delete ${label}?`);
       if (!ok) return;
+
       try {
-        // Delete on the server before updating local state.
-        await deleteWorkout(workoutId);
+        if (deleteWorkoutApi) {
+          await deleteWorkoutApi(workoutId);
+        }
+
+        // Always update local list so UI reflects deletion immediately.
         setWorkouts((prev) =>
           prev ? prev.filter((w) => w.id !== workoutId) : prev,
         );
+
+        // Clear selection if we deleted the selected workout.
         if (selectedWorkoutId === workoutId) {
           setSelectedWorkoutId(null);
-        }
-        if (editingWorkout?.id === workoutId) {
           setEditingWorkout(null);
-          setShowWorkoutForm(false);
         }
+
+        await notify("Workout deleted.");
       } catch (err: any) {
-        await notify(err.message || "Unable to delete workout");
+        await notify(err?.message || "Unable to delete workout");
       }
     },
     [
-      workouts,
       askConfirm,
-      setWorkouts,
-      editingWorkout?.id,
+      deleteWorkoutApi,
+      notify,
       selectedWorkoutId,
       setEditingWorkout,
-      setShowWorkoutForm,
       setSelectedWorkoutId,
-      notify,
+      setWorkouts,
+      workouts,
     ],
   );
 
-  // shareWorkout publishes a workout as a template.
   const shareWorkout = useCallback(
     async (workoutId: string) => {
-      const name = await askPrompt("Template name (optional)");
-      if (name === null) return;
+      const workout = workouts.find((w) => w.id === workoutId);
+      if (!workout) {
+        await notify("Workout not found.");
+        return;
+      }
+
+      // If you have a real share endpoint, prefer it.
+      if (shareWorkoutApi) {
+        try {
+          await shareWorkoutApi(workoutId);
+          templatesReload?.();
+          await notify("Shared.");
+          return;
+        } catch (err: any) {
+          await notify(err?.message || "Unable to share workout");
+          return;
+        }
+      }
+
+      // Fallback: “share” by copying JSON to clipboard.
+      const name = workout.name || "Workout";
+      const defaultValue = `${name} (template)`;
+      const templateName = await askPrompt("Template name", defaultValue);
+      if (templateName === null) return;
+
+      const payload = {
+        ...workout,
+        name: templateName.trim() || name,
+        isTemplate: true,
+      };
+
       try {
-        // Share then refresh template list for immediate visibility.
-        await shareTemplate(workoutId, name.trim());
-        templatesReload();
-        await notify("Template shared.");
+        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+        templatesReload?.();
+        await notify("Template copied to clipboard.");
       } catch (err: any) {
-        await notify(err.message || "Unable to share template");
+        await notify(err?.message || "Unable to copy to clipboard");
       }
     },
-    [askPrompt, notify, templatesReload],
+    [askPrompt, notify, shareWorkoutApi, templatesReload, workouts],
   );
 
   return {
     newWorkout,
-    editWorkout,
     editWorkoutFromList,
     removeWorkout,
     shareWorkout,
