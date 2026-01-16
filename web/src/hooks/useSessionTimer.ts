@@ -365,20 +365,17 @@ export function useSessionTimer({
     () => initialSession,
   );
 
-  // Render clock at 10Hz without mutating session state constantly.
+  // Render clock driven by RAF while running (avoids interval clamping).
   const [nowMs, setNowMs] = useState(() => now());
+  const rafIdRef = useRef<number | null>(null);
 
   const sessionRef = useRef<NormalizedState | null>(initialSession);
-  const tickTimerRef = useRef<number | null>(null);
 
   // Auto-advance scheduler.
   const autoAdvanceRef = useRef<{
     timeoutId: number | null;
     key: string | null;
-  }>({
-    timeoutId: null,
-    key: null,
-  });
+  }>({ timeoutId: null, key: null });
 
   // Stable step run "start time" in wall-clock ms for accurate deadlines.
   const stepRunRef = useRef<{ key: string | null; startedAtMs: number }>({
@@ -527,7 +524,7 @@ export function useSessionTimer({
 
       completeSession(next);
 
-      // Preserve your prior behavior: if last step is auto-advance, nudge index.
+      // Preserve prior behavior: if last step is auto-advance, nudge index.
       const last = next.steps?.[next.currentIndex];
       if (isAutoAdvanceStep(last)) {
         next.currentIndex = Math.min(
@@ -587,25 +584,35 @@ export function useSessionTimer({
     });
   }, [update]);
 
-  // Drive clock rendering at 10Hz while running.
+  // RAF render loop while running (replaces 10Hz interval).
   useEffect(() => {
-    if (!session?.running) {
-      if (tickTimerRef.current) {
-        window.clearInterval(tickTimerRef.current);
-        tickTimerRef.current = null;
+    const stop = () => {
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
       }
+    };
+
+    if (!session?.running) {
+      stop();
       return;
     }
 
-    tickTimerRef.current = window.setInterval(() => {
+    let cancelled = false;
+
+    const loop = () => {
+      if (cancelled) return;
       setNowMs(now());
-    }, 100);
+      rafIdRef.current = requestAnimationFrame(loop);
+    };
+
+    // kick immediately so the first frame isn't delayed
+    setNowMs(now());
+    rafIdRef.current = requestAnimationFrame(loop);
 
     return () => {
-      if (tickTimerRef.current) {
-        window.clearInterval(tickTimerRef.current);
-        tickTimerRef.current = null;
-      }
+      cancelled = true;
+      stop();
     };
   }, [session?.running]);
 
@@ -640,11 +647,8 @@ export function useSessionTimer({
       return;
     }
 
-    // Build a stable key for this "run instance"
-    // (pause/resume changes runningSince; step change changes currentIndex/id)
     const runKey = `${s.sessionId}:${s.currentIndex}:${step.id || ""}:${s.runningSince || 0}:${estimatedSeconds}`;
 
-    // Anchor a wall-clock start for this run, once.
     if (stepRunRef.current.key !== runKey) {
       const at = now();
       const elapsedAt = currentStepElapsedNow(s, at);
@@ -654,19 +658,16 @@ export function useSessionTimer({
       };
     }
 
-    // Compute deadline from anchored start.
     const durationMs = estimatedSeconds * 1000;
     const deadlineMs = stepRunRef.current.startedAtMs + durationMs;
 
     const at = now();
     const remainingMs = Math.max(0, deadlineMs - at);
 
-    // Don’t reschedule if already scheduled for this runKey.
     if (autoAdvanceRef.current.key === runKey) {
       return;
     }
 
-    // Replace existing schedule.
     if (autoAdvanceRef.current.timeoutId) {
       clearTimeout(autoAdvanceRef.current.timeoutId);
     }
@@ -689,7 +690,6 @@ export function useSessionTimer({
 
       if (!stillSameRun) return;
 
-      // Guard: if timers were clamped/delayed, ensure the step is actually finished.
       const at2 = now();
       const elapsedAtFire = currentStepElapsedNow(cur, at2);
       const durMs = (curStep.estimatedSeconds || 0) * 1000;
@@ -716,7 +716,6 @@ export function useSessionTimer({
     session?.running,
     session?.runningSince,
     session?.done,
-    // only depend on fields that affect auto-advance behavior
     session?.steps?.[session?.currentIndex ?? 0]?.id,
     session?.steps?.[session?.currentIndex ?? 0]?.type,
     session?.steps?.[session?.currentIndex ?? 0]?.estimatedSeconds,
@@ -792,12 +791,8 @@ export function useSessionTimer({
 
   const displayedElapsed = useMemo(() => {
     if (!session || !currentStep) return 0;
-
-    // While running, compute elapsed relative to nowMs (10Hz tick).
     if (!session.running) return currentStep.elapsedMillis || 0;
-
-    const at = nowMs;
-    return currentStepElapsedNow(session, at);
+    return currentStepElapsedNow(session, nowMs);
   }, [session, currentStep, nowMs]);
 
   return {

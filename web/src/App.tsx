@@ -692,7 +692,7 @@ export default function App() {
             workouts={activeWorkouts}
             selectedWorkoutId={selectedWorkoutId}
             onSelectWorkout={setSelectedWorkoutId}
-            onStartSession={handleStartSession}
+            onStartTrain={handleStartSession}
             startDisabled={!selectedWorkoutId || !currentUserId}
             startTitle={!selectedWorkoutId ? "Select a workout first" : ""}
             session={session}
@@ -704,7 +704,7 @@ export default function App() {
             onStartStep={startCurrentStep}
             onPause={pause}
             onNext={nextStep}
-            onFinishSession={handleFinishSession}
+            onFinishTrain={handleFinishSession}
             onCopySummary={() => showToast("Copied summary")}
             onToast={showToast}
             pauseOnTabHidden={pauseOnTabHidden}

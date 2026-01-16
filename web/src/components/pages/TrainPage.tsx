@@ -9,7 +9,7 @@ import type {
 import { formatMillis } from "../../utils/format";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
-import { TrainCard } from "../train/TrainStatusCard";
+import { TrainCard } from "../train/TrainCard";
 import { WorkoutPicker } from "../workouts/WorkoutPicker";
 import { TrainFinishModal } from "../train/FinishTrainModal";
 import { TrainOverrunModal } from "../train/OverrunTrainModal";
@@ -41,7 +41,7 @@ export function TrainView({
   workouts,
   selectedWorkoutId,
   onSelectWorkout,
-  onStartSession,
+  onStartTrain,
   startDisabled,
   startTitle,
   session,
@@ -53,7 +53,7 @@ export function TrainView({
   onStartStep,
   onPause,
   onNext,
-  onFinishSession,
+  onFinishTrain: onFinishTrain,
   onCopySummary,
   onToast,
   pauseOnTabHidden,
@@ -61,7 +61,7 @@ export function TrainView({
   workouts: Workout[];
   selectedWorkoutId: string | null;
   onSelectWorkout: (id: string) => void;
-  onStartSession: () => void | Promise<void>;
+  onStartTrain: () => void | Promise<void>;
   startDisabled: boolean;
   startTitle?: string;
   session: TrainState | null;
@@ -73,7 +73,7 @@ export function TrainView({
   onStartStep: () => void;
   onPause: () => void;
   onNext: () => void;
-  onFinishSession: () => Promise<string | null>;
+  onFinishTrain: () => Promise<string | null>;
   onCopySummary: () => void;
   onToast: (message: string) => void;
   pauseOnTabHidden: boolean;
@@ -632,7 +632,7 @@ export function TrainView({
           return;
         }
 
-        onFinishSession().then((summary) => {
+        onFinishTrain().then((summary) => {
           if (summary) setFinishSummary(summary);
         });
       }
@@ -647,13 +647,13 @@ export function TrainView({
     handleStart,
     stopActiveAudio,
     onNext,
-    onFinishSession,
+    onFinishTrain,
   ]);
 
   const handleFinish = useCallback(async () => {
-    const summary = await onFinishSession();
+    const summary = await onFinishTrain();
     if (summary) setFinishSummary(summary);
-  }, [onFinishSession]);
+  }, [onFinishTrain]);
 
   const headerStatus = useMemo(() => {
     if (!session) return null;
@@ -703,7 +703,7 @@ export function TrainView({
             />
             <button
               className="btn primary"
-              onClick={onStartSession}
+              onClick={onStartTrain}
               disabled={startDisabled}
               title={startTitle}
             >
