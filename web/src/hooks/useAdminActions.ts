@@ -2,6 +2,8 @@ import { useCallback } from "react";
 
 import { backfillExercises, updateUserAdmin } from "../api";
 import type { User, View } from "../types";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 // UseAdminActionsArgs wires user management actions.
 type UseAdminActionsArgs = {
@@ -33,8 +35,8 @@ export function useAdminActions({
         if (user.id === currentUserId && !user.isAdmin) {
           setView("admin");
         }
-      } catch (err: any) {
-        await notify(err.message || "Unable to update role");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.updateRoleFailed));
       }
     },
     [currentUserId, setUsers, setView, notify],
@@ -44,9 +46,9 @@ export function useAdminActions({
   const backfillCatalog = useCallback(async () => {
     try {
       await backfillExercises();
-      await notify("Exercise catalog backfill complete.");
-    } catch (err: any) {
-      await notify(err.message || "Unable to backfill exercises");
+      await notify(UI_TEXT.toasts.backfillComplete);
+    } catch (err) {
+      await notify(toErrorMessage(err, MESSAGES.backfillExercisesFailed));
     }
   }, [notify]);
 

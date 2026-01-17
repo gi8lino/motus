@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 // encode encodes a value to JSON and writes it to the response.
@@ -30,15 +30,15 @@ func decode[T any](r *http.Request) (T, error) {
 // serviceStatus maps a service error to an HTTP status code.
 func serviceStatus(err error) int {
 	switch {
-	case service.IsKind(err, service.ErrorValidation):
+	case errpkg.IsKind(err, errpkg.ErrorValidation):
 		return http.StatusBadRequest
-	case service.IsKind(err, service.ErrorForbidden):
+	case errpkg.IsKind(err, errpkg.ErrorForbidden):
 		return http.StatusForbidden
-	case service.IsKind(err, service.ErrorNotFound):
+	case errpkg.IsKind(err, errpkg.ErrorNotFound):
 		return http.StatusNotFound
-	case service.IsKind(err, service.ErrorUnauthorized):
+	case errpkg.IsKind(err, errpkg.ErrorUnauthorized):
 		return http.StatusUnauthorized
-	case service.IsKind(err, service.ErrorInternal):
+	case errpkg.IsKind(err, errpkg.ErrorInternal):
 		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError

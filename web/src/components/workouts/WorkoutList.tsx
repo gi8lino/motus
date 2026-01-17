@@ -1,5 +1,5 @@
-import type { AskConfirmOptions, Workout } from "../../types";
-import { useWorkoutActions } from "../../hooks/useWorkoutActions";
+import type { Workout } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
 export type WorkoutsListProps = {
   workouts: Workout[];
@@ -9,61 +9,28 @@ export type WorkoutsListProps = {
   currentUserId: string | null;
 
   // state from parent
-  selectedWorkoutId: string | null;
   setSelectedWorkoutId: (id: string | null) => void;
 
   // editor hooks (parent owns editor)
-  editingWorkout: Workout | null;
   onNew: () => void;
   onEdit: (workoutId: string) => void;
   onOpenEditor: () => void;
 
-  // data updates
-  setWorkouts: (updater: (prev: Workout[] | null) => Workout[] | null) => void;
-
-  // dialogs
-  askConfirm: (
-    message: string,
-    options?: AskConfirmOptions,
-  ) => Promise<boolean>;
-  askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
-  notifyUser: (message: string) => Promise<void>;
-
-  // templates
-  templatesReload: () => void;
+  onShare: (workoutId: string) => void;
+  onDelete: (workoutId: string) => void;
 };
 
 export function WorkoutsList({
   workouts,
   loading,
   currentUserId,
-  selectedWorkoutId,
   setSelectedWorkoutId,
-  editingWorkout,
   onNew,
   onEdit,
   onOpenEditor,
-  setWorkouts,
-  askConfirm,
-  askPrompt,
-  notifyUser,
-  templatesReload,
+  onShare,
+  onDelete,
 }: WorkoutsListProps) {
-  // List actions (delete/share) still live here, but "new/edit" is delegated to parent
-  const { removeWorkout, shareWorkout } = useWorkoutActions({
-    workouts,
-    editingWorkout,
-    selectedWorkoutId,
-    setEditingWorkout: () => {},
-    setShowWorkoutForm: () => {},
-    setSelectedWorkoutId,
-    setWorkouts,
-    askConfirm,
-    askPrompt,
-    notify: notifyUser,
-    templatesReload,
-  });
-
   return (
     <section className="panel">
       <div className="panel-header">
@@ -80,7 +47,7 @@ export function WorkoutsList({
               onOpenEditor();
             }}
             disabled={!currentUserId}
-            title={!currentUserId ? "Login/select a user first" : ""}
+            title={!currentUserId ? UI_TEXT.prompts.selectUserFirst : ""}
           >
             New workout
           </button>
@@ -118,7 +85,7 @@ export function WorkoutsList({
                 <button
                   className="btn subtle"
                   type="button"
-                  onClick={() => shareWorkout(workout.id)}
+                  onClick={() => onShare(workout.id)}
                 >
                   Share
                 </button>
@@ -126,7 +93,7 @@ export function WorkoutsList({
                 <button
                   className="btn subtle"
                   type="button"
-                  onClick={() => removeWorkout(workout.id)}
+                  onClick={() => onDelete(workout.id)}
                 >
                   Delete
                 </button>

@@ -1,35 +1,47 @@
 import type { CatalogExercise } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
-// ExercisesView manages personal and core exercises.
-export function ExercisesView({
-  exercises,
-  isAdmin,
-  onAddExercise,
-  onAddCoreExercise,
-  onRenameExercise,
-  onDeleteExercise,
-}: {
+export type ExercisesViewData = {
   exercises: CatalogExercise[];
   isAdmin: boolean;
+};
+
+export type ExercisesViewActions = {
   onAddExercise: () => void | Promise<void>;
   onAddCoreExercise: () => void | Promise<void>;
   onRenameExercise: (exercise: CatalogExercise) => void | Promise<void>;
   onDeleteExercise: (exercise: CatalogExercise) => void | Promise<void>;
+};
+
+// ExercisesView manages personal and core exercises.
+export function ExercisesView({
+  data,
+  actions,
+}: {
+  data: ExercisesViewData;
+  actions: ExercisesViewActions;
 }) {
+  const { exercises, isAdmin } = data;
+  const {
+    onAddExercise,
+    onAddCoreExercise,
+    onRenameExercise,
+    onDeleteExercise,
+  } = actions;
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3>Exercises</h3>
-          <p className="muted small">Manage reusable exercises.</p>
+          <h3>{UI_TEXT.pages.exercises.title}</h3>
+          <p className="muted small">{UI_TEXT.pages.exercises.hint}</p>
         </div>
         <div className="btn-group">
           <button className="btn primary" onClick={() => onAddExercise()}>
-            Add Exercise
+            {UI_TEXT.pages.exercises.addExercise}
           </button>
           {isAdmin && (
             <button className="btn subtle" onClick={() => onAddCoreExercise()}>
-              Add Core Exercise
+              {UI_TEXT.pages.exercises.addCoreExercise}
             </button>
           )}
         </div>
@@ -42,7 +54,9 @@ export function ExercisesView({
               <div>
                 <strong>{ex.name}</strong>
                 <span className={`exercise-tag ${ex.isCore ? "core" : "user"}`}>
-                  {ex.isCore ? "Core" : "Personal"}
+                  {ex.isCore
+                    ? UI_TEXT.exercises.core
+                    : UI_TEXT.exercises.personal}
                 </span>
                 <div className="muted small">
                   {ex.createdAt
@@ -71,7 +85,9 @@ export function ExercisesView({
             </div>
           </li>
         ))}
-        {!exercises.length && <p className="muted">No exercises yet.</p>}
+        {!exercises.length && (
+          <p className="muted">{UI_TEXT.pages.exercises.empty}</p>
+        )}
       </ul>
     </section>
   );

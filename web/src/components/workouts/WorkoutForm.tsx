@@ -32,8 +32,10 @@ import {
   normalizeStepType,
 } from "../../utils/step";
 import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
+import { UI_TEXT } from "../../utils/uiText";
 
-const DEFAULT_WORKOUT_NAME = "Push Day";
+const DEFAULT_WORKOUT_NAME = UI_TEXT.workouts.defaultName;
 const KEY_COOLDOWN_MS = 500;
 
 // makeSubsetId creates a stable client id for new subsets.
@@ -46,54 +48,68 @@ function makeStepId() {
   return `step-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export type WorkoutFormProps = {
+export type WorkoutFormDefaults = {
+  defaultStepSoundKey: string;
+  defaultPauseDuration: string;
+  defaultPauseSoundKey: string;
+  defaultPauseAutoAdvance: boolean;
+  repeatRestAfterLastDefault: boolean;
+};
+
+export type WorkoutFormServices = {
   onSave: (payload: { name: string; steps: WorkoutStep[] }) => Promise<void>;
   onUpdate?: (payload: {
     id: string;
     name: string;
     steps: WorkoutStep[];
   }) => Promise<void>;
-  editingWorkout?: Workout | null;
-  sounds: SoundOption[];
-  userId: string | null;
-  exerciseCatalog?: CatalogExercise[];
   onCreateExercise: (name: string) => Promise<CatalogExercise>;
-  onClose?: () => void;
   promptUser: (
     message: string,
     defaultValue?: string,
   ) => Promise<string | null>;
   notifyUser: (message: string) => Promise<void>;
-  defaultStepSoundKey: string;
-  defaultPauseDuration: string;
-  defaultPauseSoundKey: string;
-  defaultPauseAutoAdvance: boolean;
-  repeatRestAfterLastDefault: boolean;
-  onDirtyChange?: (dirty: boolean) => void;
   onToast?: (message: string) => void;
+};
+
+export type WorkoutFormProps = {
+  editingWorkout?: Workout | null;
+  sounds: SoundOption[];
+  userId: string | null;
+  exerciseCatalog?: CatalogExercise[];
+  onClose?: () => void;
+  defaults: WorkoutFormDefaults;
+  services: WorkoutFormServices;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
 
 export function WorkoutForm({
-  onSave,
-  onUpdate,
   editingWorkout,
   sounds,
   userId,
   exerciseCatalog,
-  onCreateExercise,
   onClose,
-  promptUser,
-  notifyUser,
-  defaultStepSoundKey,
-  defaultPauseDuration,
-  defaultPauseSoundKey,
-  defaultPauseAutoAdvance,
-  repeatRestAfterLastDefault,
   onDirtyChange,
-  onToast,
+  defaults,
+  services,
 }: WorkoutFormProps) {
+  const {
+    onSave,
+    onUpdate,
+    onCreateExercise,
+    promptUser,
+    notifyUser,
+    onToast,
+  } = services;
+  const {
+    defaultStepSoundKey,
+    defaultPauseDuration,
+    defaultPauseSoundKey,
+    defaultPauseAutoAdvance,
+    repeatRestAfterLastDefault,
+  } = defaults;
   const [name, setName] = useState(DEFAULT_WORKOUT_NAME);
   const [steps, setSteps] = useState<WorkoutStep[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -527,7 +543,7 @@ export function WorkoutForm({
 
   const durationLabel = useMemo(
     () => ({
-      pause: "Duration (Go style, e.g. 45s, 1m30s)",
+      pause: UI_TEXT.workouts.form.durationHint,
     }),
     [],
   );
@@ -540,12 +556,14 @@ export function WorkoutForm({
           type="button"
           onClick={() => toggleRepeatOptions(idx)}
         >
-          {expandedRepeats.has(idx) ? "Hide repeat options" : "Repeat options"}
+          {expandedRepeats.has(idx)
+            ? UI_TEXT.workouts.repeatOptions.hide
+            : UI_TEXT.workouts.repeatOptions.show}
         </button>
         <span className="muted small">
           {step.repeatCount && step.repeatCount > 1
             ? `Repeats ${step.repeatCount}x`
-            : "No repeats"}
+            : UI_TEXT.workouts.repeatOptions.none}
         </span>
       </>
     );
@@ -695,7 +713,7 @@ export function WorkoutForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!userId) {
-      await notifyUser("Select a user first.");
+      await notifyUser(UI_TEXT.prompts.selectUserFirst);
       return;
     }
 
@@ -759,7 +777,7 @@ export function WorkoutForm({
       });
 
     if (!cleanSteps.length) {
-      await notifyUser("Add at least one step.");
+      await notifyUser(UI_TEXT.errors.addStepRequired);
       return;
     }
 
@@ -771,9 +789,13 @@ export function WorkoutForm({
       }
       setDirty(false);
       onDirtyChange?.(false);
-      onToast?.(editingId ? "Workout updated" : "Workout created");
-    } catch (err: any) {
-      await notifyUser(err?.message || "Unable to save workout");
+      onToast?.(
+        editingId
+          ? UI_TEXT.workouts.editMode.updatedToast
+          : UI_TEXT.workouts.editMode.createdToast,
+      );
+    } catch (err) {
+      await notifyUser(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
     }
   };
 
@@ -797,11 +819,17 @@ export function WorkoutForm({
     <form className="panel" onSubmit={submit}>
       <div className="panel-header with-close">
         <div>
-          <p className="label">{editingId ? "Edit workout" : "New workout"}</p>
+          <p className="label">
+            {editingId
+              ? UI_TEXT.workouts.editMode.edit
+              : UI_TEXT.workouts.editMode.create}
+          </p>
         </div>
 
         <button className="btn primary" type="submit" disabled={!dirty}>
-          {editingId ? "Update Workout" : "Save Workout"}
+          {editingId
+            ? UI_TEXT.workouts.editMode.updateButton
+            : UI_TEXT.workouts.editMode.saveButton}
         </button>
 
         {onClose && (
@@ -809,7 +837,7 @@ export function WorkoutForm({
             className="btn icon close-btn"
             type="button"
             onClick={onClose}
-            title="Close"
+            title={UI_TEXT.titles.close}
           >
             ×
           </button>
@@ -824,7 +852,7 @@ export function WorkoutForm({
             setName(e.target.value);
             markDirty();
           }}
-          placeholder="Push Day"
+          placeholder={UI_TEXT.placeholders.workoutName}
           required
         />
       </div>
@@ -916,16 +944,10 @@ export function WorkoutForm({
                     updateStep(idx, patch);
                   }}
                 >
-                  <option
-                    value="set"
-                    title="Rep-based step with optional target time."
-                  >
+                  <option value="set" title={UI_TEXT.titles.repStep}>
                     Set
                   </option>
-                  <option
-                    value="pause"
-                    title="Timed break (auto-advance ends it)."
-                  >
+                  <option value="pause" title={UI_TEXT.titles.timedBreak}>
                     Pause
                   </option>
                 </select>
@@ -935,7 +957,7 @@ export function WorkoutForm({
                   type="button"
                   onClick={() => moveStep(idx, -1)}
                   disabled={idx === 0}
-                  title="Move up"
+                  title={UI_TEXT.titles.moveUp}
                 >
                   <ArrowUpIcon />
                 </button>
@@ -945,7 +967,7 @@ export function WorkoutForm({
                   type="button"
                   onClick={() => moveStep(idx, 1)}
                   disabled={idx === steps.length - 1}
-                  title="Move down"
+                  title={UI_TEXT.titles.moveDown}
                 >
                   <ArrowDownIcon />
                 </button>
@@ -954,7 +976,7 @@ export function WorkoutForm({
                   className="btn icon delete icon-only"
                   type="button"
                   onClick={() => removeStep(idx)}
-                  title="Remove step"
+                  title={UI_TEXT.titles.removeStep}
                 >
                   <TrashIcon />
                 </button>
@@ -979,14 +1001,20 @@ export function WorkoutForm({
                 <div className="step-details">
                   <div className="field spaced">
                     <label>
-                      {isPauseStepType(step.type) ? "Name (optional)" : "Name"}
+                      {isPauseStepType(step.type)
+                        ? UI_TEXT.workouts.form.nameOptional
+                        : UI_TEXT.workouts.form.nameRequired}
                     </label>
                     <input
                       value={step.name}
                       onChange={(e) =>
                         updateStep(idx, { name: e.target.value })
                       }
-                      placeholder={isPauseStepType(step.type) ? "Pause" : ""}
+                      placeholder={
+                        isPauseStepType(step.type)
+                          ? UI_TEXT.workouts.form.pausePlaceholder
+                          : ""
+                      }
                       required={!isPauseStepType(step.type)}
                     />
                   </div>

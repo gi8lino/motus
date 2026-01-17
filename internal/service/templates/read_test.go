@@ -8,8 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	domaintemplates "github.com/gi8lino/motus/internal/domain/templates"
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestList(t *testing.T) {
@@ -19,13 +18,13 @@ func TestList(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			listTemplatesFn: func(context.Context) ([]domaintemplates.Workout, error) {
+			listTemplatesFn: func(context.Context) ([]Workout, error) {
 				return nil, errors.New("boom")
 			},
 		})
 		_, err := svc.List(context.Background())
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorInternal))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorInternal))
 	})
 }
 
@@ -36,12 +35,12 @@ func TestGet(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			workoutWithStepsFn: func(context.Context, string) (*domaintemplates.Workout, error) {
-				return &domaintemplates.Workout{ID: "w1", IsTemplate: false}, nil
+			workoutWithStepsFn: func(context.Context, string) (*Workout, error) {
+				return &Workout{ID: "w1", IsTemplate: false}, nil
 			},
 		})
 		_, err := svc.Get(context.Background(), "w1")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorNotFound))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorNotFound))
 	})
 }

@@ -1,41 +1,65 @@
-// Package workouts provides service access to workout operations.
+// Package workouts provides domain logic for workout definitions.
 package workouts
 
-import domain "github.com/gi8lino/motus/internal/domain/workouts"
-
-// Store exposes the persistence requirements for workout services.
-type Store = domain.Store
-
-// WorkoutRequest captures the payload for creating or updating workouts.
-type WorkoutRequest = domain.WorkoutRequest
+import "github.com/gi8lino/motus/internal/db"
 
 // Workout is the domain-level DTO for workouts.
-type Workout = domain.Workout
+type Workout = db.Workout
+
+// PauseOptions is the domain-level DTO for pause configuration.
+type PauseOptions = db.PauseOptions
 
 // WorkoutStep is the domain-level DTO for workout steps.
-type WorkoutStep = domain.WorkoutStep
+type WorkoutStep = db.WorkoutStep
 
 // WorkoutSubset is the domain-level DTO for workout subsets.
-type WorkoutSubset = domain.WorkoutSubset
+type WorkoutSubset = db.WorkoutSubset
 
 // SubsetExercise is the domain-level DTO for subset exercises.
-type SubsetExercise = domain.SubsetExercise
+type SubsetExercise = db.SubsetExercise
 
-// StepInput mirrors the workout step input payload.
-type StepInput = domain.StepInput
+// errorScope is the service error scope for workouts.
+const errorScope = "workouts"
 
-// SubsetInput mirrors the workout subset input payload.
-type SubsetInput = domain.SubsetInput
-
-// ExerciseInput mirrors the workout exercise input payload.
-type ExerciseInput = domain.ExerciseInput
-
-// Service coordinates workout operations.
-type Service struct {
-	manager *domain.Manager
+// WorkoutRequest describes the payload for building a workout definition.
+type WorkoutRequest struct {
+	UserID string      `json:"userId"`
+	Name   string      `json:"name"`
+	Steps  []StepInput `json:"steps"`
 }
 
-// New creates a new workouts service.
-func New(store Store) *Service {
-	return &Service{manager: domain.NewManager(store)}
+// StepInput describes a workout step definition in the domain model.
+type StepInput struct {
+	Type                  string        `json:"type"`
+	Name                  string        `json:"name"`
+	Duration              string        `json:"duration"`
+	EstimatedSeconds      int           `json:"estimatedSeconds"`
+	SoundKey              string        `json:"soundKey"`
+	Subsets               []SubsetInput `json:"subsets"`
+	PauseOptions          PauseOptions  `json:"pauseOptions"`
+	RepeatCount           int           `json:"repeatCount"`
+	RepeatRestSeconds     int           `json:"repeatRestSeconds"`
+	RepeatRestAfterLast   bool          `json:"repeatRestAfterLast"`
+	RepeatRestSoundKey    string        `json:"repeatRestSoundKey"`
+	RepeatRestAutoAdvance bool          `json:"repeatRestAutoAdvance"`
+}
+
+// SubsetInput describes a logical subset inside a set step.
+type SubsetInput struct {
+	Name      string          `json:"name"`
+	Duration  string          `json:"duration"`
+	SoundKey  string          `json:"soundKey"`
+	Superset  bool            `json:"superset"`
+	Exercises []ExerciseInput `json:"exercises"`
+}
+
+// ExerciseInput describes an exercise entry inside a subset definition.
+type ExerciseInput struct {
+	ExerciseID string `json:"exerciseId"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Reps       string `json:"reps"`
+	Weight     string `json:"weight"`
+	Duration   string `json:"duration"`
+	SoundKey   string `json:"soundKey"`
 }

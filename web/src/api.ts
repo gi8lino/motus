@@ -1,8 +1,8 @@
 import type {
   CatalogExercise,
-  TrainngHistoryItem,
-  TrainngState,
-  TrainngStepLog,
+  TrainingHistoryItem,
+  TrainingState,
+  TrainingStepLog,
   SoundOption,
   User,
   Workout,
@@ -225,8 +225,8 @@ export async function listSounds(): Promise<SoundOption[]> {
 }
 
 // startTraining creates a new training for a workout.
-export async function startTrain(workoutId: string): Promise<TrainngState> {
-  const res = await request<{ trainingId: string; state: TrainngState }>(
+export async function startTraining(workoutId: string): Promise<TrainingState> {
+  const res = await request<{ trainingId: string; state: TrainingState }>(
     "/api/trainings",
     {
       method: "POST",
@@ -261,14 +261,14 @@ export async function logTrainingCompletion(payload: {
 // listTrainingHistory returns all completed trainings for a user.
 export async function listTrainingHistory(
   userId: string,
-): Promise<TrainngHistoryItem[]> {
+): Promise<TrainingHistoryItem[]> {
   return request(`/api/users/${encodeURIComponent(userId)}/trainings/history`);
 }
 
 // getTrainingSteps fetches stored per-step timings for a training.
 export async function getTrainingSteps(
   trainingId: string,
-): Promise<TrainngStepLog[]> {
+): Promise<TrainingStepLog[]> {
   return request(`/api/trainings/${encodeURIComponent(trainingId)}/steps`);
 }
 

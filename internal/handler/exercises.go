@@ -19,7 +19,6 @@ func (a *API) ListExercises() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("list exercises", "items", items)
 		a.respondJSON(w, http.StatusOK, items)
 	}
 }
@@ -52,7 +51,6 @@ func (a *API) CreateExercise() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("create exercise", "exercise", exercise)
 		a.respondJSON(w, http.StatusCreated, exercise)
 	}
 }
@@ -86,7 +84,6 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("update exercise", "exercise", updated)
 		a.respondJSON(w, http.StatusOK, updated)
 	}
 }
@@ -109,7 +106,6 @@ func (a *API) DeleteExercise() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("delete exercise", "exercise", id)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -123,7 +119,6 @@ func (a *API) BackfillExercises() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("backfill exercises")
 		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	}
 }

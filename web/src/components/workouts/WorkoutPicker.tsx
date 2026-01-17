@@ -1,4 +1,5 @@
 import type { Workout } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 import { SelectDropdown } from "../common/SelectDropdown";
 
 // WorkoutPicker renders a custom workout picker styled like exercise inputs.
@@ -17,7 +18,7 @@ export function WorkoutPicker({
     <SelectDropdown
       items={workouts.map((w) => ({ id: w.id, label: w.name }))}
       value={value}
-      placeholder="Select workout"
+      placeholder={UI_TEXT.placeholders.selectWorkout}
       onSelect={(item) => onSelect(item.id)}
       onClear={onClear}
       renderRight={(item) => {

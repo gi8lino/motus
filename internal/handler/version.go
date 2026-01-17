@@ -10,6 +10,5 @@ type versionResponse struct {
 
 // VersionInfo returns version metadata for the SPA.
 func (a *API) VersionInfo(w http.ResponseWriter, r *http.Request) {
-	a.Logger.Debug("version info")
 	a.respondJSON(w, http.StatusOK, versionResponse{Version: a.Version, Commit: a.Commit})
 }

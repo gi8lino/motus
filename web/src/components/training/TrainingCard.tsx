@@ -1,71 +1,28 @@
 import { useCallback, useMemo, type RefObject } from "react";
-import {
-  formatExerciseLine,
-  formatElapsedMillis,
-  formatCountdownMillis,
-} from "../../utils/format";
+import { formatElapsedMillis, formatCountdownMillis } from "../../utils/format";
+import { getCountdownDisplayMillis } from "../../utils/countdown";
+import { PROMPTS } from "../../utils/messages";
+import { UI_TEXT } from "../../utils/uiText";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
-import type { Exercise, TrainngState, TrainngStepState } from "../../types";
+import type { TrainingState, TrainingStepState } from "../../types";
+import {
+  buildExercisePills,
+  buildStepGroups,
+  extractExerciseLabels,
+  getCurrentExerciseLabel,
+  getNextStep,
+  getNextSubsetStep,
+  getStepName,
+  hasFollowingSubsetExercises,
+  formatStepCounter,
+} from "../../utils/training";
 
-type AnyStep = any;
-
-// getExercises normalizes the exercises list for a step payload.
-function getExercises(step: AnyStep): Exercise[] {
-  if (!step) return [];
-  if (Array.isArray(step.exercises)) return step.exercises;
-  return [];
-}
-
-// getStepName resolves the display label for a step.
-function getStepName(step: AnyStep): string {
-  const subsetLabel = String(step?.subsetLabel || "").trim();
-  if (subsetLabel) return subsetLabel;
-
-  const parent = String(step?.setName || "").trim();
-  if (parent) return parent;
-
-  const name = String(step?.name || "").trim();
-  if (name) return name;
-
-  if (step?.type === STEP_TYPE_PAUSE) return "Pause";
-  return "Set";
-}
-
-// getCurrentExerciseLabel builds the display label for the active exercise.
-function getCurrentExerciseLabel(step: AnyStep): string {
-  if (!step) return "";
-  const exercise = Array.isArray(step.exercises)
-    ? step.exercises[0]
-    : undefined;
-  const formatted = exercise ? formatExerciseLine(exercise) : "";
-  return formatted || getStepName(step);
-}
-
-type SubsetDisplay = {
-  key: string;
-  superset: boolean;
-  label?: string;
-  exercises: Exercise[];
-};
-
-type StepGroup = {
-  key: string;
-  setName: string;
-  type: string;
-  loopIndex: number;
-  loopTotal: number;
-  current: boolean;
-  subsets: SubsetDisplay[];
-  hasSuperset: boolean;
-  estimatedSeconds: number;
-};
-
-// TrainCard renders the main training status card and controls.
+// TrainingCard renders the main training status card and controls.
 // NOTE: This component is intentionally "dumb":
 // - no timers
 // - no scheduling
 // - no logging
-export function TrainCard({
+export function TrainingCard({
   training,
   currentStep,
   elapsed,
@@ -78,8 +35,8 @@ export function TrainCard({
   runButtonRef,
   nextButtonRef,
 }: {
-  training: TrainngState | null;
-  currentStep: TrainngStepState | null;
+  training: TrainingState | null;
+  currentStep: TrainingStepState | null;
   elapsed: number;
   workoutName?: string;
   onStart: () => void;
@@ -113,10 +70,10 @@ export function TrainCard({
     Boolean((currentStep as any)?.autoAdvance);
 
   const startLabel = training?.running
-    ? "Pause"
+    ? UI_TEXT.actions.pause
     : hasStarted
-      ? "Continue"
-      : "Start";
+      ? UI_TEXT.actions.continue
+      : UI_TEXT.actions.start;
 
   const handleNext = useCallback(() => {
     onStopAudio?.();
@@ -133,7 +90,7 @@ export function TrainCard({
     // For auto-advance steps with a duration, show remaining time.
     if (isAutoAdvance && currentStep.estimatedSeconds) {
       const durationMs = currentStep.estimatedSeconds * 1000;
-      return Math.max(0, durationMs - Math.max(0, elapsed));
+      return getCountdownDisplayMillis(durationMs, elapsed);
     }
 
     // Otherwise show elapsed.
@@ -148,50 +105,19 @@ export function TrainCard({
   }, [currentStep, displayMillis, isAutoAdvance]);
 
   const currentExerciseLabel = useMemo(() => {
-    if (!currentStep) return "No training";
+    if (!currentStep) return PROMPTS.noTraining;
     return getCurrentExerciseLabel(currentStep as any);
   }, [currentStep]);
 
-  const extractExerciseLabels = useCallback(
-    (step: TrainngStepState | null, startIndex = 0) => {
-      if (!step) return [];
-
-      if (step.type === STEP_TYPE_PAUSE) {
-        const durationText = step.estimatedSeconds
-          ? formatCountdownMillis(step.estimatedSeconds * 1000)
-          : "";
-        const pauseText = durationText ? `Pause • ${durationText}` : "Pause";
-        return [pauseText];
-      }
-
-      if (step.superset && step.subsetId && training?.steps?.length) {
-        const subsetId = step.subsetId;
-        const seen = new Set<string>();
-        const labels: string[] = [];
-        for (let idx = startIndex; idx < training.steps.length; idx += 1) {
-          const candidate = training.steps[idx];
-          if (candidate.subsetId !== subsetId) continue;
-          for (const ex of getExercises(candidate)) {
-            const text = formatExerciseLine(ex);
-            if (text && !seen.has(text)) {
-              seen.add(text);
-              labels.push(text);
-            }
-          }
-        }
-        if (labels.length) return labels;
-      }
-
-      return getExercises(step)
-        .map((ex) => formatExerciseLine(ex))
-        .filter(Boolean);
-    },
-    [training?.steps],
+  const extractLabels = useCallback(
+    (step: TrainingStepState | null, startIndex = 0) =>
+      extractExerciseLabels(step, training, startIndex),
+    [training],
   );
 
   const currentStepPills = useMemo(
-    () => extractExerciseLabels(currentStep),
-    [currentStep, extractExerciseLabels],
+    () => extractLabels(currentStep),
+    [currentStep, extractLabels],
   );
 
   const totalSteps = training?.steps?.length || 0;
@@ -202,121 +128,28 @@ export function TrainCard({
     [training?.trainingId, training?.steps],
   );
 
-  const groupedSteps = useMemo(() => {
-    if (!remainingSteps.length) return [];
-
-    const groups: StepGroup[] = [];
-    let currentGroup: StepGroup | null = null;
-
-    for (const step of remainingSteps) {
-      const setName =
-        String(step?.setName || step?.name || "").trim() || "Step";
-      const loopIndex = step?.loopIndex ?? 0;
-      const loopTotal = step?.loopTotal ?? 0;
-      const type = step?.type || "set";
-
-      const needsNewGroup =
-        !currentGroup ||
-        currentGroup.setName !== setName ||
-        currentGroup.loopIndex !== loopIndex ||
-        currentGroup.loopTotal !== loopTotal ||
-        currentGroup.type !== type;
-
-      if (needsNewGroup) {
-        currentGroup = {
-          key: `${setName}-${loopIndex}-${loopTotal}-${groups.length}`,
-          setName,
-          type,
-          loopIndex,
-          loopTotal,
-          current: Boolean(step.current),
-          subsets: [],
-          hasSuperset: false,
-          estimatedSeconds: step?.estimatedSeconds ?? 0,
-        };
-        groups.push(currentGroup);
-      } else if (currentGroup) {
-        currentGroup.current = currentGroup.current || Boolean(step.current);
-      }
-
-      if (!currentGroup) continue;
-      if (type === STEP_TYPE_PAUSE) continue;
-
-      const subsetKey = String(
-        step?.subsetId || step?.id || `${setName}-${loopIndex}-${loopTotal}`,
-      );
-      let subset = currentGroup.subsets.find((item) => item.key === subsetKey);
-
-      if (!subset) {
-        subset = {
-          key: subsetKey,
-          superset: Boolean(step?.superset),
-          label: step?.subsetLabel,
-          exercises: [],
-        };
-        currentGroup.subsets.push(subset);
-      } else {
-        subset.superset = subset.superset || Boolean(step?.superset);
-        if (!subset.label && step?.subsetLabel) {
-          subset.label = step.subsetLabel;
-        }
-      }
-
-      const exercises = getExercises(step);
-      if (exercises.length) subset.exercises.push(...exercises);
-      currentGroup.hasSuperset = currentGroup.hasSuperset || subset.superset;
-    }
-
-    return groups;
-  }, [remainingSteps]);
-
-  // Next step name (just for the right panel)
-  const nextStep = useMemo(() => {
-    if (!training) return null;
-
-    if (!training.running) {
-      return training.steps[training.currentIndex];
-    }
-
-    let idx = training.currentIndex;
-    while (idx < training.steps.length && training.steps[idx].completed)
-      idx += 1;
-    idx += 1;
-    while (idx < training.steps.length && training.steps[idx].completed)
-      idx += 1;
-
-    return idx < training.steps.length ? training.steps[idx] : null;
-  }, [training]);
-
-  const nextSubsetStep = useMemo(() => {
-    if (!training || !training.steps.length || !currentStep?.subsetId)
-      return null;
-
-    const subsetId = currentStep.subsetId;
-    const startIdx = Math.max(training.currentIndex + 1, 0);
-
-    for (let idx = startIdx; idx < training.steps.length; idx += 1) {
-      const candidate = training.steps[idx];
-      if (!candidate) continue;
-      if (!candidate.subsetId) continue;
-      if (candidate.subsetId !== subsetId) return candidate;
-    }
-
-    return null;
-  }, [training, currentStep?.subsetId]);
-
-  const nextStepExerciseLabels = useMemo(
-    () => extractExerciseLabels(nextStep),
-    [nextStep, extractExerciseLabels],
+  const groupedSteps = useMemo(
+    () => buildStepGroups(remainingSteps as TrainingStepState[]),
+    [remainingSteps],
   );
 
-  const hasFollowingSubsetExercises = useMemo(() => {
-    if (!training || !nextStep?.subsetId) return false;
-    const subsetId = nextStep.subsetId;
-    return training.steps.some(
-      (step, idx) => idx > training.currentIndex && step.subsetId === subsetId,
-    );
-  }, [training, nextStep]);
+  // Next step name (just for the right panel)
+  const nextStep = useMemo(() => getNextStep(training), [training]);
+
+  const nextSubsetStep = useMemo(
+    () => getNextSubsetStep(training, currentStep),
+    [training, currentStep],
+  );
+
+  const nextStepExerciseLabels = useMemo(
+    () => extractLabels(nextStep),
+    [nextStep, extractLabels],
+  );
+
+  const hasFollowingSubset = useMemo(
+    () => hasFollowingSubsetExercises(training, nextStep),
+    [training, nextStep],
+  );
 
   const shouldShowNextExercises =
     Boolean(
@@ -325,7 +158,7 @@ export function TrainCard({
         currentStep.subsetId === nextStep.subsetId,
     ) &&
     nextStepExerciseLabels.length > 0 &&
-    hasFollowingSubsetExercises;
+    hasFollowingSubset;
 
   const nextNameStep = shouldShowNextExercises
     ? nextStep
@@ -335,7 +168,7 @@ export function TrainCard({
     <div className="training-card">
       <div className="training-main">
         <div className="current-card">
-          <div className="label muted">Now</div>
+          <div className="label muted">{UI_TEXT.training.cards.now}</div>
 
           {workoutName ? (
             <div className="muted small">{workoutName}</div>
@@ -343,7 +176,7 @@ export function TrainCard({
 
           {training ? (
             <div className="muted small">
-              Step {currentNumber}/{totalSteps}
+              {formatStepCounter(currentNumber, totalSteps)}
             </div>
           ) : null}
 
@@ -365,13 +198,13 @@ export function TrainCard({
                 currentExerciseLabel
               )
             ) : (
-              "No training"
+              PROMPTS.noTraining
             )}
           </div>
         </div>
 
         <div className="next-card">
-          <div className="label muted">Next</div>
+          <div className="label muted">{UI_TEXT.training.cards.next}</div>
           <div className="next-name">
             {nextNameStep ? (
               shouldShowNextExercises ? (
@@ -386,7 +219,7 @@ export function TrainCard({
                 getStepName(nextNameStep)
               )
             ) : (
-              "None"
+              UI_TEXT.training.nextLabels.none
             )}
           </div>
 
@@ -406,7 +239,9 @@ export function TrainCard({
               onClick={handleNext}
               disabled={!training || done || !training.startedAt}
             >
-              {isLastStep ? "Finish" : "Next"}
+              {isLastStep
+                ? UI_TEXT.training.nextLabels.finish
+                : UI_TEXT.training.nextLabels.next}
             </button>
           </div>
         </div>
@@ -414,7 +249,7 @@ export function TrainCard({
 
       <div className="training-steps-cards">
         {!training ? (
-          <p className="muted">Start training to see sets.</p>
+          <p className="muted">{UI_TEXT.training.states.startToSeeSets}</p>
         ) : null}
 
         {groupedSteps.map((group) => {
@@ -430,8 +265,8 @@ export function TrainCard({
             group.setName && group.setName.trim()
               ? group.setName
               : group.type === STEP_TYPE_PAUSE
-                ? "Pause"
-                : "Step";
+                ? UI_TEXT.labels.pause
+                : UI_TEXT.labels.step;
 
           const classes = [
             "set-card",
@@ -480,21 +315,21 @@ export function TrainCard({
                       ) : null}
 
                       <div className="exercise-pills compact">
-                        {subset.exercises.map((ex, idx) => {
-                          const text = formatExerciseLine(ex);
-                          if (!text) return null;
-                          return (
+                        {buildExercisePills(subset.exercises).map(
+                          (text, idx) => (
                             <span key={`${pillKey}-${idx}`} className="pill">
                               {text}
                             </span>
-                          );
-                        })}
+                          ),
+                        )}
                       </div>
                     </div>
                   );
                 })
               ) : group.type === STEP_TYPE_PAUSE ? null : (
-                <div className="muted small">No exercises yet.</div>
+                <div className="muted small">
+                  {UI_TEXT.training.states.noExercises}
+                </div>
               )}
             </div>
           );

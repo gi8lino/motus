@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 import type { AskConfirmOptions, Workout } from "../types";
+import { MESSAGES, PROMPTS, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 type UseWorkoutActionsArgs = {
   workouts: Workout[];
@@ -91,9 +93,9 @@ export function useWorkoutActions({
           setEditingWorkout(null);
         }
 
-        await notify("Workout deleted.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to delete workout");
+        await notify(PROMPTS.workoutDeleted);
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.deleteWorkoutFailed));
       }
     },
     [
@@ -112,7 +114,7 @@ export function useWorkoutActions({
     async (workoutId: string) => {
       const workout = workouts.find((w) => w.id === workoutId);
       if (!workout) {
-        await notify("Workout not found.");
+        await notify(PROMPTS.workoutNotFound);
         return;
       }
 
@@ -121,18 +123,21 @@ export function useWorkoutActions({
         try {
           await shareWorkoutApi(workoutId);
           templatesReload?.();
-          await notify("Shared.");
+          await notify(UI_TEXT.toasts.shared);
           return;
-        } catch (err: any) {
-          await notify(err?.message || "Unable to share workout");
+        } catch (err) {
+          await notify(toErrorMessage(err, MESSAGES.shareWorkoutFailed));
           return;
         }
       }
 
       // Fallback: “share” by copying JSON to clipboard.
-      const name = workout.name || "Workout";
+      const name = workout.name || UI_TEXT.labels.workout;
       const defaultValue = `${name} (template)`;
-      const templateName = await askPrompt("Template name", defaultValue);
+      const templateName = await askPrompt(
+        UI_TEXT.prompts.templateName,
+        defaultValue,
+      );
       if (templateName === null) return;
 
       const payload = {
@@ -144,9 +149,9 @@ export function useWorkoutActions({
       try {
         await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
         templatesReload?.();
-        await notify("Template copied to clipboard.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to copy to clipboard");
+        await notify(UI_TEXT.toasts.templateCopied);
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.copyTemplateFailed));
       }
     },
     [askPrompt, notify, shareWorkoutApi, templatesReload, workouts],

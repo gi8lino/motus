@@ -26,7 +26,6 @@ func (a *API) GetWorkouts() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("list workouts", "workouts", workouts)
 		a.respondJSON(w, http.StatusOK, workouts)
 	}
 }
@@ -58,7 +57,6 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("create workout", "workout", created)
 		a.respondJSON(w, http.StatusCreated, created)
 	}
 }
@@ -75,7 +73,6 @@ func (a *API) GetWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("get workout", "workout", workout)
 		a.respondJSON(w, http.StatusOK, workout)
 	}
 }
@@ -92,7 +89,6 @@ func (a *API) ExportWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("export workout", "workout", workout)
 		a.respondJSON(w, http.StatusOK, workout)
 	}
 }
@@ -126,7 +122,6 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("import workout", "workout", created)
 		a.respondJSON(w, http.StatusCreated, created)
 	}
 }
@@ -168,7 +163,6 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("update workout", "workout", updated)
 		a.respondJSON(w, http.StatusOK, updated)
 	}
 }
@@ -184,7 +178,6 @@ func (a *API) DeleteWorkout() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("delete workout", "workout", id)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }

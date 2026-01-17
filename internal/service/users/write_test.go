@@ -7,28 +7,27 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	domainusers "github.com/gi8lino/motus/internal/domain/users"
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 type fakeStore struct {
-	createUserFn      func(context.Context, string, string, string) (*domainusers.User, error)
+	createUserFn      func(context.Context, string, string, string) (*User, error)
 	updateUserAdminFn func(context.Context, string, bool) error
-	getUserWithPassFn func(context.Context, string) (*domainusers.User, string, error)
+	getUserWithPassFn func(context.Context, string) (*User, string, error)
 	updateUserPassFn  func(context.Context, string, string) error
 	updateUserNameFn  func(context.Context, string, string) error
-	getUserFn         func(context.Context, string) (*domainusers.User, error)
-	listUsersFn       func(context.Context) ([]domainusers.User, error)
+	getUserFn         func(context.Context, string) (*User, error)
+	listUsersFn       func(context.Context) ([]User, error)
 }
 
-func (f *fakeStore) ListUsers(ctx context.Context) ([]domainusers.User, error) {
+func (f *fakeStore) ListUsers(ctx context.Context) ([]User, error) {
 	if f.listUsersFn == nil {
 		return nil, nil
 	}
 	return f.listUsersFn(ctx)
 }
 
-func (f *fakeStore) CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*domainusers.User, error) {
+func (f *fakeStore) CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*User, error) {
 	if f.createUserFn == nil {
 		return nil, nil
 	}
@@ -42,7 +41,7 @@ func (f *fakeStore) UpdateUserAdmin(ctx context.Context, id string, isAdmin bool
 	return f.updateUserAdminFn(ctx, id, isAdmin)
 }
 
-func (f *fakeStore) GetUserWithPassword(ctx context.Context, id string) (*domainusers.User, string, error) {
+func (f *fakeStore) GetUserWithPassword(ctx context.Context, id string) (*User, string, error) {
 	if f.getUserWithPassFn == nil {
 		return nil, "", nil
 	}
@@ -65,7 +64,7 @@ func (f *fakeStore) UpdateUserName(ctx context.Context, id, name string) error {
 
 // GetUser is required by the users.Store interface.
 // Adjust the parameter name/type here only if your Store.GetUser signature differs.
-func (f *fakeStore) GetUser(ctx context.Context, id string) (*domainusers.User, error) {
+func (f *fakeStore) GetUser(ctx context.Context, id string) (*User, error) {
 	if f.getUserFn == nil {
 		return nil, nil
 	}
@@ -81,7 +80,7 @@ func TestCreate(t *testing.T) {
 		svc := New(&fakeStore{}, "", false)
 		_, err := svc.Create(context.Background(), "user@example.com", "", "secret")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Password required", func(t *testing.T) {
@@ -90,7 +89,7 @@ func TestCreate(t *testing.T) {
 		svc := New(&fakeStore{}, "", true)
 		_, err := svc.Create(context.Background(), "user@example.com", "", " ")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorValidation))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 
 	t.Run("Proxy auth allows empty password", func(t *testing.T) {
@@ -98,9 +97,9 @@ func TestCreate(t *testing.T) {
 
 		called := false
 		svc := New(&fakeStore{
-			createUserFn: func(context.Context, string, string, string) (*domainusers.User, error) {
+			createUserFn: func(context.Context, string, string, string) (*User, error) {
 				called = true
-				return &domainusers.User{ID: "user"}, nil
+				return &User{ID: "user"}, nil
 			},
 		}, "X-User", false)
 		user, err := svc.Create(context.Background(), "user@example.com", "", "")

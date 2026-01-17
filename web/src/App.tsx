@@ -1,37 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyTemplate,
-  getConfig,
-  getCurrentUser,
   getWorkout,
   listExercises,
-  listTrainingHistory,
-  listSounds,
-  listTemplates,
-  listUsers,
-  listWorkouts,
-  setAuthHeaderEnabled,
   updateUserName,
 } from "./api";
 
-import type {
-  CatalogExercise,
-  TrainngHistoryItem,
-  SoundOption,
-  Template,
-  ThemeMode,
-  User,
-  Workout,
-} from "./types";
+import type { CatalogExercise, ThemeMode, User } from "./types";
 
-import { useTrainingTimer } from "./hooks/useTrainTimer";
+import { useTrainingTimer } from "./hooks/useTrainingTimer";
 import { useDialog } from "./hooks/useDialog";
 import { useViewState } from "./hooks/useViewState";
+import { useAppConfig } from "./hooks/useAppConfig";
+import { useWorkoutsData } from "./hooks/useWorkoutsData";
+import { useUserDefaults } from "./hooks/useUserDefaults";
 
 import { LoginView } from "./components/pages/LoginPage";
 import { AdminView } from "./components/pages/AdminPage";
 import { WorkoutsView } from "./components/pages/WorkoutsPage";
-import { TrainView } from "./components/pages/TrainPage";
+import { TrainingView } from "./components/pages/TrainingPage";
 import { TemplatesView } from "./components/pages/TemplatesPage";
 import { HistoryView } from "./components/pages/HistoryPage";
 import { ProfileView } from "./components/pages/ProfilePage";
@@ -41,63 +28,18 @@ import { AppShell } from "./components/shell/AppShell";
 import DialogModal from "./components/common/DialogModal";
 
 import { isValidEmail } from "./utils/validation";
-import { STEP_TYPE_PAUSE } from "./utils/step";
+import { PROMPTS, toErrorMessage } from "./utils/messages";
+import { UI_TEXT } from "./utils/uiText";
 
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
 import { useExerciseActions } from "./hooks/useExerciseActions";
 import { useProfileActions } from "./hooks/useProfileActions";
-import { useTrainActions } from "./hooks/useTrainActions";
+import { useTrainingActions } from "./hooks/useTrainingActions";
 
 import "./styles.css";
 
-type AppConfig = {
-  authHeaderEnabled: boolean;
-  allowRegistration: boolean;
-  version: string;
-  commit: string;
-};
-
-// useDataLoader wraps async loading with loading/error state.
-function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    loader()
-      .then((res) => {
-        if (cancelled) return;
-        setData(res);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err?.message || "load failed");
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  useEffect(() => {
-    const cancel = reload();
-    return cancel;
-  }, [reload]);
-
-  return { data, loading, error, setData, reload };
-}
-
-// resumeMessage formats a resume prompt for an in-progress trining.
+// resumeMessage formats a resume prompt for an in-progress training.
 function resumeMessage(
   training?: ReturnType<typeof useTrainingTimer>["training"] | null,
 ) {
@@ -115,8 +57,6 @@ export default function App() {
     return null;
   });
 
-  const [config, setConfig] = useState<AppConfig | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -125,15 +65,6 @@ export default function App() {
       return stored;
     return "auto";
   });
-
-  // user defaults
-  const [defaultStepSoundKey, setDefaultStepSoundKey] = useState("");
-  const [defaultPauseDuration, setDefaultPauseDuration] = useState("");
-  const [defaultPauseSoundKey, setDefaultPauseSoundKey] = useState("");
-  const [defaultPauseAutoAdvance, setDefaultPauseAutoAdvance] = useState(false);
-  const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
-    useState(false);
-  const [pauseOnTabHidden, setPauseOnTabHidden] = useState(false);
 
   // train view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
@@ -160,61 +91,43 @@ export default function App() {
     askPrompt,
   } = useDialog();
 
+  const { config, authError } = useAppConfig({
+    view,
+    setView,
+    setCurrentUserId,
+  });
+  const {
+    users,
+    sounds,
+    workouts,
+    history,
+    templates,
+    activeWorkouts,
+    currentUser,
+  } = useWorkoutsData({ currentUserId });
+  const {
+    defaultStepSoundKey,
+    defaultPauseDuration,
+    defaultPauseSoundKey,
+    defaultPauseAutoAdvance,
+    repeatRestAfterLastDefault,
+    pauseOnTabHidden,
+    updateRepeatRestAfterLastDefault,
+    updateDefaultStepSoundKey,
+    updateDefaultPauseDuration,
+    updateDefaultPauseSoundKey,
+    updateDefaultPauseAutoAdvance,
+    updatePauseOnTabHidden,
+  } = useUserDefaults({ currentUserId });
+
   const allowRegistration = config?.allowRegistration ?? true;
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
   const appVersion = config?.version || "dev";
-
-  // ---------- data loaders ----------
-  const users = useDataLoader<User[]>(listUsers, []);
-  const sounds = useDataLoader<SoundOption[]>(listSounds, []);
-  const workouts = useDataLoader<Workout[]>(
-    () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
-    [currentUserId],
-  );
-  const history = useDataLoader<TrainngHistoryItem[]>(
-    () =>
-      currentUserId
-        ? listTrainingHistory(currentUserId)
-        : Promise.resolve([] as TrainngHistoryItem[]),
-    [currentUserId],
-  );
-  const templates = useDataLoader<Template[]>(listTemplates, []);
-
-  const activeWorkouts = workouts.data || [];
-  const currentUser = useMemo(
-    () => users.data?.find((u) => u.id === currentUserId) || null,
-    [users.data, currentUserId],
-  );
 
   const currentWorkoutName = useMemo(() => {
     if (!selectedWorkoutId) return "";
     return activeWorkouts.find((w) => w.id === selectedWorkoutId)?.name || "";
   }, [selectedWorkoutId, activeWorkouts]);
-
-  // ---------- config + proxy auth ----------
-  useEffect(() => {
-    getConfig()
-      .then((cfg) => {
-        setConfig(cfg);
-        setAuthHeaderEnabled(cfg.authHeaderEnabled);
-
-        if (!cfg.authHeaderEnabled) return;
-
-        return getCurrentUser()
-          .then((user) => {
-            setCurrentUserId(user.id);
-            setAuthError(null);
-            if (view === "login") setView("train");
-          })
-          .catch((err: Error) => {
-            setAuthError(err.message || "Unable to authenticate user");
-          });
-      })
-      .catch((err: Error) => {
-        setAuthError(err.message || "Unable to load configuration");
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ---------- theme ----------
   useEffect(() => {
@@ -240,40 +153,6 @@ export default function App() {
     media.addEventListener("change", handler);
     return () => media.removeEventListener("change", handler);
   }, [themeMode]);
-
-  // ---------- hydrate per-user defaults ----------
-  useEffect(() => {
-    if (!currentUserId) {
-      setRepeatRestAfterLastDefault(false);
-      setDefaultStepSoundKey("");
-      setDefaultPauseDuration("");
-      setDefaultPauseSoundKey("");
-      setDefaultPauseAutoAdvance(false);
-      setPauseOnTabHidden(false);
-      return;
-    }
-
-    setRepeatRestAfterLastDefault(
-      localStorage.getItem(`motus:repeatRestAfterLast:${currentUserId}`) ===
-        "true",
-    );
-    setDefaultStepSoundKey(
-      localStorage.getItem(`motus:defaultStepSound:${currentUserId}`) || "",
-    );
-    setDefaultPauseDuration(
-      localStorage.getItem(`motus:defaultPauseDuration:${currentUserId}`) || "",
-    );
-    setDefaultPauseSoundKey(
-      localStorage.getItem(`motus:defaultPauseSound:${currentUserId}`) || "",
-    );
-    setDefaultPauseAutoAdvance(
-      localStorage.getItem(`motus:defaultPauseAuto:${currentUserId}`) ===
-        "true",
-    );
-    setPauseOnTabHidden(
-      localStorage.getItem(`motus:pauseOnHidden:${currentUserId}`) === "true",
-    );
-  }, [currentUserId]);
 
   // ---------- validate stored user id once local users are known ----------
   useEffect(() => {
@@ -416,11 +295,11 @@ export default function App() {
   const {
     startTraining: handleStartTraining,
     finishTraining: handleFinishTraining,
-  } = useTrainActions({
+  } = useTrainingActions({
     selectedWorkoutId,
     training,
     currentWorkoutName,
-    setTrainView: () => setView("train"),
+    setTrainingView: () => setView("train"),
     setPromptedResume,
     setResumeSuppressed,
     startFromState,
@@ -442,46 +321,7 @@ export default function App() {
     if (!training) setResumeSuppressed(false);
   }, [training?.trainingId]);
 
-  // auto-advance for timed steps
-  useEffect(() => {
-    if (!training || !training.running) return;
-    if (!currentStep || !currentStep.estimatedSeconds) return;
-
-    const isAutoAdvance =
-      (currentStep.type === STEP_TYPE_PAUSE &&
-        currentStep.pauseOptions?.autoAdvance) ||
-      Boolean(currentStep.autoAdvance);
-
-    if (!isAutoAdvance) return;
-
-    const threshold = currentStep.estimatedSeconds * 1000;
-    if (displayedElapsed < threshold + 200) return;
-
-    const isLast =
-      training.currentIndex >=
-      (training.steps?.length ? training.steps.length - 1 : 0);
-
-    if (!isLast) {
-      nextStep();
-      return;
-    }
-
-    finishAndLog().then((result) => {
-      if (!result?.ok) {
-        notify(result?.error || "Unable to save training");
-        return;
-      }
-      history.reload();
-    });
-  }, [
-    training,
-    currentStep,
-    displayedElapsed,
-    nextStep,
-    finishAndLog,
-    history,
-    notify,
-  ]);
+  // Auto-advance is handled in the training timer hook to keep timing consistent.
 
   // refresh history once when a training logs
   useEffect(() => {
@@ -493,52 +333,6 @@ export default function App() {
       history.reload();
     }
   }, [training?.logged, training?.trainingId, history]);
-
-  // ---------- handlers for defaults ----------
-  const handleRepeatRestAfterLastDefault = (value: boolean) => {
-    setRepeatRestAfterLastDefault(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:repeatRestAfterLast:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
-
-  const handleDefaultStepSound = (value: string) => {
-    setDefaultStepSoundKey(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultStepSound:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseDuration = (value: string) => {
-    setDefaultPauseDuration(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultPauseDuration:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseSound = (value: string) => {
-    setDefaultPauseSoundKey(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultPauseSound:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseAutoAdvance = (value: boolean) => {
-    setDefaultPauseAutoAdvance(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:defaultPauseAuto:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
-
-  const handlePauseOnTabHidden = (value: boolean) => {
-    setPauseOnTabHidden(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:pauseOnHidden:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
 
   // ---------- logout ----------
   const handleLogout = () => {
@@ -567,8 +361,8 @@ export default function App() {
         workouts.setData?.((prev) => (prev ? [created, ...prev] : [created]));
         setView("workouts");
         showToast("Template applied.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to apply template");
+      } catch (err) {
+        await notify(toErrorMessage(err, "Unable to apply template"));
       }
     },
     [askPrompt, currentUserId, notify, setView, showToast, workouts],
@@ -634,36 +428,44 @@ export default function App() {
       >
         {view === "login" && !authHeaderEnabled && (
           <LoginView
-            allowRegistration={allowRegistration}
-            loginError={loginError}
-            onLogin={handleLogin}
-            onCreateUser={async (email, password) => {
-              try {
-                await handleRegister(email, password);
-                setView("train");
-              } catch (err: any) {
-                await notify(err?.message || "Unable to create user");
-              }
+            data={{
+              allowRegistration,
+              loginError,
             }}
-            onClearError={() => setLoginError(null)}
+            actions={{
+              onLogin: handleLogin,
+              onCreateUser: async (email, password) => {
+                try {
+                  await handleRegister(email, password);
+                  setView("train");
+                } catch (err) {
+                  await notify(toErrorMessage(err, "Unable to create user"));
+                }
+              },
+              onClearError: () => setLoginError(null),
+            }}
           />
         )}
 
         {view === "admin" && currentUser?.isAdmin && (
           <AdminView
-            users={users.data || []}
-            loading={users.loading}
-            currentUserId={currentUserId}
-            allowRegistration={allowRegistration}
-            onToggleAdmin={handleToggleAdmin}
-            onCreateUser={async (email, password) => {
-              try {
-                await handleRegister(email, password);
-              } catch (err: any) {
-                await notify(err?.message || "Unable to create user");
-              }
+            data={{
+              users: users.data || [],
+              loading: users.loading,
+              currentUserId,
+              allowRegistration,
             }}
-            onBackfill={backfillCatalog}
+            actions={{
+              onToggleAdmin: handleToggleAdmin,
+              onCreateUser: async (email, password) => {
+                try {
+                  await handleRegister(email, password);
+                } catch (err) {
+                  await notify(toErrorMessage(err, "Unable to create user"));
+                }
+              },
+              onBackfill: backfillCatalog,
+            }}
           />
         )}
 
@@ -673,109 +475,134 @@ export default function App() {
             loading={workouts.loading}
             setWorkouts={(updater) => workouts.setData?.(updater)}
             currentUserId={currentUserId}
-            askConfirm={askConfirm}
-            askPrompt={askPrompt}
-            notifyUser={notify}
-            templatesReload={() => templates.reload()}
-            sounds={sounds.data || []}
-            exerciseCatalog={exerciseCatalog}
-            onCreateExercise={createExerciseEntry}
-            promptUser={askPrompt}
-            defaultStepSoundKey={defaultStepSoundKey}
-            defaultPauseDuration={defaultPauseDuration}
-            defaultPauseSoundKey={defaultPauseSoundKey}
-            defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-            repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-            onToast={showToast}
+            defaults={{
+              defaultStepSoundKey,
+              defaultPauseDuration,
+              defaultPauseSoundKey,
+              defaultPauseAutoAdvance,
+              repeatRestAfterLastDefault,
+            }}
+            formData={{
+              sounds: sounds.data || [],
+              exerciseCatalog,
+            }}
+            services={{
+              askConfirm,
+              askPrompt,
+              notifyUser: notify,
+              templatesReload: () => templates.reload(),
+              onCreateExercise: createExerciseEntry,
+              promptUser: askPrompt,
+              onToast: showToast,
+            }}
           />
         )}
 
         {view === "train" && (
-          <TrainView
-            workouts={activeWorkouts}
-            selectedWorkoutId={selectedWorkoutId}
-            onSelectWorkout={setSelectedWorkoutId}
-            onStartTrain={handleStartTraining}
-            startDisabled={!selectedWorkoutId || !currentUserId}
-            startTitle={!selectedWorkoutId ? "Select a workout first" : ""}
-            training={training}
-            currentStep={currentStep}
-            elapsed={displayedElapsed}
-            workoutName={currentWorkoutName}
-            sounds={sounds.data || []}
-            markSoundPlayed={markSoundPlayed}
-            onStartStep={startCurrentStep}
-            onPause={pause}
-            onNext={nextStep}
-            onFinishTrain={handleFinishTraining}
-            onCopySummary={() => showToast("Copied summary")}
-            onToast={showToast}
-            pauseOnTabHidden={pauseOnTabHidden}
+          <TrainingView
+            data={{
+              workouts: activeWorkouts,
+              selectedWorkoutId,
+              startDisabled: !selectedWorkoutId || !currentUserId,
+              startTitle: !selectedWorkoutId ? PROMPTS.selectWorkoutFirst : "",
+              training,
+              currentStep,
+              elapsed: displayedElapsed,
+              workoutName: currentWorkoutName,
+              sounds: sounds.data || [],
+              pauseOnTabHidden,
+            }}
+            actions={{
+              onSelectWorkout: setSelectedWorkoutId,
+              onStartTraining: handleStartTraining,
+              markSoundPlayed,
+              onStartStep: startCurrentStep,
+              onPause: pause,
+              onNext: nextStep,
+              onFinishTraining: handleFinishTraining,
+              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+              onToast: showToast,
+            }}
           />
         )}
 
         {view === "templates" && (
           <TemplatesView
-            templates={templates.data || []}
-            loading={templates.loading}
-            hasUser={Boolean(currentUserId)}
-            onRefresh={() => templates.reload()}
-            onApplyTemplate={handleApplyTemplate}
+            data={{
+              templates: templates.data || [],
+              loading: templates.loading,
+              hasUser: Boolean(currentUserId),
+            }}
+            actions={{
+              onRefresh: () => templates.reload(),
+              onApplyTemplate: handleApplyTemplate,
+            }}
           />
         )}
 
         {view === "history" && (
           <HistoryView
-            items={history.data || []}
-            activeTraining={training}
-            onResume={() => setView("train")}
-            loadWorkout={getWorkout}
-            onCopySummary={() => showToast("Copied summary")}
+            data={{
+              items: history.data || [],
+              activeTraining: training,
+            }}
+            actions={{
+              onResume: () => setView("train"),
+              loadWorkout: getWorkout,
+              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+            }}
           />
         )}
 
         {view === "profile" && (
           <ProfileView
-            profileTab={profileTab}
-            onProfileTabChange={setProfileTab}
-            currentName={currentUser?.name || ""}
-            onUpdateName={handleUpdateName}
-            themeMode={themeMode}
-            onThemeChange={setThemeMode}
-            sounds={sounds.data || []}
-            defaultStepSoundKey={defaultStepSoundKey}
-            onDefaultStepSoundChange={handleDefaultStepSound}
-            defaultPauseDuration={defaultPauseDuration}
-            onDefaultPauseDurationChange={handleDefaultPauseDuration}
-            defaultPauseSoundKey={defaultPauseSoundKey}
-            onDefaultPauseSoundChange={handleDefaultPauseSound}
-            defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-            onDefaultPauseAutoAdvanceChange={handleDefaultPauseAutoAdvance}
-            repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-            onRepeatRestAfterLastDefaultChange={
-              handleRepeatRestAfterLastDefault
-            }
-            pauseOnTabHidden={pauseOnTabHidden}
-            onPauseOnTabHiddenChange={handlePauseOnTabHidden}
-            exportWorkoutId={exportWorkoutId}
-            onExportWorkoutChange={setExportWorkoutId}
-            activeWorkouts={activeWorkouts}
-            onExportWorkout={handleExportSelected}
-            onImportWorkout={handleImportSelected}
-            onPasswordChange={handlePasswordSubmit}
-            importInputRef={importInputRef}
-            authHeaderEnabled={authHeaderEnabled}
+            data={{
+              profileTab,
+              currentName: currentUser?.name || "",
+              themeMode,
+              sounds: sounds.data || [],
+              defaultStepSoundKey,
+              defaultPauseDuration,
+              defaultPauseSoundKey,
+              defaultPauseAutoAdvance,
+              repeatRestAfterLastDefault,
+              pauseOnTabHidden,
+              exportWorkoutId,
+              activeWorkouts,
+              importInputRef,
+              authHeaderEnabled,
+            }}
+            actions={{
+              onProfileTabChange: setProfileTab,
+              onUpdateName: handleUpdateName,
+              onThemeChange: setThemeMode,
+              onDefaultStepSoundChange: updateDefaultStepSoundKey,
+              onDefaultPauseDurationChange: updateDefaultPauseDuration,
+              onDefaultPauseSoundChange: updateDefaultPauseSoundKey,
+              onDefaultPauseAutoAdvanceChange: updateDefaultPauseAutoAdvance,
+              onRepeatRestAfterLastDefaultChange:
+                updateRepeatRestAfterLastDefault,
+              onPauseOnTabHiddenChange: updatePauseOnTabHidden,
+              onExportWorkoutChange: setExportWorkoutId,
+              onExportWorkout: handleExportSelected,
+              onImportWorkout: handleImportSelected,
+              onPasswordChange: handlePasswordSubmit,
+            }}
           />
         )}
 
         {view === "exercises" && (
           <ExercisesView
-            exercises={exerciseCatalog}
-            isAdmin={Boolean(currentUser?.isAdmin)}
-            onAddExercise={handleAddExercise}
-            onAddCoreExercise={handleAddCoreExercise}
-            onRenameExercise={handleRenameExercise}
-            onDeleteExercise={handleDeleteExercise}
+            data={{
+              exercises: exerciseCatalog,
+              isAdmin: Boolean(currentUser?.isAdmin),
+            }}
+            actions={{
+              onAddExercise: handleAddExercise,
+              onAddCoreExercise: handleAddCoreExercise,
+              onRenameExercise: handleRenameExercise,
+              onDeleteExercise: handleDeleteExercise,
+            }}
           />
         )}
       </AppShell>

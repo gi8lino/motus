@@ -7,8 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	domaintemplates "github.com/gi8lino/motus/internal/domain/templates"
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestApply(t *testing.T) {
@@ -20,15 +19,15 @@ func TestApply(t *testing.T) {
 		svc := New(&fakeTemplateStore{})
 		_, err := svc.Apply(context.Background(), " ", "user", "Name")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorValidation))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 
 	t.Run("Creates new workout", func(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			createWorkoutFromTemplate: func(context.Context, string, string, string) (*domaintemplates.Workout, error) {
-				return &domaintemplates.Workout{ID: "new", Name: "Copy"}, nil
+			createWorkoutFromTemplate: func(context.Context, string, string, string) (*Workout, error) {
+				return &Workout{ID: "new", Name: "Copy"}, nil
 			},
 		})
 		workout, err := svc.Apply(context.Background(), "tmpl", "user", "Copy")

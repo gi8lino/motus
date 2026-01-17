@@ -99,7 +99,9 @@ func (f *fakeExercisesStore) BackfillCoreExercises(ctx context.Context) error {
 }
 
 func TestExercisesHandlers(t *testing.T) {
+	t.Parallel()
 	t.Run("List exercises", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeExercisesStore{listExercisesFn: func(_ context.Context, userID string) ([]db.Exercise, error) {
 			return []db.Exercise{{ID: "ex1", Name: "Burpee"}}, nil
 		}}
@@ -119,6 +121,7 @@ func TestExercisesHandlers(t *testing.T) {
 	})
 
 	t.Run("Create exercise", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeExercisesStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user@example.com"}, nil
@@ -143,6 +146,7 @@ func TestExercisesHandlers(t *testing.T) {
 	})
 
 	t.Run("Update exercise", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeExercisesStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user@example.com", IsAdmin: true}, nil
@@ -171,6 +175,7 @@ func TestExercisesHandlers(t *testing.T) {
 	})
 
 	t.Run("Delete exercise", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeExercisesStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return &db.User{ID: "user@example.com", IsAdmin: true}, nil
@@ -195,6 +200,7 @@ func TestExercisesHandlers(t *testing.T) {
 	})
 
 	t.Run("Backfill exercises", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeExercisesStore{backfillCoreExercisesFn: func(context.Context) error { return nil }}
 		api := &API{Exercises: exercises.New(store)}
 		h := api.BackfillExercises()

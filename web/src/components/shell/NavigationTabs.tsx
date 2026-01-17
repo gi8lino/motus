@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { View } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
 type NavTabsProps = {
   view: View;
@@ -8,14 +9,14 @@ type NavTabsProps = {
 };
 
 const LABELS: Record<View, string> = {
-  login: "Login",
-  train: "Train",
-  workouts: "Workouts",
-  templates: "Templates",
-  exercises: "Exercises",
-  history: "History",
-  profile: "Profile",
-  admin: "Admin",
+  login: UI_TEXT.nav.login,
+  train: UI_TEXT.nav.train,
+  workouts: UI_TEXT.nav.workouts,
+  templates: UI_TEXT.nav.templates,
+  exercises: UI_TEXT.nav.exercises,
+  history: UI_TEXT.nav.history,
+  profile: UI_TEXT.nav.profile,
+  admin: UI_TEXT.nav.admin,
 };
 
 /**
@@ -34,7 +35,7 @@ export function NavTabs({ view, views, onSelect }: NavTabsProps) {
       <button
         className="btn icon nav-toggle"
         type="button"
-        aria-label="Toggle navigation"
+        aria-label={UI_TEXT.accessibility.navToggle}
         onClick={() => setOpen((v) => !v)}
       >
         ☰

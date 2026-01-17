@@ -1,7 +1,24 @@
 import { useState } from "react";
 import type { CatalogExercise, SoundOption, Workout } from "../../types";
-import { WorkoutEditorModal } from "./WorkoutEditorModal";
+import { WorkoutForm, type WorkoutFormDefaults } from "./WorkoutForm";
 import { useWorkoutFormActions } from "../../hooks/useWorkoutFormActions";
+import { Modal } from "../common/Modal";
+
+type WorkoutFormData = {
+  sounds: SoundOption[];
+  exerciseCatalog: CatalogExercise[];
+};
+
+type WorkoutFormServices = {
+  onCreateExercise: (name: string) => Promise<CatalogExercise>;
+  promptUser: (
+    message: string,
+    defaultValue?: string,
+  ) => Promise<string | null>;
+  notifyUser: (message: string) => Promise<void>;
+  askConfirm: (message: string) => Promise<boolean>;
+  onToast?: (message: string) => void;
+};
 
 export type WorkoutsEditorProps = {
   open: boolean;
@@ -17,23 +34,9 @@ export type WorkoutsEditorProps = {
   setSelectedWorkoutId: (id: string | null) => void;
 
   // form deps
-  sounds: SoundOption[];
-  exerciseCatalog: CatalogExercise[];
-  onCreateExercise: (name: string) => Promise<CatalogExercise>;
-  promptUser: (
-    message: string,
-    defaultValue?: string,
-  ) => Promise<string | null>;
-  notifyUser: (message: string) => Promise<void>;
-
-  defaultStepSoundKey: string;
-  defaultPauseDuration: string;
-  defaultPauseSoundKey: string;
-  defaultPauseAutoAdvance: boolean;
-  repeatRestAfterLastDefault: boolean;
-
-  askConfirm: (message: string) => Promise<boolean>;
-  onToast?: (message: string) => void;
+  formData: WorkoutFormData;
+  defaults: WorkoutFormDefaults;
+  services: WorkoutFormServices;
 };
 
 export function WorkoutsEditor({
@@ -44,18 +47,9 @@ export function WorkoutsEditor({
   currentUserId,
   setWorkouts,
   setSelectedWorkoutId,
-  sounds,
-  exerciseCatalog,
-  onCreateExercise,
-  promptUser,
-  notifyUser,
-  defaultStepSoundKey,
-  defaultPauseDuration,
-  defaultPauseSoundKey,
-  defaultPauseAutoAdvance,
-  repeatRestAfterLastDefault,
-  askConfirm,
-  onToast,
+  formData,
+  defaults,
+  services,
 }: WorkoutsEditorProps) {
   const [workoutDirty, setWorkoutDirty] = useState(false);
 
@@ -66,42 +60,42 @@ export function WorkoutsEditor({
       setSelectedWorkoutId,
       setEditingWorkout,
       setWorkoutDirty,
-      setShowWorkoutForm: (updater) => {
-        // WorkoutsEditor controls open/close externally; ignore updater
-        if (typeof updater === "function") {
-          const next = updater(open);
-          if (!next) onClose();
-        } else {
-          if (!updater) onClose();
-        }
+      setShowWorkoutForm: (show) => {
+        // WorkoutsEditor controls open/close externally; mirror close only.
+        if (!show) onClose();
       },
       setWorkouts,
-      askConfirm,
+      askConfirm: services.askConfirm,
     });
 
   return (
-    <WorkoutEditorModal
+    <Modal
       open={open}
       onClose={() => {
         closeWorkoutModal();
         onClose();
       }}
-      userId={currentUserId}
-      sounds={sounds}
-      exerciseCatalog={exerciseCatalog}
-      onCreateExercise={onCreateExercise}
-      promptUser={promptUser}
-      notifyUser={notifyUser}
-      defaultStepSoundKey={defaultStepSoundKey}
-      defaultPauseDuration={defaultPauseDuration}
-      defaultPauseSoundKey={defaultPauseSoundKey}
-      defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-      repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-      onSave={saveWorkout}
-      onUpdate={updateWorkout}
-      editingWorkout={editingWorkout}
-      onDirtyChange={setWorkoutDirty}
-      onToast={onToast}
-    />
+    >
+      <WorkoutForm
+        userId={currentUserId}
+        sounds={formData.sounds}
+        exerciseCatalog={formData.exerciseCatalog}
+        defaults={defaults}
+        services={{
+          onSave: saveWorkout,
+          onUpdate: updateWorkout,
+          onCreateExercise: services.onCreateExercise,
+          promptUser: services.promptUser,
+          notifyUser: services.notifyUser,
+          onToast: services.onToast,
+        }}
+        editingWorkout={editingWorkout}
+        onDirtyChange={setWorkoutDirty}
+        onClose={() => {
+          closeWorkoutModal();
+          onClose();
+        }}
+      />
+    </Modal>
   );
 }

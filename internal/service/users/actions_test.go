@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	domainusers "github.com/gi8lino/motus/internal/domain/users"
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestLogin(t *testing.T) {
@@ -22,20 +21,20 @@ func TestLogin(t *testing.T) {
 		svc := New(&fakeStore{}, "X-User", false)
 		_, err := svc.Login(context.Background(), "user@example.com", "secret")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Invalid credentials", func(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
 				return nil, "", nil
 			},
 		}, "", false)
 		_, err := svc.Login(context.Background(), "user@example.com", "secret")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorUnauthorized))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorUnauthorized))
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -45,8 +44,8 @@ func TestLogin(t *testing.T) {
 		require.NoError(t, err)
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 		}, "", false)
 		user, err := svc.Login(context.Background(), "user@example.com", "secret")
@@ -65,7 +64,7 @@ func TestChangePassword(t *testing.T) {
 		svc := New(&fakeStore{}, "X-User", false)
 		err := svc.ChangePassword(context.Background(), "user", "old", "new")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Invalid current password", func(t *testing.T) {
@@ -75,13 +74,13 @@ func TestChangePassword(t *testing.T) {
 		require.NoError(t, err)
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 		}, "", false)
 		err = svc.ChangePassword(context.Background(), "user", "wrong", "new")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorUnauthorized))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorUnauthorized))
 	})
 
 	t.Run("Updates hash", func(t *testing.T) {
@@ -92,8 +91,8 @@ func TestChangePassword(t *testing.T) {
 
 		called := false
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 			updateUserPassFn: func(context.Context, string, string) error {
 				called = true

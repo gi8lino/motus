@@ -38,7 +38,7 @@ Motus separates training timing from data storage:
 
 1. **Log in or register** (local mode) or rely on proxy auth (auth-header mode).
 2. **Create workouts** in the Workouts tab. Add sets and pauses.
-3. **Select a workout** in Train and click Start to begin.
+3. **Select a workout** in Training and click Start to begin.
 4. **Pause/resume/advance** steps, and use the summary when finished.
 5. **Review history** to inspect per-step target vs. actual timing.
 6. **Manage exercises** in the Exercises tab (Core vs Personal).

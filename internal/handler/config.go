@@ -39,7 +39,6 @@ func (a *API) CurrentUser() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("get user", "user", user)
 		a.respondJSON(w, http.StatusOK, user)
 	}
 }

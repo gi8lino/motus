@@ -1,20 +1,10 @@
-// Package users provides service access to user operations.
+// Package users provides domain logic for user management.
 package users
 
-import domain "github.com/gi8lino/motus/internal/domain/users"
-
-// Store exposes persistence required by the users service.
-type Store = domain.Store
+import "github.com/gi8lino/motus/internal/db"
 
 // User is the domain-level DTO for users.
-type User = domain.User
+type User = db.User
 
-// Service coordinates user operations.
-type Service struct {
-	manager *domain.Manager
-}
-
-// New creates a new users service.
-func New(store Store, authHeader string, allowRegistration bool) *Service {
-	return &Service{manager: domain.NewManager(store, authHeader, allowRegistration)}
-}
+// errorScope is the service error scope for users.
+const errorScope = "users"

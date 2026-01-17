@@ -2,71 +2,87 @@ import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import type { SoundOption, Workout } from "../../types";
 import { SelectDropdown } from "../common/SelectDropdown";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
+import { UI_TEXT } from "../../utils/uiText";
 
 type ProfileTab = "settings" | "password" | "transfer";
 type ThemeMode = "auto" | "dark" | "light";
 
-// ProfileView renders account preferences and transfer actions.
-export function ProfileView({
-  profileTab,
-  onProfileTabChange,
-  currentName,
-  onUpdateName,
-  themeMode,
-  onThemeChange,
-  sounds,
-  defaultStepSoundKey,
-  onDefaultStepSoundChange,
-  defaultPauseDuration,
-  onDefaultPauseDurationChange,
-  defaultPauseSoundKey,
-  onDefaultPauseSoundChange,
-  defaultPauseAutoAdvance,
-  onDefaultPauseAutoAdvanceChange,
-  repeatRestAfterLastDefault,
-  onRepeatRestAfterLastDefaultChange,
-  pauseOnTabHidden,
-  onPauseOnTabHiddenChange,
-  exportWorkoutId,
-  onExportWorkoutChange,
-  activeWorkouts,
-  onExportWorkout,
-  onImportWorkout,
-  onPasswordChange,
-  importInputRef,
-  authHeaderEnabled,
-}: {
+export type ProfileViewData = {
   profileTab: ProfileTab;
-  onProfileTabChange: (tab: ProfileTab) => void;
   currentName: string;
-  onUpdateName: (name: string) => void | Promise<void>;
   themeMode: ThemeMode;
-  onThemeChange: (mode: ThemeMode) => void;
   sounds: SoundOption[];
   defaultStepSoundKey: string;
-  onDefaultStepSoundChange: (value: string) => void;
   defaultPauseDuration: string;
-  onDefaultPauseDurationChange: (value: string) => void;
   defaultPauseSoundKey: string;
-  onDefaultPauseSoundChange: (value: string) => void;
   defaultPauseAutoAdvance: boolean;
-  onDefaultPauseAutoAdvanceChange: (value: boolean) => void;
   repeatRestAfterLastDefault: boolean;
-  onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
   pauseOnTabHidden: boolean;
-  onPauseOnTabHiddenChange: (value: boolean) => void;
   exportWorkoutId: string;
-  onExportWorkoutChange: (id: string) => void;
   activeWorkouts: Workout[];
+  importInputRef: RefObject<HTMLInputElement | null>;
+  authHeaderEnabled: boolean;
+};
+
+export type ProfileViewActions = {
+  onProfileTabChange: (tab: ProfileTab) => void;
+  onUpdateName: (name: string) => void | Promise<void>;
+  onThemeChange: (mode: ThemeMode) => void;
+  onDefaultStepSoundChange: (value: string) => void;
+  onDefaultPauseDurationChange: (value: string) => void;
+  onDefaultPauseSoundChange: (value: string) => void;
+  onDefaultPauseAutoAdvanceChange: (value: boolean) => void;
+  onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
+  onPauseOnTabHiddenChange: (value: boolean) => void;
+  onExportWorkoutChange: (id: string) => void;
   onExportWorkout: () => void | Promise<void>;
   onImportWorkout: (file: File) => void | Promise<void>;
   onPasswordChange: (
     currentPassword: string,
     newPassword: string,
   ) => void | Promise<void>;
-  importInputRef: RefObject<HTMLInputElement | null>;
-  authHeaderEnabled: boolean;
+};
+
+// ProfileView renders account preferences and transfer actions.
+export function ProfileView({
+  data,
+  actions,
+}: {
+  data: ProfileViewData;
+  actions: ProfileViewActions;
 }) {
+  const {
+    profileTab,
+    currentName,
+    themeMode,
+    sounds,
+    defaultStepSoundKey,
+    defaultPauseDuration,
+    defaultPauseSoundKey,
+    defaultPauseAutoAdvance,
+    repeatRestAfterLastDefault,
+    pauseOnTabHidden,
+    exportWorkoutId,
+    activeWorkouts,
+    importInputRef,
+    authHeaderEnabled,
+  } = data;
+  const {
+    onProfileTabChange,
+    onUpdateName,
+    onThemeChange,
+    onDefaultStepSoundChange,
+    onDefaultPauseDurationChange,
+    onDefaultPauseSoundChange,
+    onDefaultPauseAutoAdvanceChange,
+    onRepeatRestAfterLastDefaultChange,
+    onPauseOnTabHiddenChange,
+    onExportWorkoutChange,
+    onExportWorkout,
+    onImportWorkout,
+    onPasswordChange,
+  } = actions;
   const canExport = Boolean(exportWorkoutId);
   // Prevent password tab access when auth headers are enabled.
   useEffect(() => {
@@ -78,10 +94,8 @@ export function ProfileView({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3>Profile</h3>
-          <p className="muted small hint">
-            Manage your local account preferences.
-          </p>
+          <h3>{UI_TEXT.pages.profile.title}</h3>
+          <p className="muted small hint">{UI_TEXT.pages.profile.hint}</p>
         </div>
       </div>
       <div className="profile-layout">
@@ -89,40 +103,42 @@ export function ProfileView({
           {/* Tab content */}
           {profileTab === "settings" && (
             <div className="stack">
-              <div className="label">Account</div>
+              <div className="label">{UI_TEXT.pages.profile.accountLabel}</div>
               <DisplayNameForm
                 currentName={currentName}
                 onUpdate={onUpdateName}
               />
               <div className="divider" />
-              <div className="label">Appearance</div>
+              <div className="label">
+                {UI_TEXT.pages.profile.appearanceLabel}
+              </div>
               <div className="field">
-                <label>Theme</label>
+                <label>{UI_TEXT.pages.profile.themeLabel}</label>
                 <SelectDropdown
                   items={[
-                    { id: "auto", label: "Auto (system)" },
-                    { id: "dark", label: "Dark" },
-                    { id: "light", label: "Light" },
+                    { id: "auto", label: UI_TEXT.pages.profile.autoTheme },
+                    { id: "dark", label: UI_TEXT.pages.profile.darkTheme },
+                    { id: "light", label: UI_TEXT.pages.profile.lightTheme },
                   ]}
                   value={themeMode}
-                  placeholder="Select theme"
+                  placeholder={UI_TEXT.placeholders.selectTheme}
                   onSelect={(item) => onThemeChange(item.id as ThemeMode)}
                 />
               </div>
               <div className="divider" />
-              <div className="label">Defaults</div>
+              <div className="label">{UI_TEXT.pages.profile.defaultsLabel}</div>
               <div className="field">
-                <label>Default step sound</label>
+                <label>{UI_TEXT.pages.profile.defaultStepSoundLabel}</label>
                 <SelectDropdown
                   items={[
-                    { id: "", label: "None" },
+                    { id: "", label: UI_TEXT.options.none },
                     ...sounds.map((sound) => ({
                       id: sound.key,
                       label: sound.label,
                     })),
                   ]}
                   value={defaultStepSoundKey || null}
-                  placeholder="Select sound"
+                  placeholder={UI_TEXT.placeholders.selectSound}
                   onSelect={(item) => onDefaultStepSoundChange(item.id)}
                   onClear={
                     defaultStepSoundKey
@@ -132,25 +148,25 @@ export function ProfileView({
                 />
               </div>
               <div className="field">
-                <label>Default pause duration</label>
+                <label>{UI_TEXT.pages.profile.defaultPauseDurationLabel}</label>
                 <input
                   value={defaultPauseDuration}
                   onChange={(e) => onDefaultPauseDurationChange(e.target.value)}
-                  placeholder="e.g. 45s"
+                  placeholder={UI_TEXT.placeholders.duration}
                 />
               </div>
               <div className="field">
-                <label>Default pause sound</label>
+                <label>{UI_TEXT.pages.profile.defaultPauseSoundLabel}</label>
                 <SelectDropdown
                   items={[
-                    { id: "", label: "None" },
+                    { id: "", label: UI_TEXT.options.none },
                     ...sounds.map((sound) => ({
                       id: sound.key,
                       label: sound.label,
                     })),
                   ]}
                   value={defaultPauseSoundKey || null}
-                  placeholder="Select sound"
+                  placeholder={UI_TEXT.placeholders.selectSound}
                   onSelect={(item) => onDefaultPauseSoundChange(item.id)}
                   onClear={
                     defaultPauseSoundKey
@@ -159,7 +175,10 @@ export function ProfileView({
                   }
                 />
               </div>
-              <label className="switch" title="Auto-advance pauses by default">
+              <label
+                className="switch"
+                title={UI_TEXT.titles.defaultPauseAutoAdvance}
+              >
                 <input
                   type="checkbox"
                   checked={defaultPauseAutoAdvance}
@@ -168,11 +187,13 @@ export function ProfileView({
                   }
                 />
                 <span className="switch-slider" aria-hidden="true" />
-                <span className="switch-label">Default pause auto-advance</span>
+                <span className="switch-label">
+                  {UI_TEXT.pages.profile.defaultPauseAutoAdvanceLabel}
+                </span>
               </label>
               <label
                 className="switch"
-                title="Repeat the rest step after the final round"
+                title={UI_TEXT.titles.repeatRestAfterLast}
               >
                 <input
                   type="checkbox"
@@ -183,13 +204,10 @@ export function ProfileView({
                 />
                 <span className="switch-slider" aria-hidden="true" />
                 <span className="switch-label">
-                  Repeat rest after last (default)
+                  {UI_TEXT.pages.profile.repeatRestAfterLastLabel}
                 </span>
               </label>
-              <label
-                className="switch"
-                title="Pause training when tab is hidden"
-              >
+              <label className="switch" title={UI_TEXT.titles.pauseOnTabHidden}>
                 <input
                   type="checkbox"
                   checked={pauseOnTabHidden}
@@ -197,7 +215,7 @@ export function ProfileView({
                 />
                 <span className="switch-slider" aria-hidden="true" />
                 <span className="switch-label">
-                  Pause training when tab is hidden
+                  {UI_TEXT.pages.profile.pauseOnTabHiddenLabel}
                 </span>
               </label>
             </div>
@@ -207,16 +225,16 @@ export function ProfileView({
           )}
           {profileTab === "transfer" && (
             <div className="stack">
-              <div className="label">Workout transfer</div>
+              <div className="label">{UI_TEXT.pages.profile.transferLabel}</div>
               <div className="field">
-                <label>Export workout</label>
+                <label>{UI_TEXT.pages.profile.exportLabel}</label>
                 <SelectDropdown
                   items={activeWorkouts.map((workout) => ({
                     id: workout.id,
                     label: workout.name,
                   }))}
                   value={exportWorkoutId || null}
-                  placeholder="Select workout"
+                  placeholder={UI_TEXT.placeholders.selectWorkout}
                   onSelect={(item) => onExportWorkoutChange(item.id)}
                   onClear={
                     exportWorkoutId
@@ -232,14 +250,14 @@ export function ProfileView({
                   onClick={onExportWorkout}
                   disabled={!canExport}
                 >
-                  Export
+                  {UI_TEXT.pages.profile.exportButton}
                 </button>
                 <button
                   className="btn primary"
                   type="button"
                   onClick={() => importInputRef.current?.click()}
                 >
-                  Import
+                  {UI_TEXT.pages.profile.importButton}
                 </button>
               </div>
             </div>
@@ -250,21 +268,21 @@ export function ProfileView({
             className={profileTab === "settings" ? "tab active" : "tab"}
             onClick={() => onProfileTabChange("settings")}
           >
-            Settings
+            {UI_TEXT.pages.profile.settingsTab}
           </button>
           {!authHeaderEnabled && (
             <button
               className={profileTab === "password" ? "tab active" : "tab"}
               onClick={() => onProfileTabChange("password")}
             >
-              Password
+              {UI_TEXT.pages.profile.passwordTab}
             </button>
           )}
           <button
             className={profileTab === "transfer" ? "tab active" : "tab"}
             onClick={() => onProfileTabChange("transfer")}
           >
-            Export/Import
+            {UI_TEXT.pages.profile.transferTab}
           </button>
         </div>
       </div>
@@ -309,42 +327,44 @@ function PasswordForm({
       className="stack"
     >
       <div className="field">
-        <label>Current password</label>
+        <label>{UI_TEXT.pages.profile.currentPasswordLabel}</label>
         <input
           type="password"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
-          placeholder="Current password"
+          placeholder={UI_TEXT.placeholders.currentPassword}
           required
         />
       </div>
       <div className="field">
-        <label>New password</label>
+        <label>{UI_TEXT.pages.profile.newPasswordLabel}</label>
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="New password"
+          placeholder={UI_TEXT.placeholders.newPassword}
           required
         />
       </div>
       <div className="field">
-        <label>Confirm password</label>
+        <label>{UI_TEXT.pages.profile.confirmPasswordLabel}</label>
         <input
           type="password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          placeholder="Confirm password"
+          placeholder={UI_TEXT.placeholders.confirmPassword}
           required
         />
       </div>
-      {mismatch && <p className="muted small">Passwords do not match.</p>}
+      {mismatch && (
+        <p className="muted small">{UI_TEXT.pages.profile.mismatch}</p>
+      )}
       <button
         className="btn primary"
         type="submit"
         disabled={!currentPassword.trim() || !newPassword.trim() || mismatch}
       >
-        Update password
+        {UI_TEXT.pages.profile.updatePasswordButton}
       </button>
     </form>
   );
@@ -372,7 +392,7 @@ function DisplayNameForm({
 
   return (
     <div className="field">
-      <label>Display name</label>
+      <label>{UI_TEXT.pages.profile.displayNameLabel}</label>
       <div className="input-row">
         <input
           value={name}
@@ -380,7 +400,7 @@ function DisplayNameForm({
             setName(e.target.value);
             setError(null);
           }}
-          placeholder="Your name"
+          placeholder={UI_TEXT.placeholders.yourName}
         />
         <button
           className={canSave ? "btn primary" : "btn subtle"}
@@ -392,15 +412,13 @@ function DisplayNameForm({
             try {
               await onUpdate(trimmed);
             } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Unable to update name";
-              setError(message);
+              setError(toErrorMessage(err, MESSAGES.updateNameFailed));
             } finally {
               setSaving(false);
             }
           }}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? UI_TEXT.account.saving : UI_TEXT.account.save}
         </button>
       </div>
       {error && <div className="muted small">{error}</div>}

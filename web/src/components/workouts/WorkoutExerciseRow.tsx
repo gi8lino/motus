@@ -3,7 +3,9 @@ import { ExerciseSelect } from "./ExerciseSelect";
 import { SoundIcon } from "../icons/SoundIcon";
 import { TrashIcon } from "../icons/TrashIcon";
 import { isGoDuration } from "../../utils/time";
+import { UI_TEXT } from "../../utils/uiText";
 import { isRepRange } from "../../utils/validation";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
 import {
   EXERCISE_TYPE_COUNTDOWN,
   EXERCISE_TYPE_REP,
@@ -76,16 +78,21 @@ export function WorkoutExerciseRow({
   const kind = normalizeExerciseType(ex.type);
   const showDuration = isDurationExercise(kind);
 
-  const amountLabel = showDuration ? "Duration" : "Reps";
-  const amountPlaceholder = showDuration ? "e.g. 45s" : "12";
+  const amountLabel = showDuration
+    ? UI_TEXT.labels.duration
+    : UI_TEXT.labels.reps;
+  const amountPlaceholder = showDuration
+    ? UI_TEXT.placeholders.duration
+    : UI_TEXT.placeholders.reps;
 
   const repsValue = (ex.reps || "").trim();
   const durationValue = (ex.duration || "").trim();
   const soundKey = (ex.soundKey || "").trim();
 
   const soundLabel =
-    sounds.find((sound) => sound.key === soundKey)?.label || "Sound";
-  const soundSummary = soundKey ? soundLabel : "Subset sound";
+    sounds.find((sound) => sound.key === soundKey)?.label ||
+    UI_TEXT.labels.sound;
+  const soundSummary = soundKey ? soundLabel : UI_TEXT.labels.subsetSound;
 
   const repsInvalid =
     !showDuration && repsValue !== "" && !isRepRange(repsValue);
@@ -135,7 +142,7 @@ export function WorkoutExerciseRow({
             })
           }
           onAddNew={async () => {
-            const newName = await promptUser("Exercise name");
+            const newName = await promptUser(UI_TEXT.prompts.exerciseName);
             if (!newName || !newName.trim()) return;
 
             try {
@@ -144,8 +151,10 @@ export function WorkoutExerciseRow({
                 name: created.name,
                 exerciseId: created.id,
               });
-            } catch (err: any) {
-              await notifyUser(err?.message || "Unable to create exercise");
+            } catch (err) {
+              await notifyUser(
+                toErrorMessage(err, MESSAGES.createExerciseFailed),
+              );
             }
           }}
         />
@@ -161,7 +170,7 @@ export function WorkoutExerciseRow({
             })
           }
         >
-          <option value={EXERCISE_TYPE_REP}>Reps</option>
+          <option value={EXERCISE_TYPE_REP}>{UI_TEXT.labels.reps}</option>
           <option value={EXERCISE_TYPE_STOPWATCH}>Stopwatch</option>
           <option value={EXERCISE_TYPE_COUNTDOWN}>Countdown</option>
         </select>
@@ -201,7 +210,7 @@ export function WorkoutExerciseRow({
       </div>
 
       <div className="field action compact sound">
-        <label>Sound</label>
+        <label>{UI_TEXT.labels.sound}</label>
         <button
           className={[
             "btn",
@@ -214,7 +223,7 @@ export function WorkoutExerciseRow({
             .filter(Boolean)
             .join(" ")}
           type="button"
-          title={`Sound: ${soundSummary}`}
+          title={`${UI_TEXT.labels.sound}: ${soundSummary}`}
           data-label={soundSummary}
           onClick={() => setSoundOpen(!soundOpen)}
         >
@@ -258,12 +267,12 @@ export function WorkoutExerciseRow({
           className="btn icon delete mobile-full"
           type="button"
           onClick={() => removeExercise(stepIdx, subsetIdx, exIdx)}
-          title="Remove exercise"
+          title={UI_TEXT.titles.removeExercise}
         >
           <span className="desktop-only">
             <TrashIcon />
           </span>
-          <span className="mobile-only">Remove exercise</span>
+          <span className="mobile-only">{UI_TEXT.titles.removeExercise}</span>
         </button>
       </div>
     </div>

@@ -8,6 +8,7 @@ import type {
 import { TrashIcon } from "../icons/TrashIcon";
 import { isGoDuration } from "../../utils/time";
 import { WorkoutExerciseRow } from "./WorkoutExerciseRow";
+import { UI_TEXT } from "../../utils/uiText";
 
 type MutableRef<T> = { current: T };
 type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
@@ -113,7 +114,7 @@ export function WorkoutSubsetEditor({
           <div className="subset-actions">
             <label
               className="switch superset-toggle"
-              title="Superset: Next moves to the next subset."
+              title={UI_TEXT.titles.supersetTooltip}
             >
               <input
                 type="checkbox"
@@ -133,7 +134,7 @@ export function WorkoutSubsetEditor({
               type="button"
               onClick={() => removeSubset(stepIdx, subsetIdx)}
               disabled={subsetsLength <= 1}
-              title="Remove subset"
+              title={UI_TEXT.titles.removeSubset}
             >
               <TrashIcon />
             </button>
@@ -186,7 +187,7 @@ export function WorkoutSubsetEditor({
         <div className="subset-actions superset-toggle-row">
           <label
             className="switch superset-toggle"
-            title="Superset: Next moves to the next subset."
+            title={UI_TEXT.titles.supersetTooltip}
           >
             <input
               type="checkbox"

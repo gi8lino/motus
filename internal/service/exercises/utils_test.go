@@ -3,19 +3,42 @@ package exercises
 import (
 	"testing"
 
-	domainexercises "github.com/gi8lino/motus/internal/domain/exercises"
-	"github.com/gi8lino/motus/internal/service"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMapError(t *testing.T) {
+func TestRequireUserID(t *testing.T) {
 	t.Parallel()
 
-	t.Run("MapsValidation", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
-		svc := New(&fakeStore{})
-		err := svc.mapError(&domainexercises.Error{Kind: domainexercises.KindValidation, Message: "bad"})
-		if !service.IsKind(err, service.ErrorValidation) {
-			t.Fatalf("expected validation kind")
-		}
+		val, err := requireUserID(" USER ")
+		assert.NoError(t, err)
+		assert.Equal(t, "user", val)
+	})
+
+	t.Run("Missing", func(t *testing.T) {
+		t.Parallel()
+		_, err := requireUserID(" ")
+		assert.Error(t, err)
+	})
+}
+
+func TestRequireName(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Missing", func(t *testing.T) {
+		t.Parallel()
+		_, err := requireName(" ")
+		assert.Error(t, err)
+	})
+}
+
+func TestRequireEntityID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Missing", func(t *testing.T) {
+		t.Parallel()
+		_, err := requireEntityID(" ", "msg")
+		assert.Error(t, err)
 	})
 }

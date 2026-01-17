@@ -6,10 +6,32 @@ import type {
   SoundOption,
   Workout,
 } from "../../types";
+import type { WorkoutFormDefaults } from "../workouts/WorkoutForm";
 
 import { WorkoutsList } from "../workouts/WorkoutList";
 import { WorkoutsEditor } from "../workouts/WorkoutEditor";
 import { useWorkoutActions } from "../../hooks/useWorkoutActions";
+
+export type WorkoutsServices = {
+  onCreateExercise: (name: string) => Promise<CatalogExercise>;
+  promptUser: (
+    message: string,
+    defaultValue?: string,
+  ) => Promise<string | null>;
+  notifyUser: (message: string) => Promise<void>;
+  askConfirm: (
+    message: string,
+    options?: AskConfirmOptions,
+  ) => Promise<boolean>;
+  askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
+  templatesReload: () => void;
+  onToast?: (message: string) => void;
+};
+
+type WorkoutFormData = {
+  sounds: SoundOption[];
+  exerciseCatalog: CatalogExercise[];
+};
 
 export type WorkoutsViewProps = {
   workouts: Workout[] | null;
@@ -19,37 +41,13 @@ export type WorkoutsViewProps = {
 
   currentUserId: string | null;
 
-  // Form dependencies (required by WorkoutForm)
-  sounds: SoundOption[];
-  exerciseCatalog: CatalogExercise[];
-  onCreateExercise: (name: string) => Promise<CatalogExercise>;
-  promptUser: (
-    message: string,
-    defaultValue?: string,
-  ) => Promise<string | null>;
-  notifyUser: (message: string) => Promise<void>;
-
-  defaultStepSoundKey: string;
-  defaultPauseDuration: string;
-  defaultPauseSoundKey: string;
-  defaultPauseAutoAdvance: boolean;
-  repeatRestAfterLastDefault: boolean;
-
-  // Dialog helpers
-  askConfirm: (
-    message: string,
-    options?: AskConfirmOptions,
-  ) => Promise<boolean>;
-  askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
-
-  // Templates
-  templatesReload: () => void;
-
-  onToast?: (message: string) => void;
+  defaults: WorkoutFormDefaults;
+  formData: WorkoutFormData;
+  services: WorkoutsServices;
 };
 
 export function WorkoutsView(props: WorkoutsViewProps) {
-  const list = props.workouts || [];
+  const workouts = props.workouts || [];
 
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
@@ -58,37 +56,31 @@ export function WorkoutsView(props: WorkoutsViewProps) {
   const [editorOpen, setEditorOpen] = useState(false);
 
   // Keep using existing action logic for "new/edit" selection behavior
-  const { newWorkout, editWorkoutFromList } = useWorkoutActions({
-    workouts: list,
-    editingWorkout,
-    selectedWorkoutId,
-    setEditingWorkout,
-    setShowWorkoutForm: setEditorOpen,
-    setSelectedWorkoutId,
-    setWorkouts: props.setWorkouts,
-    askConfirm: props.askConfirm,
-    askPrompt: props.askPrompt,
-    notify: props.notifyUser,
-    templatesReload: props.templatesReload,
-  });
+  const { newWorkout, editWorkoutFromList, removeWorkout, shareWorkout } =
+    useWorkoutActions({
+      workouts,
+      selectedWorkoutId,
+      setEditingWorkout,
+      setSelectedWorkoutId,
+      setWorkouts: props.setWorkouts,
+      askConfirm: props.services.askConfirm,
+      askPrompt: props.services.askPrompt,
+      notify: props.services.notifyUser,
+      templatesReload: props.services.templatesReload,
+    });
 
   return (
     <>
       <WorkoutsList
-        workouts={list}
+        workouts={workouts}
         loading={props.loading}
         currentUserId={props.currentUserId}
-        selectedWorkoutId={selectedWorkoutId}
         setSelectedWorkoutId={setSelectedWorkoutId}
-        editingWorkout={editingWorkout}
-        setWorkouts={props.setWorkouts}
-        askConfirm={props.askConfirm}
-        askPrompt={props.askPrompt}
-        notifyUser={props.notifyUser}
-        templatesReload={props.templatesReload}
         onNew={() => newWorkout()}
         onEdit={(id) => editWorkoutFromList(id)}
         onOpenEditor={() => setEditorOpen(true)}
+        onShare={(id) => shareWorkout(id)}
+        onDelete={(id) => removeWorkout(id)}
       />
 
       <WorkoutsEditor
@@ -99,18 +91,15 @@ export function WorkoutsView(props: WorkoutsViewProps) {
         currentUserId={props.currentUserId}
         setWorkouts={props.setWorkouts}
         setSelectedWorkoutId={setSelectedWorkoutId}
-        sounds={props.sounds}
-        exerciseCatalog={props.exerciseCatalog}
-        onCreateExercise={props.onCreateExercise}
-        promptUser={props.promptUser}
-        notifyUser={props.notifyUser}
-        defaultStepSoundKey={props.defaultStepSoundKey}
-        defaultPauseDuration={props.defaultPauseDuration}
-        defaultPauseSoundKey={props.defaultPauseSoundKey}
-        defaultPauseAutoAdvance={props.defaultPauseAutoAdvance}
-        repeatRestAfterLastDefault={props.repeatRestAfterLastDefault}
-        askConfirm={(msg) => props.askConfirm(msg)}
-        onToast={props.onToast}
+        formData={props.formData}
+        defaults={props.defaults}
+        services={{
+          onCreateExercise: props.services.onCreateExercise,
+          promptUser: props.services.promptUser,
+          notifyUser: props.services.notifyUser,
+          askConfirm: props.services.askConfirm,
+          onToast: props.services.onToast,
+        }}
       />
     </>
   );

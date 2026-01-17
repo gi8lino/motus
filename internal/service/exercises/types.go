@@ -1,20 +1,13 @@
-// Package exercises provides service access to exercise catalog operations.
+// Package exercises defines domain logic for exercise catalog rules.
 package exercises
 
-import domain "github.com/gi8lino/motus/internal/domain/exercises"
-
-// Store exposes persistence required by the exercises service.
-type Store = domain.Store
+import "github.com/gi8lino/motus/internal/db"
 
 // Exercise is the domain-level DTO for catalog exercises.
-type Exercise = domain.Exercise
+type Exercise = db.Exercise
 
-// Service coordinates exercise catalog operations.
-type Service struct {
-	manager *domain.Manager
-}
+// User is the domain-level DTO for users used by the exercise domain.
+type User = db.User
 
-// New creates a new exercises service.
-func New(store Store) *Service {
-	return &Service{manager: domain.NewManager(store)}
-}
+// errorScope is the service error scope for exercises.
+const errorScope = "exercises"

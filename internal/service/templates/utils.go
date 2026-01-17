@@ -1,22 +1,14 @@
 package templates
 
 import (
-	domain "github.com/gi8lino/motus/internal/domain/templates"
-	servicepkg "github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
-// mapError translates domain errors into service errors for templates.
-func (s *Service) mapError(err error) error {
-	return servicepkg.MapDomainError(err, func(kind int) (servicepkg.ErrorKind, bool) {
-		switch domain.ErrorKind(kind) {
-		case domain.KindValidation:
-			return servicepkg.ErrorValidation, true
-		case domain.KindNotFound:
-			return servicepkg.ErrorNotFound, true
-		case domain.KindInternal:
-			return servicepkg.ErrorInternal, true
-		default:
-			return servicepkg.ErrorInternal, false
-		}
-	})
+// requireID normalizes and validates a template identifier.
+func requireID(value, message string) (string, error) {
+	if trimmed := utils.NormalizeToken(value); trimmed != "" {
+		return trimmed, nil
+	}
+	return "", errpkg.NewErrorWithScope(errpkg.ErrorValidation, message, errorScope)
 }

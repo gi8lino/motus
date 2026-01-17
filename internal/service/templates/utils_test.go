@@ -3,19 +3,22 @@ package templates
 import (
 	"testing"
 
-	domaintemplates "github.com/gi8lino/motus/internal/domain/templates"
-	"github.com/gi8lino/motus/internal/service"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMapError(t *testing.T) {
+func TestRequireID(t *testing.T) {
 	t.Parallel()
 
-	t.Run("MapsNotFound", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
-		svc := New(&fakeTemplateStore{})
-		err := svc.mapError(&domaintemplates.Error{Kind: domaintemplates.KindNotFound, Message: "nope"})
-		if !service.IsKind(err, service.ErrorNotFound) {
-			t.Fatalf("expected not found kind")
-		}
+		val, err := requireID("  TMP  ", "missing")
+		assert.NoError(t, err)
+		assert.Equal(t, "tmp", val)
+	})
+
+	t.Run("Missing", func(t *testing.T) {
+		t.Parallel()
+		_, err := requireID(" ", "missing")
+		assert.Error(t, err)
 	})
 }
