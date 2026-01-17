@@ -1,4 +1,4 @@
-import { formatMillis } from "../../utils/format";
+import { formatCountdownMillis } from "../../utils/format";
 
 type TrainingOverrunModalProps = {
   show: boolean;
@@ -21,7 +21,8 @@ export function TrainingOverrunModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Still training?</h3>
         <p className="muted">
-          You passed the target. Auto-pause in {formatMillis(countdown)}.
+          You passed the target. Auto-pause in{" "}
+          {formatCountdownMillis(countdown)}.
         </p>
         <div className="btn-group" style={{ justifyContent: "flex-end" }}>
           <button className="btn subtle" onClick={onPostpone}>

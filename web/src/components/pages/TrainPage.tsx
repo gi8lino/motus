@@ -6,7 +6,7 @@ import type {
   SoundOption,
   Workout,
 } from "../../types";
-import { formatMillis } from "../../utils/format";
+import { formatElapsedMillis } from "../../utils/format";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
 import { TrainCard } from "../training/TrainingCard";
@@ -686,7 +686,7 @@ export function TrainView({
                   {" • "}
                   {headerStatus}
                   {" • "}
-                  {formatMillis(elapsed)}
+                  {formatElapsedMillis(elapsed)}
                 </>
               ) : (
                 <span>Select a workout to start.</span>

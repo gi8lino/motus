@@ -1,5 +1,5 @@
 import type { Exercise } from "../types";
-import { formatExerciseLine, formatMillis } from "./format";
+import { formatExerciseLine, formatElapsedMillis } from "./format";
 import { normalizeTimestamp } from "./time";
 
 // SummaryStep describes a step entry for AI summaries.
@@ -27,7 +27,7 @@ export function buildSummary(source: SummarySource): string {
     .map((s, idx) => {
       // Build target/actual labels per step.
       const actual = s.elapsedMillis
-        ? `actual ${formatMillis(s.elapsedMillis)}`
+        ? `actual ${formatElapsedMillis(s.elapsedMillis)}`
         : "";
       const target = s.estimatedSeconds ? `target ${s.estimatedSeconds}s` : "";
       const label = [target, actual].filter(Boolean).join(", ");

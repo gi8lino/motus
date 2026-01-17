@@ -1,12 +1,28 @@
 import type { Exercise } from "../types";
 import { isDurationExercise } from "./exercise";
 
-// Format milliseconds into m:ss for clocks and labels.
-export function formatMillis(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+// Shared helper: formats whole minutes/seconds as MM:SS
+function formatMMSS(totalSeconds: number): string {
+  const safe = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+// Elapsed time (stopwatch semantics)
+// 19.9s → 00:19
+export function formatElapsedMillis(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  return formatMMSS(totalSeconds);
+}
+
+// Remaining time (countdown semantics)
+// 19.1s → 00:20
+export function formatCountdownMillis(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
+  const totalSeconds = Math.ceil(ms / 1000);
+  return formatMMSS(totalSeconds);
 }
 
 // formatExerciseLine renders an exercise based on its type.

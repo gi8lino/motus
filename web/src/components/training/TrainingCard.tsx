@@ -1,19 +1,13 @@
 import { useCallback, useMemo, type RefObject } from "react";
-import { formatExerciseLine, formatMillis } from "../../utils/format";
+import {
+  formatExerciseLine,
+  formatElapsedMillis,
+  formatCountdownMillis,
+} from "../../utils/format";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
 import type { Exercise, TrainngState, TrainngStepState } from "../../types";
 
 type AnyStep = any;
-
-// formatCountdownMillis formats a remaining-time countdown so that
-// 19.9s displays as "00:20" (ceil), matching user expectation.
-function formatCountdownMillis(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
-  const totalSeconds = Math.ceil(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
 
 // getExercises normalizes the exercises list for a step payload.
 function getExercises(step: AnyStep): Exercise[] {
@@ -150,7 +144,7 @@ export function TrainCard({
     if (!currentStep) return "00:00";
     return isAutoAdvance
       ? formatCountdownMillis(displayMillis)
-      : formatMillis(displayMillis);
+      : formatElapsedMillis(displayMillis);
   }, [currentStep, displayMillis, isAutoAdvance]);
 
   const currentExerciseLabel = useMemo(() => {
@@ -164,7 +158,7 @@ export function TrainCard({
 
       if (step.type === STEP_TYPE_PAUSE) {
         const durationText = step.estimatedSeconds
-          ? formatMillis(step.estimatedSeconds * 1000)
+          ? formatCountdownMillis(step.estimatedSeconds * 1000)
           : "";
         const pauseText = durationText ? `Pause • ${durationText}` : "Pause";
         return [pauseText];
@@ -430,7 +424,7 @@ export function TrainCard({
               : "";
           const pauseDuration =
             group.type === STEP_TYPE_PAUSE && group.estimatedSeconds
-              ? ` • ${formatMillis(group.estimatedSeconds * 1000)}`
+              ? ` • ${formatCountdownMillis(group.estimatedSeconds * 1000)}`
               : "";
           const groupTitle =
             group.setName && group.setName.trim()

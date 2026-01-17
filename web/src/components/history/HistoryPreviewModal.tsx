@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { TrainngHistoryItem, TrainngStepLog, Workout } from "../../types";
-import { formatExerciseLine, formatMillis } from "../../utils/format";
+import { formatExerciseLine, formatElapsedMillis } from "../../utils/format";
 import { buildSummary } from "../../utils/summary";
 import { expandWorkoutSteps } from "../../utils/workout";
 import { AISummary } from "./HistoryCard";
@@ -120,7 +120,7 @@ export function HistoryPreviewModal({
                             ? `target ${step.estimatedSeconds}s`
                             : step.duration || "open"}
                           {step.elapsedMillis
-                            ? ` • actual ${formatMillis(step.elapsedMillis)}`
+                            ? ` • actual ${formatElapsedMillis(step.elapsedMillis)}`
                             : ""}
                         </div>
                         {step.exercises?.length ? (
