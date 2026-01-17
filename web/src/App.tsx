@@ -28,7 +28,8 @@ import { AppShell } from "./components/shell/AppShell";
 import DialogModal from "./components/common/DialogModal";
 
 import { isValidEmail } from "./utils/validation";
-import { toErrorMessage } from "./utils/messages";
+import { PROMPTS, toErrorMessage } from "./utils/messages";
+import { UI_TEXT } from "./utils/uiText";
 
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
@@ -427,36 +428,44 @@ export default function App() {
       >
         {view === "login" && !authHeaderEnabled && (
           <LoginView
-            allowRegistration={allowRegistration}
-            loginError={loginError}
-            onLogin={handleLogin}
-            onCreateUser={async (email, password) => {
-              try {
-                await handleRegister(email, password);
-                setView("train");
-              } catch (err) {
-                await notify(toErrorMessage(err, "Unable to create user"));
-              }
+            data={{
+              allowRegistration,
+              loginError,
             }}
-            onClearError={() => setLoginError(null)}
+            actions={{
+              onLogin: handleLogin,
+              onCreateUser: async (email, password) => {
+                try {
+                  await handleRegister(email, password);
+                  setView("train");
+                } catch (err) {
+                  await notify(toErrorMessage(err, "Unable to create user"));
+                }
+              },
+              onClearError: () => setLoginError(null),
+            }}
           />
         )}
 
         {view === "admin" && currentUser?.isAdmin && (
           <AdminView
-            users={users.data || []}
-            loading={users.loading}
-            currentUserId={currentUserId}
-            allowRegistration={allowRegistration}
-            onToggleAdmin={handleToggleAdmin}
-            onCreateUser={async (email, password) => {
-              try {
-                await handleRegister(email, password);
-              } catch (err) {
-                await notify(toErrorMessage(err, "Unable to create user"));
-              }
+            data={{
+              users: users.data || [],
+              loading: users.loading,
+              currentUserId,
+              allowRegistration,
             }}
-            onBackfill={backfillCatalog}
+            actions={{
+              onToggleAdmin: handleToggleAdmin,
+              onCreateUser: async (email, password) => {
+                try {
+                  await handleRegister(email, password);
+                } catch (err) {
+                  await notify(toErrorMessage(err, "Unable to create user"));
+                }
+              },
+              onBackfill: backfillCatalog,
+            }}
           />
         )}
 
@@ -466,109 +475,134 @@ export default function App() {
             loading={workouts.loading}
             setWorkouts={(updater) => workouts.setData?.(updater)}
             currentUserId={currentUserId}
-            askConfirm={askConfirm}
-            askPrompt={askPrompt}
-            notifyUser={notify}
-            templatesReload={() => templates.reload()}
-            sounds={sounds.data || []}
-            exerciseCatalog={exerciseCatalog}
-            onCreateExercise={createExerciseEntry}
-            promptUser={askPrompt}
-            defaultStepSoundKey={defaultStepSoundKey}
-            defaultPauseDuration={defaultPauseDuration}
-            defaultPauseSoundKey={defaultPauseSoundKey}
-            defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-            repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-            onToast={showToast}
+            defaults={{
+              defaultStepSoundKey,
+              defaultPauseDuration,
+              defaultPauseSoundKey,
+              defaultPauseAutoAdvance,
+              repeatRestAfterLastDefault,
+            }}
+            formData={{
+              sounds: sounds.data || [],
+              exerciseCatalog,
+            }}
+            services={{
+              askConfirm,
+              askPrompt,
+              notifyUser: notify,
+              templatesReload: () => templates.reload(),
+              onCreateExercise: createExerciseEntry,
+              promptUser: askPrompt,
+              onToast: showToast,
+            }}
           />
         )}
 
         {view === "train" && (
           <TrainingView
-            workouts={activeWorkouts}
-            selectedWorkoutId={selectedWorkoutId}
-            onSelectWorkout={setSelectedWorkoutId}
-            onStartTraining={handleStartTraining}
-            startDisabled={!selectedWorkoutId || !currentUserId}
-            startTitle={!selectedWorkoutId ? "Select a workout first" : ""}
-            training={training}
-            currentStep={currentStep}
-            elapsed={displayedElapsed}
-            workoutName={currentWorkoutName}
-            sounds={sounds.data || []}
-            markSoundPlayed={markSoundPlayed}
-            onStartStep={startCurrentStep}
-            onPause={pause}
-            onNext={nextStep}
-            onFinishTraining={handleFinishTraining}
-            onCopySummary={() => showToast("Copied summary")}
-            onToast={showToast}
-            pauseOnTabHidden={pauseOnTabHidden}
+            data={{
+              workouts: activeWorkouts,
+              selectedWorkoutId,
+              startDisabled: !selectedWorkoutId || !currentUserId,
+              startTitle: !selectedWorkoutId ? PROMPTS.selectWorkoutFirst : "",
+              training,
+              currentStep,
+              elapsed: displayedElapsed,
+              workoutName: currentWorkoutName,
+              sounds: sounds.data || [],
+              pauseOnTabHidden,
+            }}
+            actions={{
+              onSelectWorkout: setSelectedWorkoutId,
+              onStartTraining: handleStartTraining,
+              markSoundPlayed,
+              onStartStep: startCurrentStep,
+              onPause: pause,
+              onNext: nextStep,
+              onFinishTraining: handleFinishTraining,
+              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+              onToast: showToast,
+            }}
           />
         )}
 
         {view === "templates" && (
           <TemplatesView
-            templates={templates.data || []}
-            loading={templates.loading}
-            hasUser={Boolean(currentUserId)}
-            onRefresh={() => templates.reload()}
-            onApplyTemplate={handleApplyTemplate}
+            data={{
+              templates: templates.data || [],
+              loading: templates.loading,
+              hasUser: Boolean(currentUserId),
+            }}
+            actions={{
+              onRefresh: () => templates.reload(),
+              onApplyTemplate: handleApplyTemplate,
+            }}
           />
         )}
 
         {view === "history" && (
           <HistoryView
-            items={history.data || []}
-            activeTraining={training}
-            onResume={() => setView("train")}
-            loadWorkout={getWorkout}
-            onCopySummary={() => showToast("Copied summary")}
+            data={{
+              items: history.data || [],
+              activeTraining: training,
+            }}
+            actions={{
+              onResume: () => setView("train"),
+              loadWorkout: getWorkout,
+              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+            }}
           />
         )}
 
         {view === "profile" && (
           <ProfileView
-            profileTab={profileTab}
-            onProfileTabChange={setProfileTab}
-            currentName={currentUser?.name || ""}
-            onUpdateName={handleUpdateName}
-            themeMode={themeMode}
-            onThemeChange={setThemeMode}
-            sounds={sounds.data || []}
-            defaultStepSoundKey={defaultStepSoundKey}
-            onDefaultStepSoundChange={updateDefaultStepSoundKey}
-            defaultPauseDuration={defaultPauseDuration}
-            onDefaultPauseDurationChange={updateDefaultPauseDuration}
-            defaultPauseSoundKey={defaultPauseSoundKey}
-            onDefaultPauseSoundChange={updateDefaultPauseSoundKey}
-            defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-            onDefaultPauseAutoAdvanceChange={updateDefaultPauseAutoAdvance}
-            repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-            onRepeatRestAfterLastDefaultChange={
-              updateRepeatRestAfterLastDefault
-            }
-            pauseOnTabHidden={pauseOnTabHidden}
-            onPauseOnTabHiddenChange={updatePauseOnTabHidden}
-            exportWorkoutId={exportWorkoutId}
-            onExportWorkoutChange={setExportWorkoutId}
-            activeWorkouts={activeWorkouts}
-            onExportWorkout={handleExportSelected}
-            onImportWorkout={handleImportSelected}
-            onPasswordChange={handlePasswordSubmit}
-            importInputRef={importInputRef}
-            authHeaderEnabled={authHeaderEnabled}
+            data={{
+              profileTab,
+              currentName: currentUser?.name || "",
+              themeMode,
+              sounds: sounds.data || [],
+              defaultStepSoundKey,
+              defaultPauseDuration,
+              defaultPauseSoundKey,
+              defaultPauseAutoAdvance,
+              repeatRestAfterLastDefault,
+              pauseOnTabHidden,
+              exportWorkoutId,
+              activeWorkouts,
+              importInputRef,
+              authHeaderEnabled,
+            }}
+            actions={{
+              onProfileTabChange: setProfileTab,
+              onUpdateName: handleUpdateName,
+              onThemeChange: setThemeMode,
+              onDefaultStepSoundChange: updateDefaultStepSoundKey,
+              onDefaultPauseDurationChange: updateDefaultPauseDuration,
+              onDefaultPauseSoundChange: updateDefaultPauseSoundKey,
+              onDefaultPauseAutoAdvanceChange: updateDefaultPauseAutoAdvance,
+              onRepeatRestAfterLastDefaultChange:
+                updateRepeatRestAfterLastDefault,
+              onPauseOnTabHiddenChange: updatePauseOnTabHidden,
+              onExportWorkoutChange: setExportWorkoutId,
+              onExportWorkout: handleExportSelected,
+              onImportWorkout: handleImportSelected,
+              onPasswordChange: handlePasswordSubmit,
+            }}
           />
         )}
 
         {view === "exercises" && (
           <ExercisesView
-            exercises={exerciseCatalog}
-            isAdmin={Boolean(currentUser?.isAdmin)}
-            onAddExercise={handleAddExercise}
-            onAddCoreExercise={handleAddCoreExercise}
-            onRenameExercise={handleRenameExercise}
-            onDeleteExercise={handleDeleteExercise}
+            data={{
+              exercises: exerciseCatalog,
+              isAdmin: Boolean(currentUser?.isAdmin),
+            }}
+            actions={{
+              onAddExercise: handleAddExercise,
+              onAddCoreExercise: handleAddCoreExercise,
+              onRenameExercise: handleRenameExercise,
+              onDeleteExercise: handleDeleteExercise,
+            }}
           />
         )}
       </AppShell>

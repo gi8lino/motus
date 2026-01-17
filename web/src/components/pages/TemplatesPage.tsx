@@ -1,33 +1,41 @@
 import type { Template } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
-// TemplatesView renders shared templates and apply actions.
-export function TemplatesView({
-  templates,
-  loading,
-  hasUser,
-  onRefresh,
-  onApplyTemplate,
-}: {
+export type TemplatesViewData = {
   templates: Template[];
   loading: boolean;
   hasUser: boolean;
+};
+
+export type TemplatesViewActions = {
   onRefresh: () => void;
   onApplyTemplate: (templateId: string) => void;
+};
+
+// TemplatesView renders shared templates and apply actions.
+export function TemplatesView({
+  data,
+  actions,
+}: {
+  data: TemplatesViewData;
+  actions: TemplatesViewActions;
 }) {
+  const { templates, loading, hasUser } = data;
+  const { onRefresh, onApplyTemplate } = actions;
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3>Templates</h3>
-          <p className="muted small">Create workouts from shared templates.</p>
+          <h3>{UI_TEXT.pages.templates.title}</h3>
+          <p className="muted small">{UI_TEXT.pages.templates.hint}</p>
         </div>
         <div className="actions">
           <button className="btn subtle" onClick={onRefresh}>
-            Refresh
+            {UI_TEXT.pages.templates.refresh}
           </button>
         </div>
       </div>
-      {loading && <p>Loading templates…</p>}
+      {loading && <p>{UI_TEXT.pages.templates.loading}</p>}
       {/* Template list */}
       <div className="list">
         {templates.map((tmpl) => (
@@ -45,14 +53,14 @@ export function TemplatesView({
                   disabled={!hasUser}
                   onClick={() => onApplyTemplate(tmpl.id)}
                 >
-                  Use for user
+                  {UI_TEXT.pages.templates.apply}
                 </button>
               </div>
             </div>
           </div>
         ))}
         {!loading && !templates.length && (
-          <p className="muted">No templates yet.</p>
+          <p className="muted">{UI_TEXT.pages.templates.empty}</p>
         )}
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { Workout } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
 export type WorkoutsListProps = {
   workouts: Workout[];
@@ -46,7 +47,7 @@ export function WorkoutsList({
               onOpenEditor();
             }}
             disabled={!currentUserId}
-            title={!currentUserId ? "Login/select a user first" : ""}
+            title={!currentUserId ? UI_TEXT.prompts.selectUserFirst : ""}
           >
             New workout
           </button>

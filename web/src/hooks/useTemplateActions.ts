@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { applyTemplate } from "../api";
 import type { View, Workout } from "../types";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 // UseTemplateActionsArgs wires template application actions.
 type UseTemplateActionsArgs = {
@@ -30,11 +31,11 @@ export function useTemplateActions({
     async (templateId: string) => {
       if (!currentUserId) {
         // Guard: templates must be applied to a specific user.
-        await notify("Select a user first.");
+        await notify(UI_TEXT.prompts.selectUserFirst);
         return;
       }
       // Allow optional rename during template application.
-      const name = await askPrompt("Workout name (optional)");
+      const name = await askPrompt(UI_TEXT.prompts.workoutNameOptional);
       if (name === null) return;
       try {
         const workout = await applyTemplate(templateId, {

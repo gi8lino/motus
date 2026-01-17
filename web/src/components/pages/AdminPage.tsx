@@ -1,27 +1,33 @@
 import { useState } from "react";
 import type { User } from "../../types";
 import { UserForm } from "../auth/AuthForm";
+import { UI_TEXT } from "../../utils/uiText";
 
 type AdminTab = "users" | "settings";
 
-// AdminView manages users and admin access.
-export function AdminView({
-  users,
-  loading,
-  currentUserId,
-  allowRegistration,
-  onToggleAdmin,
-  onCreateUser,
-  onBackfill,
-}: {
+export type AdminViewData = {
   users: User[];
   loading: boolean;
   currentUserId: string | null;
   allowRegistration: boolean;
+};
+
+export type AdminViewActions = {
   onToggleAdmin: (user: User) => void | Promise<void>;
   onCreateUser: (email: string, password: string) => void | Promise<void>;
   onBackfill: () => void | Promise<void>;
+};
+
+// AdminView manages users and admin access.
+export function AdminView({
+  data,
+  actions,
+}: {
+  data: AdminViewData;
+  actions: AdminViewActions;
 }) {
+  const { users, loading, currentUserId, allowRegistration } = data;
+  const { onToggleAdmin, onCreateUser, onBackfill } = actions;
   // tab tracks the active admin section.
   const [tab, setTab] = useState<AdminTab>("users");
   // backfilling controls the backfill button state.
@@ -41,10 +47,8 @@ export function AdminView({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3>Admin</h3>
-          <p className="muted small hint">
-            Manage users and maintenance tasks.
-          </p>
+          <h3>{UI_TEXT.pages.admin.title}</h3>
+          <p className="muted small hint">{UI_TEXT.pages.admin.hint}</p>
         </div>
       </div>
       <div className="profile-layout">
@@ -55,9 +59,9 @@ export function AdminView({
               <div className="panel">
                 <div className="panel-header">
                   <div>
-                    <h3>Users</h3>
+                    <h3>{UI_TEXT.pages.admin.usersTitle}</h3>
                     <p className="muted small hint">
-                      Manage roles and switch user.
+                      {UI_TEXT.pages.admin.usersHint}
                     </p>
                   </div>
                 </div>
@@ -77,8 +81,10 @@ export function AdminView({
                         <div>
                           <strong>{u.name}</strong>
                           <div className="muted">
-                            {u.isAdmin ? "Admin" : "User"} •{" "}
-                            {new Date(u.createdAt).toLocaleDateString()}
+                            {u.isAdmin
+                              ? UI_TEXT.roles.admin
+                              : UI_TEXT.roles.user}{" "}
+                            • {new Date(u.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                         <div className="btn-group">
@@ -86,7 +92,9 @@ export function AdminView({
                             className="btn subtle"
                             onClick={() => onToggleAdmin(u)}
                           >
-                            {u.isAdmin ? "Revoke Admin" : "Make Admin"}
+                            {u.isAdmin
+                              ? UI_TEXT.admin.revokeAdmin
+                              : UI_TEXT.admin.makeAdmin}
                           </button>
                         </div>
                       </div>
@@ -95,12 +103,12 @@ export function AdminView({
                 </ul>
               </div>
               <div className="panel">
-                <h3>Create user</h3>
+                <h3>{UI_TEXT.pages.admin.createUserTitle}</h3>
                 {allowRegistration ? (
                   <UserForm onCreate={onCreateUser} />
                 ) : (
                   <p className="muted small hint">
-                    Registration is disabled in this environment.
+                    {UI_TEXT.pages.auth.registrationDisabledHint}
                   </p>
                 )}
               </div>
@@ -109,9 +117,11 @@ export function AdminView({
           {tab === "settings" && (
             <div className="stack">
               <div className="panel">
-                <div className="label">Maintenance</div>
+                <div className="label">
+                  {UI_TEXT.pages.admin.maintenanceLabel}
+                </div>
                 <p className="muted small hint">
-                  Backfill promotes workouts exercises into the Core catalog.
+                  {UI_TEXT.pages.admin.backfillHint}
                 </p>
                 <button
                   className="btn subtle"
@@ -119,7 +129,9 @@ export function AdminView({
                   onClick={handleBackfill}
                   disabled={backfilling}
                 >
-                  {backfilling ? "Backfilling…" : "Backfill exercises"}
+                  {backfilling
+                    ? UI_TEXT.admin.backfill.working
+                    : UI_TEXT.admin.backfill.action}
                 </button>
               </div>
             </div>

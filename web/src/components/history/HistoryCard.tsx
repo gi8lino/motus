@@ -1,4 +1,5 @@
 import type { TrainingHistoryItem, TrainingState } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
 // HistoryList renders past trainings and supports selection/resume.
 export function HistoryList({
@@ -14,7 +15,7 @@ export function HistoryList({
 }) {
   const hasActive = activeTraining && !activeTraining.done;
   if (!items.length && !hasActive)
-    return <p className="muted">No history yet.</p>;
+    return <p className="muted">{UI_TEXT.history.noHistory}</p>;
   return (
     <ul className="list">
       {/* Active training banner */}
@@ -22,15 +23,15 @@ export function HistoryList({
         <li className="list-item">
           <div className="list-row">
             <div>
-              <strong>Active training</strong>
+              <strong>{UI_TEXT.history.activeTraining}</strong>
               <div className="muted small">
-                {activeTraining?.workoutName || activeTraining?.workoutId} • in
-                progress
+                {activeTraining?.workoutName || activeTraining?.workoutId} •{" "}
+                {UI_TEXT.history.inProgress}
               </div>
             </div>
             {onResume && (
               <button className="btn primary" onClick={onResume}>
-                Resume
+                {UI_TEXT.history.resume}
               </button>
             )}
           </div>
@@ -49,11 +50,11 @@ export function HistoryList({
               <div className="muted small">
                 {item.startedAt
                   ? new Date(item.startedAt).toLocaleString()
-                  : "Not started"}{" "}
+                  : UI_TEXT.history.notStarted}{" "}
                 •{" "}
                 {item.completedAt
-                  ? `Finished ${new Date(item.completedAt).toLocaleString()}`
-                  : "Not finished"}
+                  ? `${UI_TEXT.history.finishedPrefix} ${new Date(item.completedAt).toLocaleString()}`
+                  : UI_TEXT.history.notFinished}
               </div>
             </div>
           </div>
@@ -76,8 +77,10 @@ export function AISummary({
   const fallbackSummary = summary || "";
   return (
     <div className="stack">
-      <div className="label">AI-ready summary</div>
-      {loading && <div className="muted small">Loading steps…</div>}
+      <div className="label">{UI_TEXT.history.aiSummary}</div>
+      {loading && (
+        <div className="muted small">{UI_TEXT.history.loadingSteps}</div>
+      )}
       <textarea
         readOnly
         value={fallbackSummary}
@@ -94,7 +97,7 @@ export function AISummary({
             onCopy();
           }}
         >
-          Copy summary
+          {UI_TEXT.history.copySummary}
         </button>
       </div>
     </div>

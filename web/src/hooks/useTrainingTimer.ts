@@ -12,6 +12,7 @@ import {
   EXERCISE_TYPE_STOPWATCH,
   normalizeExerciseType,
 } from "../utils/exercise";
+import { getCountdownAutoAdvanceDelay } from "../utils/countdown";
 import { logTimerEvent } from "../utils/timerLogger";
 
 // STORAGE_KEY stores the persisted train payload.
@@ -513,9 +514,9 @@ export function useTrainingTimer({
     // If no train is loaded, return an error.
     if (!cur) return { ok: false, error: "no train" };
 
-    // If the session is already persisted, just return the current state.
+    // If the training is already persisted, just return the current state.
     if (cur.logged) return { ok: true, training: cur };
-    // If the session is already completed, skip re-finalizing and return it.
+    // If the training is already completed, skip re-finalizing and return it.
     if (cur.done) return { ok: true, training: cur };
 
     if (finishingRef.current === cur.trainingId) {
@@ -631,7 +632,6 @@ export function useTrainingTimer({
   // - uses stable stepRunRef for "deadline computation"
   // - logs only when it actually triggers
   useEffect(() => {
-    const autoAdvanceGraceMs = 700;
     const clear = () => {
       if (autoAdvanceRef.current.timeoutId) {
         clearTimeout(autoAdvanceRef.current.timeoutId);
@@ -670,10 +670,10 @@ export function useTrainingTimer({
     }
 
     const durationMs = estimatedSeconds * 1000;
-    const deadlineMs = stepRunRef.current.startedAtMs + durationMs;
 
     const at = now();
-    const remainingMs = Math.max(0, deadlineMs - at + autoAdvanceGraceMs);
+    const elapsedAt = Math.max(0, at - stepRunRef.current.startedAtMs);
+    const remainingMs = getCountdownAutoAdvanceDelay(durationMs, elapsedAt);
 
     if (autoAdvanceRef.current.key === runKey) {
       return;
@@ -704,10 +704,9 @@ export function useTrainingTimer({
       const at2 = now();
       const elapsedAtFire = currentStepElapsedNow(cur, at2);
       const durMs = (curStep.estimatedSeconds || 0) * 1000;
-      const targetMs = durMs + autoAdvanceGraceMs;
+      const rem = getCountdownAutoAdvanceDelay(durMs, elapsedAtFire);
 
-      if (durMs > 0 && elapsedAtFire < targetMs) {
-        const rem = Math.max(0, targetMs - elapsedAtFire);
+      if (durMs > 0 && rem > 0) {
         autoAdvanceRef.current.timeoutId = window.setTimeout(fire, rem);
         return;
       }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { isValidEmail } from "../../utils/validation";
+import { UI_TEXT } from "../../utils/uiText";
 
 // UserForm creates a new user.
 export function UserForm({
@@ -44,7 +45,7 @@ export function UserForm({
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter a password"
+          placeholder={UI_TEXT.auth.enterPassword}
           required
         />
       </div>
@@ -106,7 +107,7 @@ export function LoginForm({
             setPassword(e.target.value);
             onClearError?.();
           }}
-          placeholder="Your password"
+          placeholder={UI_TEXT.auth.yourPassword}
           required
         />
       </div>

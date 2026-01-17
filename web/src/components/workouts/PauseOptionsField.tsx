@@ -1,4 +1,5 @@
 import type { SoundOption } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 
 type PauseOptionsFieldProps = {
   autoAdvance: boolean;
@@ -20,26 +21,23 @@ export function PauseOptionsField({
 }: PauseOptionsFieldProps) {
   return (
     <div className="stack" style={{ gap: 10 }}>
-      <label
-        className="switch"
-        title="Auto-advance ends the pause automatically."
-      >
+      <label className="switch" title={UI_TEXT.titles.autoAdvancePause}>
         <input
           type="checkbox"
           checked={Boolean(autoAdvance)}
           onChange={(e) => onAutoAdvanceChange(e.target.checked)}
         />
         <span className="switch-slider" aria-hidden="true" />
-        <span className="switch-label">Auto-advance</span>
+        <span className="switch-label">{UI_TEXT.labels.autoAdvance}</span>
       </label>
 
       <div className="field">
-        <label>Sound</label>
+        <label>{UI_TEXT.labels.sound}</label>
         <select
           value={soundKey || ""}
           onChange={(e) => onSoundChange(e.target.value)}
         >
-          <option value="">None</option>
+          <option value="">{UI_TEXT.options.none}</option>
           {sounds.map((sound) => (
             <option key={sound.key} value={sound.key}>
               {sound.label}

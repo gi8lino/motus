@@ -23,6 +23,22 @@ export const MESSAGES = {
   backfillExercisesFailed: "Unable to backfill exercises",
   updateNameFailed: "Unable to update name",
   logTrainingFailed: "Unable to log training",
+  workoutExported: "Workout exported.",
+  workoutImported: "Workout imported.",
+} as const;
+
+// PROMPTS centralizes non-error UI copy.
+export const PROMPTS = {
+  selectWorkoutFirst: "Select a workout first.",
+  selectWorkoutToStart: "Select a workout to start.",
+  selectWorkoutToExport: "Select a workout to export.",
+  workoutDeleted: "Workout deleted.",
+  workoutNotFound: "Workout not found.",
+  resumeTrainingTitle: "Resume training?",
+  resumeTrainingConfirm: "Resume",
+  resumeTrainingNew: "New training",
+  trainingPausedHidden: "Training paused while tab was hidden",
+  noTraining: "No training",
 } as const;
 
 // toErrorMessage normalizes error values into display-friendly text.

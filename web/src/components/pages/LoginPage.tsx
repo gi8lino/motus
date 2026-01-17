@@ -1,23 +1,31 @@
 import { LoginForm, UserForm } from "./../auth/AuthForm";
+import { UI_TEXT } from "../../utils/uiText";
 
-// LoginView renders local login and optional registration.
-export function LoginView({
-  allowRegistration,
-  loginError,
-  onLogin,
-  onCreateUser,
-  onClearError,
-}: {
+export type LoginViewData = {
   allowRegistration: boolean;
   loginError: string | null;
+};
+
+export type LoginViewActions = {
   onLogin: (email: string, password: string) => void | Promise<void>;
   onCreateUser: (email: string, password: string) => void | Promise<void>;
   onClearError: () => void;
+};
+
+// LoginView renders local login and optional registration.
+export function LoginView({
+  data,
+  actions,
+}: {
+  data: LoginViewData;
+  actions: LoginViewActions;
 }) {
+  const { allowRegistration, loginError } = data;
+  const { onLogin, onCreateUser, onClearError } = actions;
   return (
     <section className="grid two">
       <div className="panel">
-        <h3>Log in</h3>
+        <h3>{UI_TEXT.pages.auth.loginTitle}</h3>
         {/* Local login form */}
         <LoginForm
           onLogin={onLogin}
@@ -27,14 +35,14 @@ export function LoginView({
       </div>
       {allowRegistration ? (
         <div className="panel">
-          <h3>Create user</h3>
+          <h3>{UI_TEXT.pages.auth.createUserTitle}</h3>
           <UserForm onCreate={onCreateUser} />
         </div>
       ) : (
         <div className="panel">
-          <h3>Registration disabled</h3>
+          <h3>{UI_TEXT.pages.auth.registrationDisabledTitle}</h3>
           <p className="muted small hint">
-            Ask an admin to create an account for you.
+            {UI_TEXT.pages.auth.registrationDisabledHint}
           </p>
         </div>
       )}

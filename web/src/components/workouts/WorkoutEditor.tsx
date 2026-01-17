@@ -1,8 +1,24 @@
 import { useState } from "react";
 import type { CatalogExercise, SoundOption, Workout } from "../../types";
-import { WorkoutForm } from "./WorkoutForm";
+import { WorkoutForm, type WorkoutFormDefaults } from "./WorkoutForm";
 import { useWorkoutFormActions } from "../../hooks/useWorkoutFormActions";
 import { Modal } from "../common/Modal";
+
+type WorkoutFormData = {
+  sounds: SoundOption[];
+  exerciseCatalog: CatalogExercise[];
+};
+
+type WorkoutFormServices = {
+  onCreateExercise: (name: string) => Promise<CatalogExercise>;
+  promptUser: (
+    message: string,
+    defaultValue?: string,
+  ) => Promise<string | null>;
+  notifyUser: (message: string) => Promise<void>;
+  askConfirm: (message: string) => Promise<boolean>;
+  onToast?: (message: string) => void;
+};
 
 export type WorkoutsEditorProps = {
   open: boolean;
@@ -18,25 +34,9 @@ export type WorkoutsEditorProps = {
   setSelectedWorkoutId: (id: string | null) => void;
 
   // form deps
-  sounds: SoundOption[];
-  exerciseCatalog: CatalogExercise[];
-  onCreateExercise: (name: string) => Promise<CatalogExercise>;
-  promptUser: (
-    message: string,
-    defaultValue?: string,
-  ) => Promise<string | null>;
-  notifyUser: (message: string) => Promise<void>;
-
-  defaults: {
-    defaultStepSoundKey: string;
-    defaultPauseDuration: string;
-    defaultPauseSoundKey: string;
-    defaultPauseAutoAdvance: boolean;
-    repeatRestAfterLastDefault: boolean;
-  };
-
-  askConfirm: (message: string) => Promise<boolean>;
-  onToast?: (message: string) => void;
+  formData: WorkoutFormData;
+  defaults: WorkoutFormDefaults;
+  services: WorkoutFormServices;
 };
 
 export function WorkoutsEditor({
@@ -47,14 +47,9 @@ export function WorkoutsEditor({
   currentUserId,
   setWorkouts,
   setSelectedWorkoutId,
-  sounds,
-  exerciseCatalog,
-  onCreateExercise,
-  promptUser,
-  notifyUser,
+  formData,
   defaults,
-  askConfirm,
-  onToast,
+  services,
 }: WorkoutsEditorProps) {
   const [workoutDirty, setWorkoutDirty] = useState(false);
 
@@ -70,7 +65,7 @@ export function WorkoutsEditor({
         if (!show) onClose();
       },
       setWorkouts,
-      askConfirm,
+      askConfirm: services.askConfirm,
     });
 
   return (
@@ -83,16 +78,16 @@ export function WorkoutsEditor({
     >
       <WorkoutForm
         userId={currentUserId}
-        sounds={sounds}
-        exerciseCatalog={exerciseCatalog}
+        sounds={formData.sounds}
+        exerciseCatalog={formData.exerciseCatalog}
         defaults={defaults}
         services={{
           onSave: saveWorkout,
           onUpdate: updateWorkout,
-          onCreateExercise,
-          promptUser,
-          notifyUser,
-          onToast,
+          onCreateExercise: services.onCreateExercise,
+          promptUser: services.promptUser,
+          notifyUser: services.notifyUser,
+          onToast: services.onToast,
         }}
         editingWorkout={editingWorkout}
         onDirtyChange={setWorkoutDirty}

@@ -5,6 +5,7 @@ import {
 } from "../api";
 import type { AskConfirmOptions, Workout, WorkoutStep } from "../types";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 // UseWorkoutFormActionsArgs describes dependencies for workout form actions.
 type UseWorkoutFormActionsArgs = {
@@ -43,7 +44,7 @@ export function useWorkoutFormActions({
   }) => {
     // Guard: require an authenticated user before saving.
     if (!currentUserId) {
-      await notify?.("You must be logged in to save workouts.");
+      await notify?.(UI_TEXT.errors.loginRequiredSave);
       return;
     }
 
@@ -72,7 +73,7 @@ export function useWorkoutFormActions({
   }) => {
     // Guard: require an authenticated user before updating.
     if (!currentUserId) {
-      await notify?.("You must be logged in to update workouts.");
+      await notify?.(UI_TEXT.errors.loginRequiredUpdate);
       return;
     }
 
@@ -108,9 +109,7 @@ export function useWorkoutFormActions({
   // closeWorkoutModal hides the modal and guards against unsaved edits.
   const closeWorkoutModal = async () => {
     if (workoutDirty) {
-      const discard = await askConfirm(
-        "You have unsaved changes. Close without saving?",
-      );
+      const discard = await askConfirm(UI_TEXT.prompts.unsavedChanges);
       if (!discard) return;
     }
     setShowWorkoutForm(false);

@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { MESSAGES, PROMPTS, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 import { changePassword, exportWorkout, importWorkout } from "../api";
 import type { Workout } from "../types";
@@ -27,7 +28,7 @@ export function useProfileActions({
   const exportSelectedWorkout = useCallback(async () => {
     if (!exportWorkoutId) {
       // Guard: require a selection before exporting.
-      await notify("Select a workout to export.");
+      await notify(PROMPTS.selectWorkoutToExport);
       return;
     }
     try {
@@ -41,7 +42,7 @@ export function useProfileActions({
       a.download = `${workout.name || "workout"}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("Workout exported.");
+      showToast(MESSAGES.workoutExported);
     } catch (err) {
       await notify(toErrorMessage(err, MESSAGES.exportWorkoutFailed));
     }
@@ -56,7 +57,7 @@ export function useProfileActions({
         // Accept either { workout: {...} } or a raw workout export.
         const workoutPayload = parsed.workout ? parsed.workout : parsed;
         if (!workoutPayload?.name || !workoutPayload?.steps) {
-          await notify("Invalid workout JSON.");
+          await notify(UI_TEXT.toasts.invalidWorkoutJson);
           return;
         }
         const created = await importWorkout({
@@ -65,7 +66,7 @@ export function useProfileActions({
         });
         setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
         setSelectedWorkoutId(created.id);
-        showToast("Workout imported.");
+        showToast(MESSAGES.workoutImported);
       } catch (err) {
         await notify(toErrorMessage(err, MESSAGES.importWorkoutFailed));
       }
@@ -78,7 +79,7 @@ export function useProfileActions({
     async (currentPassword: string, newPassword: string) => {
       try {
         await changePassword(currentPassword, newPassword);
-        await notify("Password updated.");
+        await notify(UI_TEXT.toasts.passwordUpdated);
       } catch (err) {
         await notify(toErrorMessage(err, MESSAGES.updatePasswordFailed));
       }

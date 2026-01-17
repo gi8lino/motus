@@ -1,3 +1,5 @@
+import { UI_TEXT } from "../../utils/uiText";
+
 type DialogType = "alert" | "confirm" | "prompt";
 
 export type DialogState = {
@@ -47,16 +49,16 @@ const dismissDialog = (dialog: DialogState) => {
 // dialogTitle resolves the dialog heading text.
 const dialogTitle = (dialog: DialogState) => {
   if (dialog.title) return dialog.title;
-  if (dialog.type === "confirm") return "Confirm";
-  return "Message";
+  if (dialog.type === "confirm") return UI_TEXT.dialog.confirmTitle;
+  return UI_TEXT.dialog.messageTitle;
 };
 
 // confirmLabel resolves the confirmation button label.
 const confirmLabel = (dialog: DialogState) => {
   if (dialog.confirmLabel) return dialog.confirmLabel;
-  if (dialog.type === "confirm") return "Confirm";
-  if (dialog.type === "prompt") return "Save";
-  return "OK";
+  if (dialog.type === "confirm") return UI_TEXT.dialog.confirmButton;
+  if (dialog.type === "prompt") return UI_TEXT.dialog.promptButton;
+  return UI_TEXT.dialog.okButton;
 };
 
 // DialogModal renders the shared alert/confirm/prompt overlay.
@@ -94,7 +96,7 @@ export default function DialogModal({
                 onClose();
               }}
             >
-              {dialog.cancelLabel || "Cancel"}
+              {dialog.cancelLabel || UI_TEXT.dialog.cancelButton}
             </button>
           )}
           <button

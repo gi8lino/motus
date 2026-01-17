@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { CatalogExercise } from "../../types";
+import { UI_TEXT } from "../../utils/uiText";
 import { SelectDropdown } from "../common/SelectDropdown";
 
 type ExerciseValue = { exerciseId?: string; name?: string };
@@ -42,7 +43,7 @@ export function ExerciseSelect({
     <SelectDropdown
       items={items}
       value={value.exerciseId || null}
-      placeholder="Select exercise"
+      placeholder={UI_TEXT.placeholders.selectExercise}
       onSelect={(item) => {
         const match = byId.get(item.id);
         if (match) onSelect(match);
@@ -53,14 +54,18 @@ export function ExerciseSelect({
         if (!match) return null;
         return (
           <span className={`exercise-tag ${match.isCore ? "core" : "user"}`}>
-            {match.isCore ? "Core" : "Personal"}
+            {match.isCore ? UI_TEXT.exercises.core : UI_TEXT.exercises.personal}
           </span>
         );
       }}
       renderSelectedRight={() =>
         tag ? (
           <span className={`exercise-tag ${tag}`}>
-            {tag === "core" ? "Core" : tag === "user" ? "Personal" : "Unlinked"}
+            {tag === "core"
+              ? UI_TEXT.exercises.core
+              : tag === "user"
+                ? UI_TEXT.exercises.personal
+                : UI_TEXT.exercises.unlinked}
           </span>
         ) : null
       }

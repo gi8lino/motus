@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { backfillExercises, updateUserAdmin } from "../api";
 import type { User, View } from "../types";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 // UseAdminActionsArgs wires user management actions.
 type UseAdminActionsArgs = {
@@ -45,7 +46,7 @@ export function useAdminActions({
   const backfillCatalog = useCallback(async () => {
     try {
       await backfillExercises();
-      await notify("Exercise catalog backfill complete.");
+      await notify(UI_TEXT.toasts.backfillComplete);
     } catch (err) {
       await notify(toErrorMessage(err, MESSAGES.backfillExercisesFailed));
     }

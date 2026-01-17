@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 import type { Dispatch, SetStateAction } from "react";
 
 import { createExercise, deleteExercise, updateExercise } from "../api";
@@ -31,7 +32,7 @@ export function useExerciseActions({
   const createCatalogEntry = useCallback(
     async (name: string, isCore: boolean) => {
       // Guard: require a non-empty name.
-      if (!name.trim()) throw new Error("Exercise name required");
+      if (!name.trim()) throw new Error(UI_TEXT.errors.exerciseNameRequired);
       const created = await createExercise(name.trim(), isCore);
       setExerciseCatalog((prev) => {
         // Avoid duplicates when optimistic UI already has the entry.
@@ -46,7 +47,7 @@ export function useExerciseActions({
 
   // addExercise prompts for a new personal exercise.
   const addExercise = useCallback(async () => {
-    const name = await askPrompt("Exercise name");
+    const name = await askPrompt(UI_TEXT.prompts.exerciseName);
     if (!name) return;
     try {
       await createCatalogEntry(name, false);
@@ -57,7 +58,7 @@ export function useExerciseActions({
 
   // addCoreExercise prompts for a new core exercise.
   const addCoreExercise = useCallback(async () => {
-    const name = await askPrompt("Core exercise name");
+    const name = await askPrompt(UI_TEXT.prompts.coreExerciseName);
     if (!name) return;
     try {
       await createCatalogEntry(name, true);
@@ -71,8 +72,8 @@ export function useExerciseActions({
     async (ex: CatalogExercise) => {
       const name = await askPrompt(
         ex.isCore && !isAdmin
-          ? "Create personal copy from core"
-          : "Rename exercise",
+          ? UI_TEXT.exercises.createCopy
+          : UI_TEXT.exercises.rename,
         ex.name,
       );
       if (!name || name.trim() === ex.name) return;
@@ -89,7 +90,7 @@ export function useExerciseActions({
           );
         });
         if (updated.id !== ex.id) {
-          showToast("Created a personal copy.");
+          showToast(UI_TEXT.toasts.createdPersonalCopy);
         }
       } catch (err) {
         await notify(toErrorMessage(err, MESSAGES.renameExerciseFailed));
@@ -101,7 +102,7 @@ export function useExerciseActions({
   // deleteExerciseEntry removes an exercise after confirmation.
   const deleteExerciseEntry = useCallback(
     async (ex: CatalogExercise) => {
-      const ok = await askConfirm("Delete this exercise?");
+      const ok = await askConfirm(UI_TEXT.prompts.deleteExerciseConfirm);
       if (!ok) return;
       try {
         await deleteExercise(ex.id);

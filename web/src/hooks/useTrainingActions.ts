@@ -1,6 +1,8 @@
 import { startTraining as startTrainingApi } from "../api";
 import type { AskConfirmOptions, TrainingState } from "../types";
 import { buildSummary } from "../utils/summary";
+import { MESSAGES, PROMPTS } from "../utils/messages";
+import { UI_TEXT } from "../utils/uiText";
 
 // UseTrainingActionsArgs describes dependencies for training actions.
 type UseTrainingActionsArgs = {
@@ -41,20 +43,20 @@ export function useTrainingActions({
   startTraining: () => Promise<void>;
   finishTraining: () => Promise<string | null>;
 } {
-  // startTraining prepares a new training session (or resumes if available).
+  // startTraining prepares a new training (or resumes if available).
   const startTraining = async () => {
     if (!selectedWorkoutId) {
-      await notify("Select a workout first.");
+      await notify(PROMPTS.selectWorkoutFirst);
       return;
     }
 
     setTrainingView();
 
     if (training && !training.done) {
-      const resume = await askConfirm(
-        "You have an active training. Resume it instead?",
-        { confirmLabel: "Resume", cancelLabel: "New session" },
-      );
+      const resume = await askConfirm(UI_TEXT.training.activeResumePrompt, {
+        confirmLabel: PROMPTS.resumeTrainingConfirm,
+        cancelLabel: PROMPTS.resumeTrainingNew,
+      });
       if (resume) {
         setPromptedResume(false);
         setResumeSuppressed(true);
@@ -70,7 +72,7 @@ export function useTrainingActions({
     const result = await finishAndLog();
     if (!result?.ok) {
       // Guard: surface API errors without generating a summary.
-      await notify(result?.error || "Unable to save training.");
+      await notify(result?.error || MESSAGES.saveTrainingFailed);
       return null;
     }
 

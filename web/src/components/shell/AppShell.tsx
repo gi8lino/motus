@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { User, View } from "../../types";
+import { PROMPTS } from "../../utils/messages";
 import { BrandHeader } from "../common/BrandHeader";
 import { NavTabs } from "./NavigationTabs";
 
@@ -61,12 +62,12 @@ export function AppShell({
         {resumeOpen && (
           <div className="toast">
             <div>
-              <strong>Resume training?</strong>
+              <strong>{PROMPTS.resumeTrainingTitle}</strong>
               <div className="muted small">{resumeText}</div>
             </div>
             <div className="btn-group">
               <button className="btn primary" onClick={onResume} type="button">
-                Resume
+                {PROMPTS.resumeTrainingConfirm}
               </button>
               <button
                 className="btn subtle"
