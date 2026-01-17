@@ -28,7 +28,6 @@ import { AppShell } from "./components/shell/AppShell";
 import DialogModal from "./components/common/DialogModal";
 
 import { isValidEmail } from "./utils/validation";
-import { STEP_TYPE_PAUSE } from "./utils/step";
 import { toErrorMessage } from "./utils/messages";
 
 import { useAuthActions } from "./hooks/useAuthActions";
@@ -321,46 +320,7 @@ export default function App() {
     if (!training) setResumeSuppressed(false);
   }, [training?.trainingId]);
 
-  // auto-advance for timed steps
-  useEffect(() => {
-    if (!training || !training.running) return;
-    if (!currentStep || !currentStep.estimatedSeconds) return;
-
-    const isAutoAdvance =
-      (currentStep.type === STEP_TYPE_PAUSE &&
-        currentStep.pauseOptions?.autoAdvance) ||
-      Boolean(currentStep.autoAdvance);
-
-    if (!isAutoAdvance) return;
-
-    const threshold = currentStep.estimatedSeconds * 1000;
-    if (displayedElapsed < threshold + 200) return;
-
-    const isLast =
-      training.currentIndex >=
-      (training.steps?.length ? training.steps.length - 1 : 0);
-
-    if (!isLast) {
-      nextStep();
-      return;
-    }
-
-    finishAndLog().then((result) => {
-      if (!result?.ok) {
-        notify(result?.error || "Unable to save training");
-        return;
-      }
-      history.reload();
-    });
-  }, [
-    training,
-    currentStep,
-    displayedElapsed,
-    nextStep,
-    finishAndLog,
-    history,
-    notify,
-  ]);
+  // Auto-advance is handled in the training timer hook to keep timing consistent.
 
   // refresh history once when a training logs
   useEffect(() => {

@@ -623,6 +623,7 @@ export function useTrainingTimer({
   // - uses stable stepRunRef for "deadline computation"
   // - logs only when it actually triggers
   useEffect(() => {
+    const autoAdvanceGraceMs = 700;
     const clear = () => {
       if (autoAdvanceRef.current.timeoutId) {
         clearTimeout(autoAdvanceRef.current.timeoutId);
@@ -664,7 +665,7 @@ export function useTrainingTimer({
     const deadlineMs = stepRunRef.current.startedAtMs + durationMs;
 
     const at = now();
-    const remainingMs = Math.max(0, deadlineMs - at);
+    const remainingMs = Math.max(0, deadlineMs - at + autoAdvanceGraceMs);
 
     if (autoAdvanceRef.current.key === runKey) {
       return;
@@ -695,9 +696,10 @@ export function useTrainingTimer({
       const at2 = now();
       const elapsedAtFire = currentStepElapsedNow(cur, at2);
       const durMs = (curStep.estimatedSeconds || 0) * 1000;
+      const targetMs = durMs + autoAdvanceGraceMs;
 
-      if (durMs > 0 && elapsedAtFire < durMs) {
-        const rem = Math.max(0, durMs - elapsedAtFire);
+      if (durMs > 0 && elapsedAtFire < targetMs) {
+        const rem = Math.max(0, targetMs - elapsedAtFire);
         autoAdvanceRef.current.timeoutId = window.setTimeout(fire, rem);
         return;
       }
