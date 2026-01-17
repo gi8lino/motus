@@ -8,3 +8,5 @@ web/dist/*
 
 # Noe deps in web
 web/node_modules/
+
+.gocache/
