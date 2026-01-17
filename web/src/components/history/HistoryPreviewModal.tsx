@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 
-import type { TrainngHistoryItem, TrainngStepLog, Workout } from "../../types";
+import type { TrainingHistoryItem, TrainingStepLog, Workout } from "../../types";
 import { formatExerciseLine, formatElapsedMillis } from "../../utils/format";
 import { buildSummary } from "../../utils/summary";
 import { expandWorkoutSteps } from "../../utils/workout";
 import { AISummary } from "./HistoryCard";
 
 type HistoryPreviewModalProps = {
-  preview: TrainngHistoryItem | null;
+  preview: TrainingHistoryItem | null;
   workout: Workout | null;
   loading: boolean;
   onClose: () => void;
@@ -15,7 +15,7 @@ type HistoryPreviewModalProps = {
 };
 
 // mapHistoryDurations builds an elapsed duration lookup by step order.
-const mapHistoryDurations = (steps: TrainngStepLog[]) => {
+const mapHistoryDurations = (steps: TrainingStepLog[]) => {
   const map: Record<string, number> = {};
   steps.forEach((s) => {
     const key = `order-${s.stepOrder}`;

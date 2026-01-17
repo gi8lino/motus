@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CatalogExercise, SoundOption, Workout } from "../../types";
-import { WorkoutEditorModal } from "./WorkoutEditorModal";
+import { WorkoutForm } from "./WorkoutForm";
 import { useWorkoutFormActions } from "../../hooks/useWorkoutFormActions";
 
 export type WorkoutsEditorProps = {
@@ -66,42 +66,50 @@ export function WorkoutsEditor({
       setSelectedWorkoutId,
       setEditingWorkout,
       setWorkoutDirty,
-      setShowWorkoutForm: (updater) => {
-        // WorkoutsEditor controls open/close externally; ignore updater
-        if (typeof updater === "function") {
-          const next = updater(open);
-          if (!next) onClose();
-        } else {
-          if (!updater) onClose();
-        }
+      setShowWorkoutForm: (show) => {
+        // WorkoutsEditor controls open/close externally; mirror close only.
+        if (!show) onClose();
       },
       setWorkouts,
       askConfirm,
     });
 
   return (
-    <WorkoutEditorModal
-      open={open}
-      onClose={() => {
-        closeWorkoutModal();
-        onClose();
-      }}
-      userId={currentUserId}
-      sounds={sounds}
-      exerciseCatalog={exerciseCatalog}
-      onCreateExercise={onCreateExercise}
-      promptUser={promptUser}
-      notifyUser={notifyUser}
-      defaultStepSoundKey={defaultStepSoundKey}
-      defaultPauseDuration={defaultPauseDuration}
-      defaultPauseSoundKey={defaultPauseSoundKey}
-      defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-      repeatRestAfterLastDefault={repeatRestAfterLastDefault}
-      onSave={saveWorkout}
-      onUpdate={updateWorkout}
-      editingWorkout={editingWorkout}
-      onDirtyChange={setWorkoutDirty}
-      onToast={onToast}
-    />
+    <>
+      {open ? (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            closeWorkoutModal();
+            onClose();
+          }}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <WorkoutForm
+              userId={currentUserId}
+              sounds={sounds}
+              exerciseCatalog={exerciseCatalog}
+              onCreateExercise={onCreateExercise}
+              promptUser={promptUser}
+              notifyUser={notifyUser}
+              defaultStepSoundKey={defaultStepSoundKey}
+              defaultPauseDuration={defaultPauseDuration}
+              defaultPauseSoundKey={defaultPauseSoundKey}
+              defaultPauseAutoAdvance={defaultPauseAutoAdvance}
+              repeatRestAfterLastDefault={repeatRestAfterLastDefault}
+              onSave={saveWorkout}
+              onUpdate={updateWorkout}
+              editingWorkout={editingWorkout}
+              onDirtyChange={setWorkoutDirty}
+              onToast={onToast}
+              onClose={() => {
+                closeWorkoutModal();
+                onClose();
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

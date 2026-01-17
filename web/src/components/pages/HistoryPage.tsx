@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { TrainngHistoryItem, TrainngState, Workout } from "../../types";
+import type { TrainingHistoryItem, TrainingState, Workout } from "../../types";
 import { HistoryList } from "../history/HistoryCard";
 import { HistoryPreviewModal } from "../history/HistoryPreviewModal";
 
@@ -12,17 +12,17 @@ export function HistoryView({
   loadWorkout,
   onCopySummary,
 }: {
-  items: TrainngHistoryItem[];
-  activeTraining: TrainngState | null;
+  items: TrainingHistoryItem[];
+  activeTraining: TrainingState | null;
   onResume: () => void;
   loadWorkout: (id: string) => Promise<Workout>;
   onCopySummary: () => void;
 }) {
-  const [preview, setPreview] = useState<TrainngHistoryItem | null>(null);
+  const [preview, setPreview] = useState<TrainingHistoryItem | null>(null);
   const [previewWorkout, setPreviewWorkout] = useState<Workout | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   // handleSelect loads preview details for a selected training.
-  const handleSelect = (item: TrainngHistoryItem) => {
+  const handleSelect = (item: TrainingHistoryItem) => {
     setPreview(item);
     setPreviewLoading(true);
     loadWorkout(item.workoutId)

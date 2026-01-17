@@ -5,7 +5,7 @@ import {
   formatCountdownMillis,
 } from "../../utils/format";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
-import type { Exercise, TrainngState, TrainngStepState } from "../../types";
+import type { Exercise, TrainingState, TrainingStepState } from "../../types";
 
 type AnyStep = any;
 
@@ -78,8 +78,8 @@ export function TrainCard({
   runButtonRef,
   nextButtonRef,
 }: {
-  training: TrainngState | null;
-  currentStep: TrainngStepState | null;
+  training: TrainingState | null;
+  currentStep: TrainingStepState | null;
   elapsed: number;
   workoutName?: string;
   onStart: () => void;
@@ -153,7 +153,7 @@ export function TrainCard({
   }, [currentStep]);
 
   const extractExerciseLabels = useCallback(
-    (step: TrainngStepState | null, startIndex = 0) => {
+    (step: TrainingStepState | null, startIndex = 0) => {
       if (!step) return [];
 
       if (step.type === STEP_TYPE_PAUSE) {

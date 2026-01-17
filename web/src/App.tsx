@@ -16,7 +16,7 @@ import {
 
 import type {
   CatalogExercise,
-  TrainngHistoryItem,
+  TrainingHistoryItem,
   SoundOption,
   Template,
   ThemeMode,
@@ -27,6 +27,7 @@ import type {
 import { useTrainingTimer } from "./hooks/useTrainTimer";
 import { useDialog } from "./hooks/useDialog";
 import { useViewState } from "./hooks/useViewState";
+import { useDataLoader } from "./hooks/useDataLoader";
 
 import { LoginView } from "./components/pages/LoginPage";
 import { AdminView } from "./components/pages/AdminPage";
@@ -58,46 +59,7 @@ type AppConfig = {
   commit: string;
 };
 
-// useDataLoader wraps async loading with loading/error state.
-function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    loader()
-      .then((res) => {
-        if (cancelled) return;
-        setData(res);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err?.message || "load failed");
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  useEffect(() => {
-    const cancel = reload();
-    return cancel;
-  }, [reload]);
-
-  return { data, loading, error, setData, reload };
-}
-
-// resumeMessage formats a resume prompt for an in-progress trining.
+// resumeMessage formats a resume prompt for an in-progress training.
 function resumeMessage(
   training?: ReturnType<typeof useTrainingTimer>["training"] | null,
 ) {
@@ -171,11 +133,11 @@ export default function App() {
     () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
     [currentUserId],
   );
-  const history = useDataLoader<TrainngHistoryItem[]>(
+  const history = useDataLoader<TrainingHistoryItem[]>(
     () =>
       currentUserId
         ? listTrainingHistory(currentUserId)
-        : Promise.resolve([] as TrainngHistoryItem[]),
+        : Promise.resolve([] as TrainingHistoryItem[]),
     [currentUserId],
   );
   const templates = useDataLoader<Template[]>(listTemplates, []);

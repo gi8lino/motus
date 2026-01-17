@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logTrainingCompletion } from "../api";
-import type { TrainngState, TrainngStepState } from "../types";
+import type { TrainingState, TrainingStepState } from "../types";
 import { normalizeTimestamp, parseDurationSeconds } from "../utils/time";
 import {
   STEP_TYPE_PAUSE,
@@ -20,11 +20,11 @@ const STORAGE_KEY = "motus:train";
 // UseTrainingTimerArgs configures the train timer hook.
 type UseTrainTimerArgs = {
   currentUserId?: string | null;
-  onChange?: (state: TrainngState | null) => void;
+  onChange?: (state: TrainingState | null) => void;
 };
 
 // NormalizedState adds bookkeeping metadata to train state.
-type NormalizedState = TrainngState & { lastUpdatedAt: number };
+type NormalizedState = TrainingState & { lastUpdatedAt: number };
 
 // now returns the current timestamp in milliseconds.
 function now() {
@@ -41,7 +41,7 @@ function structuredCloneSafe<T>(value: T): T {
 }
 
 // isAutoAdvanceStep returns true when a step should auto-advance at timer end.
-function isAutoAdvanceStep(step: TrainngStepState | null | undefined): boolean {
+function isAutoAdvanceStep(step: TrainingStepState | null | undefined): boolean {
   if (!step) return false;
   if (step.type === STEP_TYPE_PAUSE) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +52,7 @@ function isAutoAdvanceStep(step: TrainngStepState | null | undefined): boolean {
 }
 
 // normalizeTrain sanitizes stored train data into a consistent shape.
-function normalizeTrain(raw: TrainngState): NormalizedState {
+function normalizeTrain(raw: TrainingState): NormalizedState {
   const base: NormalizedState = {
     ...raw,
     running: Boolean(raw.running && !raw.done),
@@ -75,7 +75,7 @@ function normalizeTrain(raw: TrainngState): NormalizedState {
   );
 
   rawSteps.forEach((step, idx) => {
-    const normalized: TrainngStepState = {
+    const normalized: TrainingStepState = {
       ...step,
       type: normalizeStepType(step.type),
       elapsedMillis: step.elapsedMillis || 0,
@@ -102,8 +102,8 @@ function normalizeTrain(raw: TrainngState): NormalizedState {
 }
 
 // expandExerciseSteps expands set exercises into per-exercise steps with timing.
-function expandExerciseSteps(state: TrainngState): TrainngState {
-  const expanded: TrainngState = { ...state, steps: [] };
+function expandExerciseSteps(state: TrainingState): TrainingState {
+  const expanded: TrainingState = { ...state, steps: [] };
   const sourceSteps = Array.isArray(state.steps) ? state.steps : [];
 
   sourceSteps.forEach((step) => {
@@ -421,7 +421,7 @@ export function useTrainingTimer({
 
   // startFromState initializes the train from server state.
   const startFromState = useCallback(
-    (raw: TrainngState) => {
+    (raw: TrainingState) => {
       const expanded = expandExerciseSteps(raw);
       const normalized = normalizeTrain(expanded);
 

@@ -49,7 +49,7 @@ export type WorkoutsViewProps = {
 };
 
 export function WorkoutsView(props: WorkoutsViewProps) {
-  const list = props.workouts || [];
+  const workouts = props.workouts || [];
 
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
@@ -58,37 +58,31 @@ export function WorkoutsView(props: WorkoutsViewProps) {
   const [editorOpen, setEditorOpen] = useState(false);
 
   // Keep using existing action logic for "new/edit" selection behavior
-  const { newWorkout, editWorkoutFromList } = useWorkoutActions({
-    workouts: list,
-    editingWorkout,
-    selectedWorkoutId,
-    setEditingWorkout,
-    setShowWorkoutForm: setEditorOpen,
-    setSelectedWorkoutId,
-    setWorkouts: props.setWorkouts,
-    askConfirm: props.askConfirm,
-    askPrompt: props.askPrompt,
-    notify: props.notifyUser,
-    templatesReload: props.templatesReload,
-  });
+  const { newWorkout, editWorkoutFromList, removeWorkout, shareWorkout } =
+    useWorkoutActions({
+      workouts,
+      selectedWorkoutId,
+      setEditingWorkout,
+      setSelectedWorkoutId,
+      setWorkouts: props.setWorkouts,
+      askConfirm: props.askConfirm,
+      askPrompt: props.askPrompt,
+      notify: props.notifyUser,
+      templatesReload: props.templatesReload,
+    });
 
   return (
     <>
       <WorkoutsList
-        workouts={list}
+        workouts={workouts}
         loading={props.loading}
         currentUserId={props.currentUserId}
-        selectedWorkoutId={selectedWorkoutId}
         setSelectedWorkoutId={setSelectedWorkoutId}
-        editingWorkout={editingWorkout}
-        setWorkouts={props.setWorkouts}
-        askConfirm={props.askConfirm}
-        askPrompt={props.askPrompt}
-        notifyUser={props.notifyUser}
-        templatesReload={props.templatesReload}
         onNew={() => newWorkout()}
         onEdit={(id) => editWorkoutFromList(id)}
         onOpenEditor={() => setEditorOpen(true)}
+        onShare={(id) => shareWorkout(id)}
+        onDelete={(id) => removeWorkout(id)}
       />
 
       <WorkoutsEditor

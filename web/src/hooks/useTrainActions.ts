@@ -1,20 +1,20 @@
 import { startTrain } from "../api";
-import type { AskConfirmOptions, TrainngState } from "../types";
+import type { AskConfirmOptions, TrainingState } from "../types";
 import { buildSummary } from "../utils/summary";
 
 // UseTrainingActionsArgs describes dependencies for training actions.
 type UseTrainingActionsArgs = {
   selectedWorkoutId: string | null;
-  training: TrainngState | null;
+  training: TrainingState | null;
   currentWorkoutName: string;
   setTrainView: () => void;
   setPromptedResume: (next: boolean) => void;
   setResumeSuppressed: (next: boolean) => void;
-  startFromState: (state: TrainngState) => void;
+  startFromState: (state: TrainingState) => void;
   finishAndLog: () => Promise<{
     ok: boolean;
     error?: string;
-    training?: TrainngState;
+    training?: TrainingState;
   } | null>;
   historyReload: () => void;
   askConfirm: (

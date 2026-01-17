@@ -1,4 +1,4 @@
-import type { TrainngHistoryItem, TrainngState } from "../../types";
+import type { TrainingHistoryItem, TrainingState } from "../../types";
 
 // HistoryList renders past trainings and supports selection/resume.
 export function HistoryList({
@@ -7,10 +7,10 @@ export function HistoryList({
   onResume,
   onSelect,
 }: {
-  items: TrainngHistoryItem[];
-  activeTraining?: TrainngState | null;
+  items: TrainingHistoryItem[];
+  activeTraining?: TrainingState | null;
   onResume?: () => void;
-  onSelect?: (item: TrainngHistoryItem) => void;
+  onSelect?: (item: TrainingHistoryItem) => void;
 }) {
   const hasActive = activeTraining && !activeTraining.done;
   if (!items.length && !hasActive)

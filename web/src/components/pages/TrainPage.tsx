@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
-  TrainngState,
-  TrainngStepState,
+  TrainingState,
+  TrainingStepState,
   SoundOption,
   Workout,
 } from "../../types";
@@ -64,8 +64,8 @@ export function TrainView({
   onStartTrain: () => void | Promise<void>;
   startDisabled: boolean;
   startTitle?: string;
-  training: TrainngState | null;
-  currentStep: TrainngStepState | null;
+  training: TrainingState | null;
+  currentStep: TrainingStepState | null;
   elapsed: number;
   workoutName: string;
   sounds: SoundOption[];
@@ -86,8 +86,8 @@ export function TrainView({
   const now = () => Date.now();
 
   // ---------- Refs for stable handlers ----------
-  const trainingRef = useRef<TrainngState | null>(training);
-  const currentStepRef = useRef<TrainngStepState | null>(currentStep);
+  const trainingRef = useRef<TrainingState | null>(training);
+  const currentStepRef = useRef<TrainingStepState | null>(currentStep);
   const elapsedRef = useRef(elapsed);
   const overrunModalRef = useRef<OverrunState | null>(overrunModal);
 
