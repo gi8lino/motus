@@ -12,7 +12,7 @@ func requireUserID(value string) (string, error) {
 	if trimmed := utils.NormalizeToken(value); trimmed != "" {
 		return trimmed, nil
 	}
-	return "", errpkg.NewError(errpkg.ErrorValidation, "user id is required")
+	return "", errpkg.NewErrorWithScope(errpkg.ErrorValidation, "user id is required", errorScope)
 }
 
 // requireName ensures a non-empty exercise name.
@@ -20,7 +20,7 @@ func requireName(value string) (string, error) {
 	if trimmed := strings.TrimSpace(value); trimmed != "" {
 		return trimmed, nil
 	}
-	return "", errpkg.NewError(errpkg.ErrorValidation, "name is required")
+	return "", errpkg.NewErrorWithScope(errpkg.ErrorValidation, "name is required", errorScope)
 }
 
 // requireEntityID validates a generic entity identifier.
@@ -28,5 +28,5 @@ func requireEntityID(value, msg string) (string, error) {
 	if trimmed := utils.NormalizeToken(value); trimmed != "" {
 		return trimmed, nil
 	}
-	return "", errpkg.NewError(errpkg.ErrorValidation, msg)
+	return "", errpkg.NewErrorWithScope(errpkg.ErrorValidation, msg, errorScope)
 }

@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestApply(t *testing.T) {
@@ -18,7 +19,7 @@ func TestApply(t *testing.T) {
 		svc := New(&fakeTemplateStore{})
 		_, err := svc.Apply(context.Background(), " ", "user", "Name")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorValidation))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 
 	t.Run("Creates new workout", func(t *testing.T) {

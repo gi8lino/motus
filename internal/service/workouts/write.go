@@ -16,18 +16,18 @@ func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*Workout, err
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
 	if req.UserID == "" || req.Name == "" || len(req.Steps) == 0 {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "userId, name, and steps are required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "userId, name, and steps are required", errorScope)
 	}
 
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	workout := &Workout{UserID: req.UserID, Name: req.Name, Steps: steps}
 	created, err := s.store.CreateWorkout(ctx, workout)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return created, nil
@@ -39,21 +39,21 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*W
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Name = strings.TrimSpace(req.Name)
 	if id == "" {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "workout id is required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workout id is required", errorScope)
 	}
 	if req.Name == "" || len(req.Steps) == 0 {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "name and steps are required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "name and steps are required", errorScope)
 	}
 
 	steps, err := NormalizeSteps(req.Steps, sounds.ValidKey)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	workout := &Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps}
 	updated, err := s.store.UpdateWorkout(ctx, workout)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return updated, nil
@@ -63,14 +63,14 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*W
 func (s *Service) Delete(ctx context.Context, id string) error {
 	id = strings.TrimSpace(id)
 	if id == "" {
-		return errpkg.NewError(errpkg.ErrorValidation, "workout id is required")
+		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workout id is required", errorScope)
 	}
 
 	if err := s.store.DeleteWorkout(ctx, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || isNotFoundError(err) {
-			return errpkg.NewError(errpkg.ErrorNotFound, err.Error())
+			return errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
 		}
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return nil

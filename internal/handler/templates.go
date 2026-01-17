@@ -84,7 +84,6 @@ func (a *API) ApplyTemplate() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("apply template", "workout", workout)
 		a.respondJSON(w, http.StatusCreated, workout)
 	}
 }

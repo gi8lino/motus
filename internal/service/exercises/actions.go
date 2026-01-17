@@ -9,7 +9,7 @@ import (
 // Backfill rebuilds core exercises from workout data.
 func (s *Service) Backfill(ctx context.Context) error {
 	if err := s.store.BackfillCoreExercises(ctx); err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return nil
 }

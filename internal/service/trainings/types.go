@@ -28,6 +28,9 @@ type TrainingLog = db.TrainingLog
 // TrainingStepLog is the domain-level DTO for training step timing logs.
 type TrainingStepLog = db.TrainingStepLog
 
+// TrainingState captures the runtime status that the SPA consumes for an active training session.
+const errorScope = "trainings"
+
 // TrainingState captures the runtime status that the SPA consumes for an active training.
 type TrainingState struct {
 	TrainingID   string              `json:"trainingId"`

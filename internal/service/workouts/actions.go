@@ -12,10 +12,10 @@ func (s *Service) Import(ctx context.Context, userID string, workout Workout) (*
 	userID = strings.TrimSpace(userID)
 	workout.Name = strings.TrimSpace(workout.Name)
 	if userID == "" {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "userId is required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "userId is required", errorScope)
 	}
 	if workout.Name == "" || len(workout.Steps) == 0 {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "name and steps are required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "name and steps are required", errorScope)
 	}
 
 	for idx := range workout.Steps {
@@ -43,7 +43,7 @@ func (s *Service) Import(ctx context.Context, userID string, workout Workout) (*
 		Steps:  workout.Steps,
 	})
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return created, nil

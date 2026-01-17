@@ -21,7 +21,9 @@ func (f *fakeHealthStore) Ping(ctx context.Context) error {
 }
 
 func TestHealthz(t *testing.T) {
+	t.Parallel()
 	t.Run("Returns ok", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeHealthStore{pingFn: func(context.Context) error { return nil }}
 		api := &API{HealthStore: store}
 

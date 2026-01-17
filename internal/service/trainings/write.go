@@ -18,7 +18,7 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 	req.UserID = strings.TrimSpace(req.UserID)
 
 	if req.TrainingID == "" || req.WorkoutID == "" || req.UserID == "" {
-		return TrainingLog{}, nil, errpkg.NewError(errpkg.ErrorValidation, "trainingId, workoutId, and userId are required")
+		return TrainingLog{}, nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "trainingId, workoutId, and userId are required", errorScope)
 	}
 	// Default timestamps to now when missing.
 	now := time.Now()
@@ -62,20 +62,15 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 }
 
 // RecordTraining persists a training log and its step timings.
-func RecordTraining(ctx context.Context, store Store, req CompleteRequest) (TrainingLog, error) {
+func (s *Service) RecordTraining(ctx context.Context, req CompleteRequest) (TrainingLog, error) {
 	log, steps, err := BuildTrainingLog(req)
 	if err != nil {
 		return TrainingLog{}, err
 	}
 
-	if err := store.RecordTraining(ctx, log, steps); err != nil {
-		return TrainingLog{}, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+	if err := s.store.RecordTraining(ctx, log, steps); err != nil {
+		return TrainingLog{}, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return log, nil
-}
-
-// RecordTraining persists a training log and its step timings.
-func (s *Service) RecordTraining(ctx context.Context, req CompleteRequest) (TrainingLog, error) {
-	return RecordTraining(ctx, s.store, req)
 }

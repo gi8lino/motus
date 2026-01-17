@@ -10,5 +10,5 @@ func requireEntityID(value, message string) (string, error) {
 	if trimmed := utils.NormalizeToken(value); trimmed != "" {
 		return trimmed, nil
 	}
-	return "", errpkg.NewError(errpkg.ErrorValidation, message)
+	return "", errpkg.NewErrorWithScope(errpkg.ErrorValidation, message, errorScope)
 }

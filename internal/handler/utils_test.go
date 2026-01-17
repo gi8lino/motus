@@ -8,7 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,31 +75,31 @@ func TestServiceStatus(t *testing.T) {
 
 	t.Run("Validation -> 400", func(t *testing.T) {
 		t.Parallel()
-		err := &service.Error{Kind: service.ErrorValidation, Err: errors.New("validation error")}
+		err := &errpkg.Error{Kind: errpkg.ErrorValidation, Err: errors.New("validation error")}
 		assert.Equal(t, http.StatusBadRequest, serviceStatus(err))
 	})
 
 	t.Run("Forbidden -> 403", func(t *testing.T) {
 		t.Parallel()
-		err := &service.Error{Kind: service.ErrorForbidden, Err: errors.New("forbidden error")}
+		err := &errpkg.Error{Kind: errpkg.ErrorForbidden, Err: errors.New("forbidden error")}
 		assert.Equal(t, http.StatusForbidden, serviceStatus(err))
 	})
 
 	t.Run("NotFound -> 404", func(t *testing.T) {
 		t.Parallel()
-		err := &service.Error{Kind: service.ErrorNotFound, Err: errors.New("not found error")}
+		err := &errpkg.Error{Kind: errpkg.ErrorNotFound, Err: errors.New("not found error")}
 		assert.Equal(t, http.StatusNotFound, serviceStatus(err))
 	})
 
 	t.Run("Unauthorized -> 401", func(t *testing.T) {
 		t.Parallel()
-		err := &service.Error{Kind: service.ErrorUnauthorized, Err: errors.New("unauthorized error")}
+		err := &errpkg.Error{Kind: errpkg.ErrorUnauthorized, Err: errors.New("unauthorized error")}
 		assert.Equal(t, http.StatusUnauthorized, serviceStatus(err))
 	})
 
 	t.Run("Internal -> 500", func(t *testing.T) {
 		t.Parallel()
-		err := &service.Error{Kind: service.ErrorInternal, Err: errors.New("internal error")}
+		err := &errpkg.Error{Kind: errpkg.ErrorInternal, Err: errors.New("internal error")}
 		assert.Equal(t, http.StatusInternalServerError, serviceStatus(err))
 	})
 }

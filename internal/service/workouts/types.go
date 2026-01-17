@@ -18,6 +18,9 @@ type WorkoutSubset = db.WorkoutSubset
 // SubsetExercise is the domain-level DTO for subset exercises.
 type SubsetExercise = db.SubsetExercise
 
+// errorScope is the service error scope for workouts.
+const errorScope = "workouts"
+
 // WorkoutRequest describes the payload for building a workout definition.
 type WorkoutRequest struct {
 	UserID string      `json:"userId"`

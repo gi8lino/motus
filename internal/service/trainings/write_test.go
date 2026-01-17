@@ -54,39 +54,9 @@ func TestRecordTraining(t *testing.T) {
 				return nil
 			},
 		}
-		_, err := RecordTraining(context.Background(), store, CompleteRequest{
-			TrainingID:  "s1",
-			WorkoutID:   "w1",
-			WorkoutName: "Workout",
-			UserID:      "u1",
-			StartedAt:   time.Now(),
-			CompletedAt: time.Now(),
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !called {
-			t.Fatalf("expected RecordTraining to be called")
-		}
-	})
-}
-
-func TestRecordTrainingMethod(t *testing.T) {
-	t.Parallel()
-
-	t.Run("DelegatesToStore", func(t *testing.T) {
-		t.Parallel()
-
-		called := false
-		store := &fakeStore{
-			recordFn: func(context.Context, TrainingLog, []TrainingStepLog) error {
-				called = true
-				return nil
-			},
-		}
 		svc := New(store, func(string) string { return "" })
 		_, err := svc.RecordTraining(context.Background(), CompleteRequest{
-			TrainingID:  "s2",
+			TrainingID:  "s1",
 			WorkoutID:   "w1",
 			WorkoutName: "Workout",
 			UserID:      "u1",

@@ -14,30 +14,30 @@ import (
 func (s *Service) Create(ctx context.Context, email, avatarURL, password string) (*User, error) {
 	normalized, err := utils.NormalizeEmail(email)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	if s.authHeader == "" && !s.allowRegistration {
-		return nil, errpkg.NewError(errpkg.ErrorForbidden, "registration is disabled")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "registration is disabled", errorScope)
 	}
 
 	password = strings.TrimSpace(password)
 	if s.authHeader == "" && password == "" {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "email and password are required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "email and password are required", errorScope)
 	}
 
 	var passwordHash string
 	if password != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+			return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 		}
 		passwordHash = string(hash)
 	}
 
 	user, err := s.store.CreateUser(ctx, normalized, avatarURL, passwordHash)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return user, nil
 }
@@ -49,7 +49,7 @@ func (s *Service) UpdateRole(ctx context.Context, id string, isAdmin bool) error
 		return err
 	}
 	if err := s.store.UpdateUserAdmin(ctx, cleanID, isAdmin); err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return nil
 }
@@ -58,10 +58,10 @@ func (s *Service) UpdateRole(ctx context.Context, id string, isAdmin bool) error
 func (s *Service) UpdateName(ctx context.Context, userID, name string) error {
 	cleanName := strings.TrimSpace(name)
 	if cleanName == "" {
-		return errpkg.NewError(errpkg.ErrorValidation, "name is required")
+		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, "name is required", errorScope)
 	}
 	if err := s.store.UpdateUserName(ctx, userID, cleanName); err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return nil
 }

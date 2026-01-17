@@ -12,7 +12,6 @@ func (a *API) GetUsers() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("list users", "users", users)
 		a.respondJSON(w, http.StatusOK, users)
 	}
 }
@@ -39,7 +38,6 @@ func (a *API) CreateUser() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("create user", "user", user)
 		a.respondJSON(w, http.StatusCreated, user)
 	}
 }
@@ -65,7 +63,6 @@ func (a *API) UpdateUserRole() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("update user role", "user", id)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -91,7 +88,6 @@ func (a *API) Login() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("login user", "user", user)
 		a.respondJSON(w, http.StatusOK, user)
 	}
 }
@@ -122,7 +118,6 @@ func (a *API) ChangePassword() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("change password", "user", userID)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }
@@ -152,7 +147,6 @@ func (a *API) UpdateUserName() http.HandlerFunc {
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 		}
 
-		a.Logger.Debug("update user name", "user", userID)
 		a.respondJSON(w, http.StatusNoContent, statusResponse{Status: "ok"})
 	}
 }

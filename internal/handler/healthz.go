@@ -10,8 +10,6 @@ func (a *API) Healthz() http.HandlerFunc {
 			a.respondJSON(w, http.StatusInternalServerError, apiError{Error: err.Error()})
 			return
 		}
-
-		a.Logger.Debug("health check")
 		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	}
 }

@@ -10,27 +10,27 @@ import (
 func (s *Service) Create(ctx context.Context, userID, name string, isCore bool) (*Exercise, error) {
 	uid, err := requireUserID(userID)
 	if err != nil {
-		return nil, err
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 	clean, err := requireName(name)
 	if err != nil {
-		return nil, err
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	user, err := s.store.GetUser(ctx, uid)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if user == nil {
-		return nil, errpkg.NewError(errpkg.ErrorNotFound, "user not found")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "user not found", errorScope)
 	}
 	if isCore && !user.IsAdmin {
-		return nil, errpkg.NewError(errpkg.ErrorForbidden, "core exercises require admin permissions")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "core exercises require admin permissions", errorScope)
 	}
 
 	exercise, err := s.store.CreateExercise(ctx, clean, uid, isCore)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return exercise, nil
 }
@@ -39,11 +39,11 @@ func (s *Service) Create(ctx context.Context, userID, name string, isCore bool) 
 func (s *Service) Update(ctx context.Context, userID, exerciseID, name string) (*Exercise, error) {
 	uid, err := requireUserID(userID)
 	if err != nil {
-		return nil, err
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 	clean, err := requireName(name)
 	if err != nil {
-		return nil, err
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 	id, err := requireEntityID(exerciseID, "exercise id is required")
 	if err != nil {
@@ -52,31 +52,31 @@ func (s *Service) Update(ctx context.Context, userID, exerciseID, name string) (
 
 	user, err := s.store.GetUser(ctx, uid)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if user == nil {
-		return nil, errpkg.NewError(errpkg.ErrorNotFound, "user not found")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "user not found", errorScope)
 	}
 
 	exercise, err := s.store.GetExercise(ctx, id)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if exercise == nil {
-		return nil, errpkg.NewError(errpkg.ErrorNotFound, "exercise not found")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "exercise not found", errorScope)
 	}
 
 	if exercise.IsCore && !user.IsAdmin {
-		return nil, errpkg.NewError(errpkg.ErrorForbidden, "core exercises require admin permissions")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "core exercises require admin permissions", errorScope)
 	}
 
 	if exercise.OwnerUserID != "" && exercise.OwnerUserID != uid && !user.IsAdmin {
-		return nil, errpkg.NewError(errpkg.ErrorForbidden, "exercise belongs to another user")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "exercise belongs to another user", errorScope)
 	}
 
 	updated, err := s.store.RenameExercise(ctx, id, clean)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return updated, nil
 }
@@ -85,39 +85,39 @@ func (s *Service) Update(ctx context.Context, userID, exerciseID, name string) (
 func (s *Service) Delete(ctx context.Context, userID, exerciseID string) error {
 	uid, err := requireUserID(userID)
 	if err != nil {
-		return err
+		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 	id, err := requireEntityID(exerciseID, "exercise id is required")
 	if err != nil {
-		return err
+		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	user, err := s.store.GetUser(ctx, uid)
 	if err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if user == nil {
-		return errpkg.NewError(errpkg.ErrorNotFound, "user not found")
+		return errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "user not found", errorScope)
 	}
 
 	exercise, err := s.store.GetExercise(ctx, id)
 	if err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if exercise == nil {
-		return errpkg.NewError(errpkg.ErrorNotFound, "exercise not found")
+		return errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "exercise not found", errorScope)
 	}
 
 	if exercise.IsCore && !user.IsAdmin {
-		return errpkg.NewError(errpkg.ErrorForbidden, "core exercises require admin permissions")
+		return errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "core exercises require admin permissions", errorScope)
 	}
 
 	if exercise.OwnerUserID != "" && exercise.OwnerUserID != uid && !user.IsAdmin {
-		return errpkg.NewError(errpkg.ErrorForbidden, "exercise belongs to another user")
+		return errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "exercise belongs to another user", errorScope)
 	}
 
 	if err := s.store.DeleteExercise(ctx, id); err != nil {
-		return errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return nil
 }

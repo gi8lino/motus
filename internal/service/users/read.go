@@ -10,7 +10,7 @@ import (
 func (s *Service) List(ctx context.Context) ([]User, error) {
 	users, err := s.store.ListUsers(ctx)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return users, nil
 }
@@ -23,10 +23,10 @@ func (s *Service) Get(ctx context.Context, id string) (*User, error) {
 	}
 	user, err := s.store.GetUser(ctx, cleanID)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if user == nil {
-		return nil, errpkg.NewError(errpkg.ErrorNotFound, "user not found")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "user not found", errorScope)
 	}
 	return user, nil
 }

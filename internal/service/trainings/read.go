@@ -21,11 +21,11 @@ func (s *Service) CreateState(ctx context.Context, workoutID string) (TrainingSt
 func CreateState(ctx context.Context, store Store, workoutID string, soundURLByKey func(string) string) (TrainingState, error) {
 	workoutID = strings.TrimSpace(workoutID)
 	if workoutID == "" {
-		return TrainingState{}, errpkg.NewError(errpkg.ErrorValidation, "workoutId is required")
+		return TrainingState{}, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workoutId is required", errorScope)
 	}
 	workout, err := store.WorkoutWithSteps(ctx, workoutID)
 	if err != nil {
-		return TrainingState{}, errpkg.NewError(errpkg.ErrorNotFound, err.Error())
+		return TrainingState{}, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
 	}
 	return NewStateFromWorkout(workout, soundURLByKey), nil
 }
@@ -39,12 +39,12 @@ func (s *Service) FetchStepTimings(ctx context.Context, trainingID string) ([]Tr
 func FetchStepTimings(ctx context.Context, store Store, trainingID string) ([]TrainingStepLog, error) {
 	trainingID = strings.TrimSpace(trainingID)
 	if trainingID == "" {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "trainingId is required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "trainingId is required", errorScope)
 	}
 
 	steps, err := store.TrainingStepTimings(ctx, trainingID)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
 	return steps, nil
@@ -54,11 +54,11 @@ func FetchStepTimings(ctx context.Context, store Store, trainingID string) ([]Tr
 func (s *Service) BuildTrainingHistory(ctx context.Context, userID string, limit int) ([]TrainingHistoryItem, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
-		return nil, errpkg.NewError(errpkg.ErrorValidation, "userId is required")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "userId is required", errorScope)
 	}
 	history, err := s.store.TrainingHistory(ctx, userID, limit)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return BuildTrainingHistory(ctx, s.store, history)
 }
@@ -70,7 +70,7 @@ func BuildTrainingHistory(ctx context.Context, store Store, history []TrainingLo
 	for _, entry := range history {
 		steps, err := store.TrainingStepTimings(ctx, entry.ID)
 		if err != nil {
-			return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+			return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 		}
 		stepMap[entry.ID] = steps
 	}

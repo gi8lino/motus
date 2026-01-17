@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 type fakeStore struct {
@@ -79,7 +80,7 @@ func TestCreate(t *testing.T) {
 		svc := New(&fakeStore{}, "", false)
 		_, err := svc.Create(context.Background(), "user@example.com", "", "secret")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Password required", func(t *testing.T) {
@@ -88,7 +89,7 @@ func TestCreate(t *testing.T) {
 		svc := New(&fakeStore{}, "", true)
 		_, err := svc.Create(context.Background(), "user@example.com", "", " ")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorValidation))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 
 	t.Run("Proxy auth allows empty password", func(t *testing.T) {

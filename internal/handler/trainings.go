@@ -31,7 +31,6 @@ func (a *API) CreateTraining() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("create training state", "state", state)
 		a.respondJSON(w, http.StatusCreated, createTrainingResponse{
 			TrainingID: state.TrainingID,
 			State:      state,
@@ -58,7 +57,6 @@ func (a *API) ListTrainingHistory() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Error("build training history", "items", items)
 		a.respondJSON(w, http.StatusOK, items)
 	}
 }
@@ -73,7 +71,6 @@ func (a *API) TrainingSteps() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Error("fetch step timings", "steps", steps)
 		a.respondJSON(w, http.StatusOK, steps)
 	}
 }
@@ -120,7 +117,6 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 			return
 		}
 
-		a.Logger.Debug("record training", "log", log)
 		a.respondJSON(w, http.StatusCreated, log)
 	}
 }

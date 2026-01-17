@@ -2,6 +2,7 @@ package templates
 
 import (
 	"context"
+
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
@@ -9,7 +10,7 @@ import (
 func (s *Service) List(ctx context.Context) ([]Workout, error) {
 	list, err := s.store.ListTemplates(ctx)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return list, nil
 }
@@ -18,15 +19,15 @@ func (s *Service) List(ctx context.Context) ([]Workout, error) {
 func (s *Service) Get(ctx context.Context, id string) (*Workout, error) {
 	tid, err := requireID(id, "template id is required")
 	if err != nil {
-		return nil, err
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
 	template, err := s.store.WorkoutWithSteps(ctx, tid)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	if template == nil || !template.IsTemplate {
-		return nil, errpkg.NewError(errpkg.ErrorNotFound, "template not found")
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "template not found", errorScope)
 	}
 	return template, nil
 }

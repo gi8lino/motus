@@ -14,7 +14,7 @@ func (s *Service) List(ctx context.Context, userID string) ([]Exercise, error) {
 	}
 	exercises, err := s.store.ListExercises(ctx, uid)
 	if err != nil {
-		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return exercises, nil
 }

@@ -8,3 +8,6 @@ type Exercise = db.Exercise
 
 // User is the domain-level DTO for users used by the exercise domain.
 type User = db.User
+
+// errorScope is the service error scope for exercises.
+const errorScope = "exercises"

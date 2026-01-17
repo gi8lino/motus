@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +17,9 @@ import (
 )
 
 func TestConfig(t *testing.T) {
+	t.Parallel()
 	t.Run("Returns config payload", func(t *testing.T) {
+		t.Parallel()
 		api := &API{
 			AuthHeader:        "X-User",
 			AllowRegistration: true,
@@ -41,7 +45,9 @@ func TestConfig(t *testing.T) {
 }
 
 func TestCurrentUser(t *testing.T) {
+	t.Parallel()
 	t.Run("Returns current user", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeUserStore{
 			getUserFn: func(_ context.Context, id string) (*db.User, error) {
 				return &db.User{ID: id}, nil
@@ -64,13 +70,14 @@ func TestCurrentUser(t *testing.T) {
 	})
 
 	t.Run("Returns not found", func(t *testing.T) {
+		t.Parallel()
 		store := &fakeUserStore{
 			getUserFn: func(context.Context, string) (*db.User, error) {
 				return nil, nil
 			},
 		}
-
-		api := &API{Users: users.New(store, "", false)}
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		api := &API{Users: users.New(store, "", false), Logger: logger}
 		h := api.CurrentUser()
 		req := httptest.NewRequest(http.MethodGet, "/api/users/current", nil)
 		req.Header.Set("X-User-ID", "user@example.com")
@@ -82,7 +89,9 @@ func TestCurrentUser(t *testing.T) {
 	})
 
 	t.Run("Returns bad request when missing user", func(t *testing.T) {
-		api := &API{Users: users.New(&fakeUserStore{}, "", false)}
+		t.Parallel()
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		api := &API{Users: users.New(&fakeUserStore{}, "", false), Logger: logger}
 		h := api.CurrentUser()
 		req := httptest.NewRequest(http.MethodGet, "/api/users/current", nil)
 		rec := httptest.NewRecorder()

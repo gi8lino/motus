@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestList(t *testing.T) {
@@ -19,6 +19,6 @@ func TestList(t *testing.T) {
 		svc := New(&fakeStore{})
 		_, err := svc.List(context.Background(), " ")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorValidation))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 }

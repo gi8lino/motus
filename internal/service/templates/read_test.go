@@ -5,9 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestList(t *testing.T) {
@@ -23,7 +24,7 @@ func TestList(t *testing.T) {
 		})
 		_, err := svc.List(context.Background())
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorInternal))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorInternal))
 	})
 }
 
@@ -40,6 +41,6 @@ func TestGet(t *testing.T) {
 		})
 		_, err := svc.Get(context.Background(), "w1")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorNotFound))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorNotFound))
 	})
 }

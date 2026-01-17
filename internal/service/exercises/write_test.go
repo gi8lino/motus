@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 type fakeStore struct {
@@ -89,7 +90,7 @@ func TestCreate(t *testing.T) {
 		})
 		_, err := svc.Create(context.Background(), "user", "Burpee", false)
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorNotFound))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorNotFound))
 	})
 
 	t.Run("Core requires admin", func(t *testing.T) {
@@ -107,7 +108,7 @@ func TestCreate(t *testing.T) {
 		})
 		_, err := svc.Create(context.Background(), "user", "Burpee", true)
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 		assert.False(t, called, "expected CreateExercise not to be called")
 	})
 }
@@ -128,7 +129,7 @@ func TestUpdate(t *testing.T) {
 		})
 		_, err := svc.Update(context.Background(), "user", "core", "Burpee")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Admin can rename", func(t *testing.T) {
@@ -167,7 +168,7 @@ func TestDelete(t *testing.T) {
 		})
 		err := svc.Delete(context.Background(), "user", "core")
 		require.Error(t, err)
-		assert.True(t, service.IsKind(err, service.ErrorForbidden))
+		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
 	})
 
 	t.Run("Admin can delete", func(t *testing.T) {

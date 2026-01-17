@@ -5,3 +5,6 @@ import "github.com/gi8lino/motus/internal/db"
 
 // User is the domain-level DTO for users.
 type User = db.User
+
+// errorScope is the service error scope for users.
+const errorScope = "users"
