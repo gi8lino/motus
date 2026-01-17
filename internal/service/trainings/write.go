@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 	"github.com/gi8lino/motus/internal/utils"
 )
 
@@ -18,7 +18,7 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 	req.UserID = strings.TrimSpace(req.UserID)
 
 	if req.TrainingID == "" || req.WorkoutID == "" || req.UserID == "" {
-		return TrainingLog{}, nil, service.NewError(service.ErrorValidation, "trainingId, workoutId, and userId are required")
+		return TrainingLog{}, nil, errpkg.NewError(errpkg.ErrorValidation, "trainingId, workoutId, and userId are required")
 	}
 	// Default timestamps to now when missing.
 	now := time.Now()
@@ -69,7 +69,7 @@ func RecordTraining(ctx context.Context, store Store, req CompleteRequest) (Trai
 	}
 
 	if err := store.RecordTraining(ctx, log, steps); err != nil {
-		return TrainingLog{}, service.NewError(service.ErrorInternal, err.Error())
+		return TrainingLog{}, errpkg.NewError(errpkg.ErrorInternal, err.Error())
 	}
 
 	return log, nil

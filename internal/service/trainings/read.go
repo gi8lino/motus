@@ -4,13 +4,12 @@ import (
 	"context"
 	"strings"
 
-	domainTrains "github.com/gi8lino/motus/internal/domain/trainings"
-	"github.com/gi8lino/motus/internal/service"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 // TrainingStateFromWorkout creates a training state by delegating to the training domain logic.
 func TrainingStateFromWorkout(workout *Workout, soundURLByKey func(string) string) TrainingState {
-	return domainTrains.NewStateFromWorkout(workout, soundURLByKey)
+	return NewStateFromWorkout(workout, soundURLByKey)
 }
 
 // CreateState builds a training state from a workout id.
@@ -22,13 +21,13 @@ func (s *Service) CreateState(ctx context.Context, workoutID string) (TrainingSt
 func CreateState(ctx context.Context, store Store, workoutID string, soundURLByKey func(string) string) (TrainingState, error) {
 	workoutID = strings.TrimSpace(workoutID)
 	if workoutID == "" {
-		return TrainingState{}, service.NewError(service.ErrorValidation, "workoutId is required")
+		return TrainingState{}, errpkg.NewError(errpkg.ErrorValidation, "workoutId is required")
 	}
 	workout, err := store.WorkoutWithSteps(ctx, workoutID)
 	if err != nil {
-		return TrainingState{}, service.NewError(service.ErrorNotFound, err.Error())
+		return TrainingState{}, errpkg.NewError(errpkg.ErrorNotFound, err.Error())
 	}
-	return domainTrains.NewStateFromWorkout(workout, soundURLByKey), nil
+	return NewStateFromWorkout(workout, soundURLByKey), nil
 }
 
 // FetchStepTimings returns stored step timings for a training.
@@ -40,12 +39,12 @@ func (s *Service) FetchStepTimings(ctx context.Context, trainingID string) ([]Tr
 func FetchStepTimings(ctx context.Context, store Store, trainingID string) ([]TrainingStepLog, error) {
 	trainingID = strings.TrimSpace(trainingID)
 	if trainingID == "" {
-		return nil, service.NewError(service.ErrorValidation, "trainingId is required")
+		return nil, errpkg.NewError(errpkg.ErrorValidation, "trainingId is required")
 	}
 
 	steps, err := store.TrainingStepTimings(ctx, trainingID)
 	if err != nil {
-		return nil, service.NewError(service.ErrorInternal, err.Error())
+		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
 	}
 
 	return steps, nil
@@ -55,11 +54,11 @@ func FetchStepTimings(ctx context.Context, store Store, trainingID string) ([]Tr
 func (s *Service) BuildTrainingHistory(ctx context.Context, userID string, limit int) ([]TrainingHistoryItem, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
-		return nil, service.NewError(service.ErrorValidation, "userId is required")
+		return nil, errpkg.NewError(errpkg.ErrorValidation, "userId is required")
 	}
 	history, err := s.store.TrainingHistory(ctx, userID, limit)
 	if err != nil {
-		return nil, service.NewError(service.ErrorInternal, err.Error())
+		return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
 	}
 	return BuildTrainingHistory(ctx, s.store, history)
 }
@@ -71,7 +70,7 @@ func BuildTrainingHistory(ctx context.Context, store Store, history []TrainingLo
 	for _, entry := range history {
 		steps, err := store.TrainingStepTimings(ctx, entry.ID)
 		if err != nil {
-			return nil, service.NewError(service.ErrorInternal, err.Error())
+			return nil, errpkg.NewError(errpkg.ErrorInternal, err.Error())
 		}
 		stepMap[entry.ID] = steps
 	}

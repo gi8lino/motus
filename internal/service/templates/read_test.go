@@ -5,11 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domaintemplates "github.com/gi8lino/motus/internal/domain/templates"
-	"github.com/gi8lino/motus/internal/service"
 )
 
 func TestList(t *testing.T) {
@@ -19,7 +17,7 @@ func TestList(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			listTemplatesFn: func(context.Context) ([]domaintemplates.Workout, error) {
+			listTemplatesFn: func(context.Context) ([]Workout, error) {
 				return nil, errors.New("boom")
 			},
 		})
@@ -36,8 +34,8 @@ func TestGet(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			workoutWithStepsFn: func(context.Context, string) (*domaintemplates.Workout, error) {
-				return &domaintemplates.Workout{ID: "w1", IsTemplate: false}, nil
+			workoutWithStepsFn: func(context.Context, string) (*Workout, error) {
+				return &Workout{ID: "w1", IsTemplate: false}, nil
 			},
 		})
 		_, err := svc.Get(context.Background(), "w1")

@@ -1,15 +1,20 @@
 package trainings
 
-import "testing"
+import (
+	"testing"
 
-func TestNew(t *testing.T) {
+	"github.com/stretchr/testify/assert"
+)
+
+func TestTrainingStepState(t *testing.T) {
 	t.Parallel()
 
-	t.Run("CreatesService", func(t *testing.T) {
+	t.Run("ZeroValues", func(t *testing.T) {
 		t.Parallel()
-		svc := New(&fakeStore{}, func(string) string { return "" })
-		if svc == nil {
-			t.Fatalf("expected service")
-		}
+		step := TrainingStepState{}
+		assert.False(t, step.Running)
+		assert.False(t, step.Completed)
+		assert.Zero(t, step.EstimatedSeconds)
+		assert.Nil(t, step.Exercises)
 	})
 }

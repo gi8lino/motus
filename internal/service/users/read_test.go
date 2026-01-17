@@ -4,11 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainusers "github.com/gi8lino/motus/internal/domain/users"
-	"github.com/gi8lino/motus/internal/service"
 )
 
 func TestList(t *testing.T) {
@@ -18,8 +16,8 @@ func TestList(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			listUsersFn: func(context.Context) ([]domainusers.User, error) {
-				return []domainusers.User{{ID: "u1"}}, nil
+			listUsersFn: func(context.Context) ([]User, error) {
+				return []User{{ID: "u1"}}, nil
 			},
 		}, "", false)
 		users, err := svc.List(context.Background())

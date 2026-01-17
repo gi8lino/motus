@@ -6,11 +6,9 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainusers "github.com/gi8lino/motus/internal/domain/users"
-	"github.com/gi8lino/motus/internal/service"
 )
 
 func TestLogin(t *testing.T) {
@@ -29,7 +27,7 @@ func TestLogin(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
 				return nil, "", nil
 			},
 		}, "", false)
@@ -45,8 +43,8 @@ func TestLogin(t *testing.T) {
 		require.NoError(t, err)
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 		}, "", false)
 		user, err := svc.Login(context.Background(), "user@example.com", "secret")
@@ -75,8 +73,8 @@ func TestChangePassword(t *testing.T) {
 		require.NoError(t, err)
 
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 		}, "", false)
 		err = svc.ChangePassword(context.Background(), "user", "wrong", "new")
@@ -92,8 +90,8 @@ func TestChangePassword(t *testing.T) {
 
 		called := false
 		svc := New(&fakeStore{
-			getUserWithPassFn: func(context.Context, string) (*domainusers.User, string, error) {
-				return &domainusers.User{ID: "user"}, string(hash), nil
+			getUserWithPassFn: func(context.Context, string) (*User, string, error) {
+				return &User{ID: "user"}, string(hash), nil
 			},
 			updateUserPassFn: func(context.Context, string, string) error {
 				called = true

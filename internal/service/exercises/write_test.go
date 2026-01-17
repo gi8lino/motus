@@ -4,46 +4,44 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainexercises "github.com/gi8lino/motus/internal/domain/exercises"
-	"github.com/gi8lino/motus/internal/service"
 )
 
 type fakeStore struct {
-	listExercisesFn     func(context.Context, string) ([]domainexercises.Exercise, error)
-	getUserFn           func(context.Context, string) (*domainexercises.User, error)
-	createExerciseFn    func(context.Context, string, string, bool) (*domainexercises.Exercise, error)
-	getExerciseFn       func(context.Context, string) (*domainexercises.Exercise, error)
+	listExercisesFn     func(context.Context, string) ([]Exercise, error)
+	getUserFn           func(context.Context, string) (*User, error)
+	createExerciseFn    func(context.Context, string, string, bool) (*Exercise, error)
+	getExerciseFn       func(context.Context, string) (*Exercise, error)
 	replaceExerciseFn   func(context.Context, string, string, string, string) error
-	renameExerciseFn    func(context.Context, string, string) (*domainexercises.Exercise, error)
+	renameExerciseFn    func(context.Context, string, string) (*Exercise, error)
 	deleteExerciseFn    func(context.Context, string) error
 	backfillExercisesFn func(context.Context) error
 }
 
-func (f *fakeStore) ListExercises(ctx context.Context, userID string) ([]domainexercises.Exercise, error) {
+func (f *fakeStore) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {
 	if f.listExercisesFn == nil {
 		return nil, nil
 	}
 	return f.listExercisesFn(ctx, userID)
 }
 
-func (f *fakeStore) GetUser(ctx context.Context, userID string) (*domainexercises.User, error) {
+func (f *fakeStore) GetUser(ctx context.Context, userID string) (*User, error) {
 	if f.getUserFn == nil {
 		return nil, nil
 	}
 	return f.getUserFn(ctx, userID)
 }
 
-func (f *fakeStore) CreateExercise(ctx context.Context, name, userID string, isCore bool) (*domainexercises.Exercise, error) {
+func (f *fakeStore) CreateExercise(ctx context.Context, name, userID string, isCore bool) (*Exercise, error) {
 	if f.createExerciseFn == nil {
 		return nil, nil
 	}
 	return f.createExerciseFn(ctx, name, userID, isCore)
 }
 
-func (f *fakeStore) GetExercise(ctx context.Context, id string) (*domainexercises.Exercise, error) {
+func (f *fakeStore) GetExercise(ctx context.Context, id string) (*Exercise, error) {
 	if f.getExerciseFn == nil {
 		return nil, nil
 	}
@@ -57,7 +55,7 @@ func (f *fakeStore) ReplaceExerciseForUser(ctx context.Context, userID, oldID, n
 	return f.replaceExerciseFn(ctx, userID, oldID, newID, newName)
 }
 
-func (f *fakeStore) RenameExercise(ctx context.Context, id, name string) (*domainexercises.Exercise, error) {
+func (f *fakeStore) RenameExercise(ctx context.Context, id, name string) (*Exercise, error) {
 	if f.renameExerciseFn == nil {
 		return nil, nil
 	}
@@ -85,7 +83,7 @@ func TestCreate(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
+			getUserFn: func(context.Context, string) (*User, error) {
 				return nil, nil
 			},
 		})
@@ -99,10 +97,10 @@ func TestCreate(t *testing.T) {
 
 		called := false
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
-				return &domainexercises.User{ID: "user", IsAdmin: false}, nil
+			getUserFn: func(context.Context, string) (*User, error) {
+				return &User{ID: "user", IsAdmin: false}, nil
 			},
-			createExerciseFn: func(context.Context, string, string, bool) (*domainexercises.Exercise, error) {
+			createExerciseFn: func(context.Context, string, string, bool) (*Exercise, error) {
 				called = true
 				return nil, nil
 			},
@@ -121,11 +119,11 @@ func TestUpdate(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
-				return &domainexercises.User{ID: "user", IsAdmin: false}, nil
+			getUserFn: func(context.Context, string) (*User, error) {
+				return &User{ID: "user", IsAdmin: false}, nil
 			},
-			getExerciseFn: func(context.Context, string) (*domainexercises.Exercise, error) {
-				return &domainexercises.Exercise{ID: "core", IsCore: true}, nil
+			getExerciseFn: func(context.Context, string) (*Exercise, error) {
+				return &Exercise{ID: "core", IsCore: true}, nil
 			},
 		})
 		_, err := svc.Update(context.Background(), "user", "core", "Burpee")
@@ -137,14 +135,14 @@ func TestUpdate(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
-				return &domainexercises.User{ID: "admin", IsAdmin: true}, nil
+			getUserFn: func(context.Context, string) (*User, error) {
+				return &User{ID: "admin", IsAdmin: true}, nil
 			},
-			getExerciseFn: func(context.Context, string) (*domainexercises.Exercise, error) {
-				return &domainexercises.Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other", IsCore: false}, nil
+			getExerciseFn: func(context.Context, string) (*Exercise, error) {
+				return &Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other", IsCore: false}, nil
 			},
-			renameExerciseFn: func(context.Context, string, string) (*domainexercises.Exercise, error) {
-				return &domainexercises.Exercise{ID: "ex", Name: "Burpee 2"}, nil
+			renameExerciseFn: func(context.Context, string, string) (*Exercise, error) {
+				return &Exercise{ID: "ex", Name: "Burpee 2"}, nil
 			},
 		})
 		updated, err := svc.Update(context.Background(), "admin", "ex", "Burpee 2")
@@ -160,11 +158,11 @@ func TestDelete(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
-				return &domainexercises.User{ID: "user", IsAdmin: false}, nil
+			getUserFn: func(context.Context, string) (*User, error) {
+				return &User{ID: "user", IsAdmin: false}, nil
 			},
-			getExerciseFn: func(context.Context, string) (*domainexercises.Exercise, error) {
-				return &domainexercises.Exercise{ID: "core", IsCore: true}, nil
+			getExerciseFn: func(context.Context, string) (*Exercise, error) {
+				return &Exercise{ID: "core", IsCore: true}, nil
 			},
 		})
 		err := svc.Delete(context.Background(), "user", "core")
@@ -176,11 +174,11 @@ func TestDelete(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeStore{
-			getUserFn: func(context.Context, string) (*domainexercises.User, error) {
-				return &domainexercises.User{ID: "admin", IsAdmin: true}, nil
+			getUserFn: func(context.Context, string) (*User, error) {
+				return &User{ID: "admin", IsAdmin: true}, nil
 			},
-			getExerciseFn: func(context.Context, string) (*domainexercises.Exercise, error) {
-				return &domainexercises.Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other"}, nil
+			getExerciseFn: func(context.Context, string) (*Exercise, error) {
+				return &Exercise{ID: "ex", Name: "Burpee", OwnerUserID: "other"}, nil
 			},
 			deleteExerciseFn: func(context.Context, string) error {
 				return nil

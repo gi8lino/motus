@@ -35,22 +35,3 @@ func IsKind(err error, kind ErrorKind) bool {
 func NewError(kind ErrorKind, message string) error {
 	return &Error{Kind: kind, Err: errors.New(message)}
 }
-
-type domainError interface {
-	error
-	DomainKind() int
-}
-
-// MapDomainError transforms a domain error into a service error using the provided mapper.
-func MapDomainError(err error, mapKind func(int) (ErrorKind, bool)) error {
-	if err == nil {
-		return nil
-	}
-	var de domainError
-	if errors.As(err, &de) {
-		if kind, ok := mapKind(de.DomainKind()); ok {
-			return NewError(kind, err.Error())
-		}
-	}
-	return NewError(ErrorInternal, err.Error())
-}

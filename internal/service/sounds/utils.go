@@ -1,13 +1,31 @@
 package sounds
 
-import domain "github.com/gi8lino/motus/internal/domain/sounds"
+import "github.com/gi8lino/motus/internal/utils"
 
-// URLByKey resolves a sound key to its file path through the domain helper.
+// lookup is a map of sound keys to options, built once to avoid recomputing per call.
+var lookup = func() map[string]Option {
+	m := make(map[string]Option, len(BuiltinOptions))
+	for _, opt := range BuiltinOptions {
+		m[utils.NormalizeToken(opt.Key)] = opt
+	}
+	return m
+}()
+
+// URLByKey resolves a sound key to its file path.
 func URLByKey(key string) string {
-	return domain.URLByKey(key)
+	if k := utils.NormalizeToken(key); k != "" {
+		if opt, ok := lookup[k]; ok {
+			return opt.File
+		}
+	}
+	return ""
 }
 
-// ValidKey reports whether a given key is a recognized sound.
+// ValidKey reports whether a sound key is recognized.
 func ValidKey(key string) bool {
-	return domain.ValidKey(key)
+	if key == "" {
+		return true
+	}
+	_, ok := lookup[utils.NormalizeToken(key)]
+	return ok
 }

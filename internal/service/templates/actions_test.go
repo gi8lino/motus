@@ -4,11 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gi8lino/motus/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domaintemplates "github.com/gi8lino/motus/internal/domain/templates"
-	"github.com/gi8lino/motus/internal/service"
 )
 
 func TestApply(t *testing.T) {
@@ -27,8 +25,8 @@ func TestApply(t *testing.T) {
 		t.Parallel()
 
 		svc := New(&fakeTemplateStore{
-			createWorkoutFromTemplate: func(context.Context, string, string, string) (*domaintemplates.Workout, error) {
-				return &domaintemplates.Workout{ID: "new", Name: "Copy"}, nil
+			createWorkoutFromTemplate: func(context.Context, string, string, string) (*Workout, error) {
+				return &Workout{ID: "new", Name: "Copy"}, nil
 			},
 		})
 		workout, err := svc.Apply(context.Background(), "tmpl", "user", "Copy")

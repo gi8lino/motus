@@ -1,24 +1,32 @@
 package exercises
 
 import (
-	domain "github.com/gi8lino/motus/internal/domain/exercises"
-	servicepkg "github.com/gi8lino/motus/internal/service"
+	"strings"
+
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
-// mapError translates domain errors into service errors for templates.
-func (s *Service) mapError(err error) error {
-	return servicepkg.MapDomainError(err, func(kind int) (servicepkg.ErrorKind, bool) {
-		switch domain.ErrorKind(kind) {
-		case domain.KindValidation:
-			return servicepkg.ErrorValidation, true
-		case domain.KindForbidden:
-			return servicepkg.ErrorForbidden, true
-		case domain.KindNotFound:
-			return servicepkg.ErrorNotFound, true
-		case domain.KindInternal:
-			return servicepkg.ErrorInternal, true
-		default:
-			return servicepkg.ErrorInternal, false
-		}
-	})
+// requireUserID ensures a non-empty user identifier.
+func requireUserID(value string) (string, error) {
+	if trimmed := utils.NormalizeToken(value); trimmed != "" {
+		return trimmed, nil
+	}
+	return "", errpkg.NewError(errpkg.ErrorValidation, "user id is required")
+}
+
+// requireName ensures a non-empty exercise name.
+func requireName(value string) (string, error) {
+	if trimmed := strings.TrimSpace(value); trimmed != "" {
+		return trimmed, nil
+	}
+	return "", errpkg.NewError(errpkg.ErrorValidation, "name is required")
+}
+
+// requireEntityID validates a generic entity identifier.
+func requireEntityID(value, msg string) (string, error) {
+	if trimmed := utils.NormalizeToken(value); trimmed != "" {
+		return trimmed, nil
+	}
+	return "", errpkg.NewError(errpkg.ErrorValidation, msg)
 }
