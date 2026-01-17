@@ -79,6 +79,7 @@ export function TrainingView({
   pauseOnTabHidden: boolean;
 }) {
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
+  const autoFinishRef = useRef<string | null>(null);
 
   const [overrunModal, setOverrunModal] = useState<OverrunState | null>(null);
   const [overrunCountdown, setOverrunCountdown] = useState(0);
@@ -654,6 +655,16 @@ export function TrainingView({
     const summary = await onFinishTraining();
     if (summary) setFinishSummary(summary);
   }, [onFinishTraining]);
+
+  useEffect(() => {
+    if (!training?.done) return;
+    if (finishSummary) return;
+    if (autoFinishRef.current === training.trainingId) return;
+    autoFinishRef.current = training.trainingId;
+    onFinishTraining().then((summary) => {
+      if (summary) setFinishSummary(summary);
+    });
+  }, [training, finishSummary, onFinishTraining]);
 
   const headerStatus = useMemo(() => {
     if (!training) return null;

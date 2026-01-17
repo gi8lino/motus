@@ -510,11 +510,19 @@ export function useTrainingTimer({
   // finishAndLog completes the train and sends it to the backend.
   const finishAndLog = useCallback(async () => {
     const cur = trainingRef.current || loadPersistedTraining();
+    // If no train is loaded, return an error.
     if (!cur) return { ok: false, error: "no train" };
 
+    // If the session is already persisted, just return the current state.
+    if (cur.logged) return { ok: true, training: cur };
+    // If the session is already completed, skip re-finalizing and return it.
+    if (cur.done) return { ok: true, training: cur };
+
     if (finishingRef.current === cur.trainingId) {
-      return { ok: false, error: "already finishing" };
+      // Another finish is already running; report success to avoid double work.
+      return { ok: true };
     }
+
     finishingRef.current = cur.trainingId;
 
     try {
@@ -567,7 +575,7 @@ export function useTrainingTimer({
             : prev,
         );
 
-        return { ok: true, train: next };
+        return { ok: true, training: next };
       } catch (err: any) {
         console.warn("log train failed", err);
         return { ok: false, error: err?.message || "log failed" };
