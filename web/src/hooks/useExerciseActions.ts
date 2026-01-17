@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 import type { Dispatch, SetStateAction } from "react";
 
 import { createExercise, deleteExercise, updateExercise } from "../api";
@@ -49,8 +50,8 @@ export function useExerciseActions({
     if (!name) return;
     try {
       await createCatalogEntry(name, false);
-    } catch (err: any) {
-      await notify(err.message || "Unable to create exercise");
+    } catch (err) {
+      await notify(toErrorMessage(err, MESSAGES.createExerciseFailed));
     }
   }, [askPrompt, createCatalogEntry, notify]);
 
@@ -60,8 +61,8 @@ export function useExerciseActions({
     if (!name) return;
     try {
       await createCatalogEntry(name, true);
-    } catch (err: any) {
-      await notify(err.message || "Unable to create core exercise");
+    } catch (err) {
+      await notify(toErrorMessage(err, MESSAGES.createCoreExerciseFailed));
     }
   }, [askPrompt, createCatalogEntry, notify]);
 
@@ -90,8 +91,8 @@ export function useExerciseActions({
         if (updated.id !== ex.id) {
           showToast("Created a personal copy.");
         }
-      } catch (err: any) {
-        await notify(err.message || "Unable to rename");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.renameExerciseFailed));
       }
     },
     [askPrompt, isAdmin, notify, setExerciseCatalog, showToast],
@@ -105,8 +106,8 @@ export function useExerciseActions({
       try {
         await deleteExercise(ex.id);
         setExerciseCatalog((prev) => prev.filter((e) => e.id !== ex.id));
-      } catch (err: any) {
-        await notify(err.message || "Unable to delete");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.deleteExerciseFailed));
       }
     },
     [askConfirm, notify, setExerciseCatalog],

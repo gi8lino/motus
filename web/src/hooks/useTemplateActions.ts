@@ -2,6 +2,7 @@ import { useCallback } from "react";
 
 import { applyTemplate } from "../api";
 import type { View, Workout } from "../types";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 // UseTemplateActionsArgs wires template application actions.
 type UseTemplateActionsArgs = {
@@ -44,8 +45,8 @@ export function useTemplateActions({
         setSelectedWorkoutId(workout.id);
         setView("workouts");
         setShowWorkoutForm(true);
-      } catch (err: any) {
-        await notify(err.message || "Unable to apply template");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.applyTemplateFailed));
       }
     },
     [

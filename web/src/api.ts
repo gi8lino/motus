@@ -225,7 +225,7 @@ export async function listSounds(): Promise<SoundOption[]> {
 }
 
 // startTraining creates a new training for a workout.
-export async function startTrain(workoutId: string): Promise<TrainingState> {
+export async function startTraining(workoutId: string): Promise<TrainingState> {
   const res = await request<{ trainingId: string; state: TrainingState }>(
     "/api/trainings",
     {

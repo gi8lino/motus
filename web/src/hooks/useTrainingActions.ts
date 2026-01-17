@@ -1,4 +1,4 @@
-import { startTrain } from "../api";
+import { startTraining as startTrainingApi } from "../api";
 import type { AskConfirmOptions, TrainingState } from "../types";
 import { buildSummary } from "../utils/summary";
 
@@ -7,7 +7,7 @@ type UseTrainingActionsArgs = {
   selectedWorkoutId: string | null;
   training: TrainingState | null;
   currentWorkoutName: string;
-  setTrainView: () => void;
+  setTrainingView: () => void;
   setPromptedResume: (next: boolean) => void;
   setResumeSuppressed: (next: boolean) => void;
   startFromState: (state: TrainingState) => void;
@@ -24,12 +24,12 @@ type UseTrainingActionsArgs = {
   notify: (message: string) => Promise<void>;
 };
 
-// useTrainActions bundles start/finish actions for the active training.
-export function useTrainActions({
+// useTrainingActions bundles start/finish actions for the active training.
+export function useTrainingActions({
   selectedWorkoutId,
   training,
   currentWorkoutName,
-  setTrainView: setTrainView,
+  setTrainingView,
   setPromptedResume,
   setResumeSuppressed,
   startFromState,
@@ -37,42 +37,35 @@ export function useTrainActions({
   historyReload,
   askConfirm,
   notify,
-}: UseTrainingActionsArgs) {
-  // startTraining begins a new training or resumes an existing one.
+}: UseTrainingActionsArgs): {
+  startTraining: () => Promise<void>;
+  finishTraining: () => Promise<string | null>;
+} {
+  // startTraining prepares a new training session (or resumes if available).
   const startTraining = async () => {
-    // Guard: require a workout selection before starting.
     if (!selectedWorkoutId) {
       await notify("Select a workout first.");
       return;
     }
 
-    // Guard: prompt to resume if an active training already exists.
+    setTrainingView();
+
     if (training && !training.done) {
       const resume = await askConfirm(
-        "You have an active workout. Resume it instead?",
-        { confirmLabel: "Resume", cancelLabel: "New workout" },
+        "You have an active training. Resume it instead?",
+        { confirmLabel: "Resume", cancelLabel: "New session" },
       );
       if (resume) {
-        setTrainView();
+        setPromptedResume(false);
+        setResumeSuppressed(true);
         return;
       }
     }
 
-    try {
-      const state = await startTrain(selectedWorkoutId);
-
-      startFromState(state);
-      setTrainView();
-
-      // Only clear resume flags after success (so failures don’t lose state).
-      setPromptedResume(false);
-      setResumeSuppressed(false);
-    } catch (err: any) {
-      await notify(err?.message || "Unable to start training");
-    }
+    const state = await startTrainingApi(selectedWorkoutId);
+    startFromState(state);
   };
-
-  // finishTrain finalizes a training and returns the AI summary text.
+  // finishTraining finalizes a training and returns the AI summary text.
   const finishTraining = async (): Promise<string | null> => {
     const result = await finishAndLog();
     if (!result?.ok) {

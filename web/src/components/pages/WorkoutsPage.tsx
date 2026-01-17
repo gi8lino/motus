@@ -98,11 +98,13 @@ export function WorkoutsView(props: WorkoutsViewProps) {
         onCreateExercise={props.onCreateExercise}
         promptUser={props.promptUser}
         notifyUser={props.notifyUser}
-        defaultStepSoundKey={props.defaultStepSoundKey}
-        defaultPauseDuration={props.defaultPauseDuration}
-        defaultPauseSoundKey={props.defaultPauseSoundKey}
-        defaultPauseAutoAdvance={props.defaultPauseAutoAdvance}
-        repeatRestAfterLastDefault={props.repeatRestAfterLastDefault}
+        defaults={{
+          defaultStepSoundKey: props.defaultStepSoundKey,
+          defaultPauseDuration: props.defaultPauseDuration,
+          defaultPauseSoundKey: props.defaultPauseSoundKey,
+          defaultPauseAutoAdvance: props.defaultPauseAutoAdvance,
+          repeatRestAfterLastDefault: props.repeatRestAfterLastDefault,
+        }}
         askConfirm={(msg) => props.askConfirm(msg)}
         onToast={props.onToast}
       />

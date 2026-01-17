@@ -4,6 +4,7 @@ import {
   updateWorkout as updateWorkoutApi,
 } from "../api";
 import type { AskConfirmOptions, Workout, WorkoutStep } from "../types";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 // UseWorkoutFormActionsArgs describes dependencies for workout form actions.
 type UseWorkoutFormActionsArgs = {
@@ -21,10 +22,6 @@ type UseWorkoutFormActionsArgs = {
   ) => Promise<boolean>;
   notify?: (message: string) => Promise<void>;
 };
-
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error ? err.message : fallback;
-}
 
 // useWorkoutFormActions centralizes create/update/close workflow for workouts.
 export function useWorkoutFormActions({
@@ -63,7 +60,7 @@ export function useWorkoutFormActions({
       setEditingWorkout(created);
       setWorkoutDirty(false);
     } catch (err) {
-      await notify?.(errorMessage(err, "Unable to save workout"));
+      await notify?.(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
     }
   };
 
@@ -104,7 +101,7 @@ export function useWorkoutFormActions({
       setEditingWorkout(fresh);
       setWorkoutDirty(false);
     } catch (err) {
-      await notify?.(errorMessage(err, "Unable to update workout"));
+      await notify?.(toErrorMessage(err, MESSAGES.updateWorkoutFailed));
     }
   };
 

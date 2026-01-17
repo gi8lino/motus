@@ -1,10 +1,15 @@
 import { useMemo } from "react";
 
-import type { TrainingHistoryItem, TrainingStepLog, Workout } from "../../types";
+import type {
+  TrainingHistoryItem,
+  TrainingStepLog,
+  Workout,
+} from "../../types";
 import { formatExerciseLine, formatElapsedMillis } from "../../utils/format";
 import { buildSummary } from "../../utils/summary";
 import { expandWorkoutSteps } from "../../utils/workout";
 import { AISummary } from "./HistoryCard";
+import { Modal } from "../common/Modal";
 
 type HistoryPreviewModalProps = {
   preview: TrainingHistoryItem | null;
@@ -79,91 +84,89 @@ export function HistoryPreviewModal({
   if (!preview) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Training overview</h3>
-        <p className="muted small">
-          Training ID: {preview.trainingId || preview.id}
-        </p>
-        <div className="stack">
-          <div>
-            <div className="label">Workout</div>
-            <strong>{preview.workoutName || preview.workoutId}</strong>
-          </div>
-          <div>
-            <div className="label">Started</div>
-            <div>{formatTimestamp(preview.startedAt)}</div>
-          </div>
-          <div>
-            <div className="label">Finished</div>
-            <div>{formatTimestamp(preview.completedAt)}</div>
-          </div>
-          <div>
-            <div className="label">Duration</div>
-            <div>{formatDuration(preview.startedAt, preview.completedAt)}</div>
-          </div>
-          <div>
-            <div className="label">Steps</div>
-            {loading && <div className="muted small">Loading steps…</div>}
-            {!loading && workout && (
-              <ul className="list compact">
-                {expandedSteps.map((step, idx) => (
-                  <li key={step.id || idx} className="list-item">
-                    <div className="list-row">
-                      <div>
-                        <strong>
-                          {idx + 1}. {step.name}
-                        </strong>
-                        <div className="muted small">
-                          {step.type} •{" "}
-                          {step.estimatedSeconds
-                            ? `target ${step.estimatedSeconds}s`
-                            : step.duration || "open"}
-                          {step.elapsedMillis
-                            ? ` • actual ${formatElapsedMillis(step.elapsedMillis)}`
-                            : ""}
-                        </div>
-                        {step.exercises?.length ? (
-                          <div className="muted small">
-                            {step.exercises
-                              .map((ex) => formatExerciseLine(ex))
-                              .filter(Boolean)
-                              .join(" | ")}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!loading && !workout && (
-              <div className="muted small">No step data available.</div>
-            )}
-          </div>
+    <Modal open onClose={onClose}>
+      <h3>Training overview</h3>
+      <p className="muted small">
+        Training ID: {preview.trainingId || preview.id}
+      </p>
+      <div className="stack">
+        <div>
+          <div className="label">Workout</div>
+          <strong>{preview.workoutName || preview.workoutId}</strong>
         </div>
-        <AISummary
-          summary={
-            workout
-              ? buildSummary({
-                  workoutName: preview.workoutName || workout.name,
-                  workoutId: preview.workoutId,
-                  userId: preview.userId,
-                  startedAt: preview.startedAt,
-                  completedAt: preview.completedAt,
-                  steps: expandedSteps,
-                })
-              : ""
-          }
-          loading={loading}
-          onCopy={onCopySummary}
-        />
-        <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-          <button className="btn primary" onClick={onClose}>
-            Close
-          </button>
+        <div>
+          <div className="label">Started</div>
+          <div>{formatTimestamp(preview.startedAt)}</div>
+        </div>
+        <div>
+          <div className="label">Finished</div>
+          <div>{formatTimestamp(preview.completedAt)}</div>
+        </div>
+        <div>
+          <div className="label">Duration</div>
+          <div>{formatDuration(preview.startedAt, preview.completedAt)}</div>
+        </div>
+        <div>
+          <div className="label">Steps</div>
+          {loading && <div className="muted small">Loading steps…</div>}
+          {!loading && workout && (
+            <ul className="list compact">
+              {expandedSteps.map((step, idx) => (
+                <li key={step.id || idx} className="list-item">
+                  <div className="list-row">
+                    <div>
+                      <strong>
+                        {idx + 1}. {step.name}
+                      </strong>
+                      <div className="muted small">
+                        {step.type} •{" "}
+                        {step.estimatedSeconds
+                          ? `target ${step.estimatedSeconds}s`
+                          : step.duration || "open"}
+                        {step.elapsedMillis
+                          ? ` • actual ${formatElapsedMillis(step.elapsedMillis)}`
+                          : ""}
+                      </div>
+                      {step.exercises?.length ? (
+                        <div className="muted small">
+                          {step.exercises
+                            .map((ex) => formatExerciseLine(ex))
+                            .filter(Boolean)
+                            .join(" | ")}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!loading && !workout && (
+            <div className="muted small">No step data available.</div>
+          )}
         </div>
       </div>
-    </div>
+      <AISummary
+        summary={
+          workout
+            ? buildSummary({
+                workoutName: preview.workoutName || workout.name,
+                workoutId: preview.workoutId,
+                userId: preview.userId,
+                startedAt: preview.startedAt,
+                completedAt: preview.completedAt,
+                steps: expandedSteps,
+              })
+            : ""
+        }
+        loading={loading}
+        onCopy={onCopySummary}
+      />
+      <div className="btn-group" style={{ justifyContent: "flex-end" }}>
+        <button className="btn primary" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }

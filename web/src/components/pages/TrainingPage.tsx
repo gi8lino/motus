@@ -9,10 +9,10 @@ import type {
 import { formatElapsedMillis } from "../../utils/format";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
-import { TrainCard } from "../training/TrainingCard";
+import { TrainingCard } from "../training/TrainingCard";
 import { WorkoutPicker } from "../workouts/WorkoutPicker";
-import { TrainingFinishModal } from "../training/FinishTrainModal";
-import { TrainingOverrunModal } from "../training/OverrunTrainModal";
+import { TrainingFinishModal } from "../training/FinishTrainingModal";
+import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
 
 type OverrunState = {
   show: boolean;
@@ -36,12 +36,12 @@ const OVERRUN_GRACE_MS = 30_000;
 const OVERRUN_MODAL_MS = 60_000;
 const OVERRUN_COUNTDOWN_TICK_MS = 250;
 
-// Train runs the active workout training.
-export function TrainView({
+// Training runs the active workout training.
+export function TrainingView({
   workouts,
   selectedWorkoutId,
   onSelectWorkout,
-  onStartTrain,
+  onStartTraining,
   startDisabled,
   startTitle,
   training,
@@ -53,7 +53,7 @@ export function TrainView({
   onStartStep,
   onPause,
   onNext,
-  onFinishTrain: onFinishTrain,
+  onFinishTraining: onFinishTraining,
   onCopySummary,
   onToast,
   pauseOnTabHidden,
@@ -61,7 +61,7 @@ export function TrainView({
   workouts: Workout[];
   selectedWorkoutId: string | null;
   onSelectWorkout: (id: string) => void;
-  onStartTrain: () => void | Promise<void>;
+  onStartTraining: () => void | Promise<void>;
   startDisabled: boolean;
   startTitle?: string;
   training: TrainingState | null;
@@ -73,7 +73,7 @@ export function TrainView({
   onStartStep: () => void;
   onPause: () => void;
   onNext: () => void;
-  onFinishTrain: () => Promise<string | null>;
+  onFinishTraining: () => Promise<string | null>;
   onCopySummary: () => void;
   onToast: (message: string) => void;
   pauseOnTabHidden: boolean;
@@ -632,7 +632,7 @@ export function TrainView({
           return;
         }
 
-        onFinishTrain().then((summary) => {
+        onFinishTraining().then((summary) => {
           if (summary) setFinishSummary(summary);
         });
       }
@@ -647,13 +647,13 @@ export function TrainView({
     handleStart,
     stopActiveAudio,
     onNext,
-    onFinishTrain,
+    onFinishTraining,
   ]);
 
   const handleFinish = useCallback(async () => {
-    const summary = await onFinishTrain();
+    const summary = await onFinishTraining();
     if (summary) setFinishSummary(summary);
-  }, [onFinishTrain]);
+  }, [onFinishTraining]);
 
   const headerStatus = useMemo(() => {
     if (!training) return null;
@@ -678,7 +678,7 @@ export function TrainView({
       <section className="panel">
         <div className="panel-header">
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <h3 style={{ margin: 0 }}>Train</h3>
+            <h3 style={{ margin: 0 }}>Training</h3>
             <div className="muted small">
               {headerStatus ? (
                 <>
@@ -703,7 +703,7 @@ export function TrainView({
             />
             <button
               className="btn primary"
-              onClick={onStartTrain}
+              onClick={onStartTraining}
               disabled={startDisabled}
               title={startTitle}
             >
@@ -712,7 +712,7 @@ export function TrainView({
           </div>
         </div>
 
-        <TrainCard
+        <TrainingCard
           training={training}
           currentStep={currentStep}
           elapsed={elapsed}

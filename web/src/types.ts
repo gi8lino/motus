@@ -91,7 +91,7 @@ export type User = {
   createdAt: string;
 };
 
-// TrainStepState captures a live training step.
+// TrainingStepState captures a live training step.
 export type TrainingStepState = WorkoutStep & {
   elapsedMillis: number;
   completed: boolean;
@@ -108,7 +108,7 @@ export type TrainingStepState = WorkoutStep & {
   subsetEstimatedSeconds?: number;
 };
 
-// TrainStepLog stores a completed step timing.
+// TrainingStepLog stores a completed step timing.
 export type TrainingStepLog = {
   id: string;
   trainingId: string;

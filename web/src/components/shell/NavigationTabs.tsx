@@ -9,7 +9,7 @@ type NavTabsProps = {
 
 const LABELS: Record<View, string> = {
   login: "Login",
-  train: "Train",
+  train: "Training",
   workouts: "Workouts",
   templates: "Templates",
   exercises: "Exercises",

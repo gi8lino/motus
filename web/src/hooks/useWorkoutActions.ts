@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { AskConfirmOptions, Workout } from "../types";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 type UseWorkoutActionsArgs = {
   workouts: Workout[];
@@ -92,8 +93,8 @@ export function useWorkoutActions({
         }
 
         await notify("Workout deleted.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to delete workout");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.deleteWorkoutFailed));
       }
     },
     [
@@ -123,8 +124,8 @@ export function useWorkoutActions({
           templatesReload?.();
           await notify("Shared.");
           return;
-        } catch (err: any) {
-          await notify(err?.message || "Unable to share workout");
+        } catch (err) {
+          await notify(toErrorMessage(err, MESSAGES.shareWorkoutFailed));
           return;
         }
       }
@@ -145,8 +146,8 @@ export function useWorkoutActions({
         await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
         templatesReload?.();
         await notify("Template copied to clipboard.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to copy to clipboard");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.copyTemplateFailed));
       }
     },
     [askPrompt, notify, shareWorkoutApi, templatesReload, workouts],

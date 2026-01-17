@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import type { SoundOption, Workout } from "../../types";
 import { SelectDropdown } from "../common/SelectDropdown";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
 
 type ProfileTab = "settings" | "password" | "transfer";
 type ThemeMode = "auto" | "dark" | "light";
@@ -392,9 +393,7 @@ function DisplayNameForm({
             try {
               await onUpdate(trimmed);
             } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Unable to update name";
-              setError(message);
+              setError(toErrorMessage(err, MESSAGES.updateNameFailed));
             } finally {
               setSaving(false);
             }

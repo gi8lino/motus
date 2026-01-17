@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 import { createUser, loginUser } from "../api";
 import type { User } from "../types";
@@ -9,10 +10,6 @@ type UseAuthActionsArgs = {
   onLoginSuccess: (user: User) => void;
   onRegisterSuccess: (user: User) => void;
 };
-
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error ? err.message : fallback;
-}
 
 // useAuthActions provides login and registration handlers.
 export function useAuthActions({
@@ -29,7 +26,7 @@ export function useAuthActions({
         const user = await loginUser(email, password);
         onLoginSuccess(user);
       } catch (err) {
-        setLoginError(errorMessage(err, "Invalid login"));
+        setLoginError(toErrorMessage(err, MESSAGES.loginFailed));
       }
     },
     [setLoginError, onLoginSuccess],
@@ -43,7 +40,7 @@ export function useAuthActions({
         const user = await createUser(email, password);
         onRegisterSuccess(user);
       } catch (err) {
-        setLoginError(errorMessage(err, "Unable to register"));
+        setLoginError(toErrorMessage(err, MESSAGES.authFailed));
       }
     },
     [onRegisterSuccess, setLoginError],

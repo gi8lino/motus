@@ -32,6 +32,7 @@ import {
   normalizeStepType,
 } from "../../utils/step";
 import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
 
 const DEFAULT_WORKOUT_NAME = "Push Day";
 const KEY_COOLDOWN_MS = 500;
@@ -46,54 +47,68 @@ function makeStepId() {
   return `step-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export type WorkoutFormProps = {
+export type WorkoutFormDefaults = {
+  defaultStepSoundKey: string;
+  defaultPauseDuration: string;
+  defaultPauseSoundKey: string;
+  defaultPauseAutoAdvance: boolean;
+  repeatRestAfterLastDefault: boolean;
+};
+
+export type WorkoutFormServices = {
   onSave: (payload: { name: string; steps: WorkoutStep[] }) => Promise<void>;
   onUpdate?: (payload: {
     id: string;
     name: string;
     steps: WorkoutStep[];
   }) => Promise<void>;
-  editingWorkout?: Workout | null;
-  sounds: SoundOption[];
-  userId: string | null;
-  exerciseCatalog?: CatalogExercise[];
   onCreateExercise: (name: string) => Promise<CatalogExercise>;
-  onClose?: () => void;
   promptUser: (
     message: string,
     defaultValue?: string,
   ) => Promise<string | null>;
   notifyUser: (message: string) => Promise<void>;
-  defaultStepSoundKey: string;
-  defaultPauseDuration: string;
-  defaultPauseSoundKey: string;
-  defaultPauseAutoAdvance: boolean;
-  repeatRestAfterLastDefault: boolean;
-  onDirtyChange?: (dirty: boolean) => void;
   onToast?: (message: string) => void;
+};
+
+export type WorkoutFormProps = {
+  editingWorkout?: Workout | null;
+  sounds: SoundOption[];
+  userId: string | null;
+  exerciseCatalog?: CatalogExercise[];
+  onClose?: () => void;
+  defaults: WorkoutFormDefaults;
+  services: WorkoutFormServices;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
 
 export function WorkoutForm({
-  onSave,
-  onUpdate,
   editingWorkout,
   sounds,
   userId,
   exerciseCatalog,
-  onCreateExercise,
   onClose,
-  promptUser,
-  notifyUser,
-  defaultStepSoundKey,
-  defaultPauseDuration,
-  defaultPauseSoundKey,
-  defaultPauseAutoAdvance,
-  repeatRestAfterLastDefault,
   onDirtyChange,
-  onToast,
+  defaults,
+  services,
 }: WorkoutFormProps) {
+  const {
+    onSave,
+    onUpdate,
+    onCreateExercise,
+    promptUser,
+    notifyUser,
+    onToast,
+  } = services;
+  const {
+    defaultStepSoundKey,
+    defaultPauseDuration,
+    defaultPauseSoundKey,
+    defaultPauseAutoAdvance,
+    repeatRestAfterLastDefault,
+  } = defaults;
   const [name, setName] = useState(DEFAULT_WORKOUT_NAME);
   const [steps, setSteps] = useState<WorkoutStep[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -772,8 +787,8 @@ export function WorkoutForm({
       setDirty(false);
       onDirtyChange?.(false);
       onToast?.(editingId ? "Workout updated" : "Workout created");
-    } catch (err: any) {
-      await notifyUser(err?.message || "Unable to save workout");
+    } catch (err) {
+      await notifyUser(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
     }
   };
 

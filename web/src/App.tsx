@@ -1,38 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyTemplate,
-  getConfig,
-  getCurrentUser,
   getWorkout,
   listExercises,
-  listTrainingHistory,
-  listSounds,
-  listTemplates,
-  listUsers,
-  listWorkouts,
-  setAuthHeaderEnabled,
   updateUserName,
 } from "./api";
 
-import type {
-  CatalogExercise,
-  TrainingHistoryItem,
-  SoundOption,
-  Template,
-  ThemeMode,
-  User,
-  Workout,
-} from "./types";
+import type { CatalogExercise, ThemeMode, User } from "./types";
 
-import { useTrainingTimer } from "./hooks/useTrainTimer";
+import { useTrainingTimer } from "./hooks/useTrainingTimer";
 import { useDialog } from "./hooks/useDialog";
 import { useViewState } from "./hooks/useViewState";
-import { useDataLoader } from "./hooks/useDataLoader";
+import { useAppConfig } from "./hooks/useAppConfig";
+import { useWorkoutsData } from "./hooks/useWorkoutsData";
+import { useUserDefaults } from "./hooks/useUserDefaults";
 
 import { LoginView } from "./components/pages/LoginPage";
 import { AdminView } from "./components/pages/AdminPage";
 import { WorkoutsView } from "./components/pages/WorkoutsPage";
-import { TrainView } from "./components/pages/TrainPage";
+import { TrainingView } from "./components/pages/TrainingPage";
 import { TemplatesView } from "./components/pages/TemplatesPage";
 import { HistoryView } from "./components/pages/HistoryPage";
 import { ProfileView } from "./components/pages/ProfilePage";
@@ -43,21 +29,15 @@ import DialogModal from "./components/common/DialogModal";
 
 import { isValidEmail } from "./utils/validation";
 import { STEP_TYPE_PAUSE } from "./utils/step";
+import { toErrorMessage } from "./utils/messages";
 
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
 import { useExerciseActions } from "./hooks/useExerciseActions";
 import { useProfileActions } from "./hooks/useProfileActions";
-import { useTrainActions } from "./hooks/useTrainActions";
+import { useTrainingActions } from "./hooks/useTrainingActions";
 
 import "./styles.css";
-
-type AppConfig = {
-  authHeaderEnabled: boolean;
-  allowRegistration: boolean;
-  version: string;
-  commit: string;
-};
 
 // resumeMessage formats a resume prompt for an in-progress training.
 function resumeMessage(
@@ -77,8 +57,6 @@ export default function App() {
     return null;
   });
 
-  const [config, setConfig] = useState<AppConfig | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -87,15 +65,6 @@ export default function App() {
       return stored;
     return "auto";
   });
-
-  // user defaults
-  const [defaultStepSoundKey, setDefaultStepSoundKey] = useState("");
-  const [defaultPauseDuration, setDefaultPauseDuration] = useState("");
-  const [defaultPauseSoundKey, setDefaultPauseSoundKey] = useState("");
-  const [defaultPauseAutoAdvance, setDefaultPauseAutoAdvance] = useState(false);
-  const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
-    useState(false);
-  const [pauseOnTabHidden, setPauseOnTabHidden] = useState(false);
 
   // train view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
@@ -122,61 +91,43 @@ export default function App() {
     askPrompt,
   } = useDialog();
 
+  const { config, authError } = useAppConfig({
+    view,
+    setView,
+    setCurrentUserId,
+  });
+  const {
+    users,
+    sounds,
+    workouts,
+    history,
+    templates,
+    activeWorkouts,
+    currentUser,
+  } = useWorkoutsData({ currentUserId });
+  const {
+    defaultStepSoundKey,
+    defaultPauseDuration,
+    defaultPauseSoundKey,
+    defaultPauseAutoAdvance,
+    repeatRestAfterLastDefault,
+    pauseOnTabHidden,
+    updateRepeatRestAfterLastDefault,
+    updateDefaultStepSoundKey,
+    updateDefaultPauseDuration,
+    updateDefaultPauseSoundKey,
+    updateDefaultPauseAutoAdvance,
+    updatePauseOnTabHidden,
+  } = useUserDefaults({ currentUserId });
+
   const allowRegistration = config?.allowRegistration ?? true;
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
   const appVersion = config?.version || "dev";
-
-  // ---------- data loaders ----------
-  const users = useDataLoader<User[]>(listUsers, []);
-  const sounds = useDataLoader<SoundOption[]>(listSounds, []);
-  const workouts = useDataLoader<Workout[]>(
-    () => (currentUserId ? listWorkouts(currentUserId) : Promise.resolve([])),
-    [currentUserId],
-  );
-  const history = useDataLoader<TrainingHistoryItem[]>(
-    () =>
-      currentUserId
-        ? listTrainingHistory(currentUserId)
-        : Promise.resolve([] as TrainingHistoryItem[]),
-    [currentUserId],
-  );
-  const templates = useDataLoader<Template[]>(listTemplates, []);
-
-  const activeWorkouts = workouts.data || [];
-  const currentUser = useMemo(
-    () => users.data?.find((u) => u.id === currentUserId) || null,
-    [users.data, currentUserId],
-  );
 
   const currentWorkoutName = useMemo(() => {
     if (!selectedWorkoutId) return "";
     return activeWorkouts.find((w) => w.id === selectedWorkoutId)?.name || "";
   }, [selectedWorkoutId, activeWorkouts]);
-
-  // ---------- config + proxy auth ----------
-  useEffect(() => {
-    getConfig()
-      .then((cfg) => {
-        setConfig(cfg);
-        setAuthHeaderEnabled(cfg.authHeaderEnabled);
-
-        if (!cfg.authHeaderEnabled) return;
-
-        return getCurrentUser()
-          .then((user) => {
-            setCurrentUserId(user.id);
-            setAuthError(null);
-            if (view === "login") setView("train");
-          })
-          .catch((err: Error) => {
-            setAuthError(err.message || "Unable to authenticate user");
-          });
-      })
-      .catch((err: Error) => {
-        setAuthError(err.message || "Unable to load configuration");
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ---------- theme ----------
   useEffect(() => {
@@ -202,40 +153,6 @@ export default function App() {
     media.addEventListener("change", handler);
     return () => media.removeEventListener("change", handler);
   }, [themeMode]);
-
-  // ---------- hydrate per-user defaults ----------
-  useEffect(() => {
-    if (!currentUserId) {
-      setRepeatRestAfterLastDefault(false);
-      setDefaultStepSoundKey("");
-      setDefaultPauseDuration("");
-      setDefaultPauseSoundKey("");
-      setDefaultPauseAutoAdvance(false);
-      setPauseOnTabHidden(false);
-      return;
-    }
-
-    setRepeatRestAfterLastDefault(
-      localStorage.getItem(`motus:repeatRestAfterLast:${currentUserId}`) ===
-        "true",
-    );
-    setDefaultStepSoundKey(
-      localStorage.getItem(`motus:defaultStepSound:${currentUserId}`) || "",
-    );
-    setDefaultPauseDuration(
-      localStorage.getItem(`motus:defaultPauseDuration:${currentUserId}`) || "",
-    );
-    setDefaultPauseSoundKey(
-      localStorage.getItem(`motus:defaultPauseSound:${currentUserId}`) || "",
-    );
-    setDefaultPauseAutoAdvance(
-      localStorage.getItem(`motus:defaultPauseAuto:${currentUserId}`) ===
-        "true",
-    );
-    setPauseOnTabHidden(
-      localStorage.getItem(`motus:pauseOnHidden:${currentUserId}`) === "true",
-    );
-  }, [currentUserId]);
 
   // ---------- validate stored user id once local users are known ----------
   useEffect(() => {
@@ -378,11 +295,11 @@ export default function App() {
   const {
     startTraining: handleStartTraining,
     finishTraining: handleFinishTraining,
-  } = useTrainActions({
+  } = useTrainingActions({
     selectedWorkoutId,
     training,
     currentWorkoutName,
-    setTrainView: () => setView("train"),
+    setTrainingView: () => setView("train"),
     setPromptedResume,
     setResumeSuppressed,
     startFromState,
@@ -456,52 +373,6 @@ export default function App() {
     }
   }, [training?.logged, training?.trainingId, history]);
 
-  // ---------- handlers for defaults ----------
-  const handleRepeatRestAfterLastDefault = (value: boolean) => {
-    setRepeatRestAfterLastDefault(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:repeatRestAfterLast:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
-
-  const handleDefaultStepSound = (value: string) => {
-    setDefaultStepSoundKey(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultStepSound:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseDuration = (value: string) => {
-    setDefaultPauseDuration(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultPauseDuration:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseSound = (value: string) => {
-    setDefaultPauseSoundKey(value);
-    if (!currentUserId) return;
-    localStorage.setItem(`motus:defaultPauseSound:${currentUserId}`, value);
-  };
-
-  const handleDefaultPauseAutoAdvance = (value: boolean) => {
-    setDefaultPauseAutoAdvance(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:defaultPauseAuto:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
-
-  const handlePauseOnTabHidden = (value: boolean) => {
-    setPauseOnTabHidden(value);
-    if (!currentUserId) return;
-    localStorage.setItem(
-      `motus:pauseOnHidden:${currentUserId}`,
-      value ? "true" : "false",
-    );
-  };
-
   // ---------- logout ----------
   const handleLogout = () => {
     localStorage.removeItem("motus:userId");
@@ -529,8 +400,8 @@ export default function App() {
         workouts.setData?.((prev) => (prev ? [created, ...prev] : [created]));
         setView("workouts");
         showToast("Template applied.");
-      } catch (err: any) {
-        await notify(err?.message || "Unable to apply template");
+      } catch (err) {
+        await notify(toErrorMessage(err, "Unable to apply template"));
       }
     },
     [askPrompt, currentUserId, notify, setView, showToast, workouts],
@@ -603,8 +474,8 @@ export default function App() {
               try {
                 await handleRegister(email, password);
                 setView("train");
-              } catch (err: any) {
-                await notify(err?.message || "Unable to create user");
+              } catch (err) {
+                await notify(toErrorMessage(err, "Unable to create user"));
               }
             }}
             onClearError={() => setLoginError(null)}
@@ -621,8 +492,8 @@ export default function App() {
             onCreateUser={async (email, password) => {
               try {
                 await handleRegister(email, password);
-              } catch (err: any) {
-                await notify(err?.message || "Unable to create user");
+              } catch (err) {
+                await notify(toErrorMessage(err, "Unable to create user"));
               }
             }}
             onBackfill={backfillCatalog}
@@ -653,11 +524,11 @@ export default function App() {
         )}
 
         {view === "train" && (
-          <TrainView
+          <TrainingView
             workouts={activeWorkouts}
             selectedWorkoutId={selectedWorkoutId}
             onSelectWorkout={setSelectedWorkoutId}
-            onStartTrain={handleStartTraining}
+            onStartTraining={handleStartTraining}
             startDisabled={!selectedWorkoutId || !currentUserId}
             startTitle={!selectedWorkoutId ? "Select a workout first" : ""}
             training={training}
@@ -669,7 +540,7 @@ export default function App() {
             onStartStep={startCurrentStep}
             onPause={pause}
             onNext={nextStep}
-            onFinishTrain={handleFinishTraining}
+            onFinishTraining={handleFinishTraining}
             onCopySummary={() => showToast("Copied summary")}
             onToast={showToast}
             pauseOnTabHidden={pauseOnTabHidden}
@@ -706,19 +577,19 @@ export default function App() {
             onThemeChange={setThemeMode}
             sounds={sounds.data || []}
             defaultStepSoundKey={defaultStepSoundKey}
-            onDefaultStepSoundChange={handleDefaultStepSound}
+            onDefaultStepSoundChange={updateDefaultStepSoundKey}
             defaultPauseDuration={defaultPauseDuration}
-            onDefaultPauseDurationChange={handleDefaultPauseDuration}
+            onDefaultPauseDurationChange={updateDefaultPauseDuration}
             defaultPauseSoundKey={defaultPauseSoundKey}
-            onDefaultPauseSoundChange={handleDefaultPauseSound}
+            onDefaultPauseSoundChange={updateDefaultPauseSoundKey}
             defaultPauseAutoAdvance={defaultPauseAutoAdvance}
-            onDefaultPauseAutoAdvanceChange={handleDefaultPauseAutoAdvance}
+            onDefaultPauseAutoAdvanceChange={updateDefaultPauseAutoAdvance}
             repeatRestAfterLastDefault={repeatRestAfterLastDefault}
             onRepeatRestAfterLastDefaultChange={
-              handleRepeatRestAfterLastDefault
+              updateRepeatRestAfterLastDefault
             }
             pauseOnTabHidden={pauseOnTabHidden}
-            onPauseOnTabHiddenChange={handlePauseOnTabHidden}
+            onPauseOnTabHiddenChange={updatePauseOnTabHidden}
             exportWorkoutId={exportWorkoutId}
             onExportWorkoutChange={setExportWorkoutId}
             activeWorkouts={activeWorkouts}

@@ -18,7 +18,7 @@ import { logTimerEvent } from "../utils/timerLogger";
 const STORAGE_KEY = "motus:train";
 
 // UseTrainingTimerArgs configures the train timer hook.
-type UseTrainTimerArgs = {
+type UseTrainingTimerArgs = {
   currentUserId?: string | null;
   onChange?: (state: TrainingState | null) => void;
 };
@@ -41,7 +41,9 @@ function structuredCloneSafe<T>(value: T): T {
 }
 
 // isAutoAdvanceStep returns true when a step should auto-advance at timer end.
-function isAutoAdvanceStep(step: TrainingStepState | null | undefined): boolean {
+function isAutoAdvanceStep(
+  step: TrainingStepState | null | undefined,
+): boolean {
   if (!step) return false;
   if (step.type === STEP_TYPE_PAUSE) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,8 +53,8 @@ function isAutoAdvanceStep(step: TrainingStepState | null | undefined): boolean 
   return Boolean((step as any).autoAdvance);
 }
 
-// normalizeTrain sanitizes stored train data into a consistent shape.
-function normalizeTrain(raw: TrainingState): NormalizedState {
+// normalizeTraining sanitizes stored train data into a consistent shape.
+function normalizeTraining(raw: TrainingState): NormalizedState {
   const base: NormalizedState = {
     ...raw,
     running: Boolean(raw.running && !raw.done),
@@ -155,8 +157,8 @@ function expandExerciseSteps(state: TrainingState): TrainingState {
   return expanded;
 }
 
-// persistTrain stores the current train state in localStorage.
-function persistTrain(state: NormalizedState | null) {
+// persistTraining stores the current train state in localStorage.
+function persistTraining(state: NormalizedState | null) {
   if (!state || state.done) {
     localStorage.removeItem(STORAGE_KEY);
     return;
@@ -170,8 +172,8 @@ function persistTrain(state: NormalizedState | null) {
   );
 }
 
-// loadPersistedTrain restores the last train state from localStorage.
-function loadPersistedTrain(): NormalizedState | null {
+// loadPersistedTraining restores the last train state from localStorage.
+function loadPersistedTraining(): NormalizedState | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
 
@@ -179,7 +181,7 @@ function loadPersistedTrain(): NormalizedState | null {
     const parsed = JSON.parse(raw);
     if (!parsed?.trainingId) return null;
 
-    const state = normalizeTrain(parsed);
+    const state = normalizeTraining(parsed);
 
     // Never resume "running" from storage. Restore elapsed (capped) then pause.
     const delta = parsed.lastUpdatedAt
@@ -355,8 +357,8 @@ function completeTraining(state: NormalizedState) {
 export function useTrainingTimer({
   currentUserId,
   onChange,
-}: UseTrainTimerArgs) {
-  const initialTraining = loadPersistedTrain();
+}: UseTrainingTimerArgs) {
+  const initialTraining = loadPersistedTraining();
 
   const [restoredTrainingId, setRestoredTrainingId] = useState<string | null>(
     initialTraining?.trainingId || null,
@@ -392,7 +394,7 @@ export function useTrainingTimer({
 
   // Persist + notify parent.
   useEffect(() => {
-    persistTrain(training);
+    persistTraining(training);
     if (!training) setRestoredTrainingId(null);
     onChange?.(training);
   }, [training, onChange]);
@@ -423,7 +425,7 @@ export function useTrainingTimer({
   const startFromState = useCallback(
     (raw: TrainingState) => {
       const expanded = expandExerciseSteps(raw);
-      const normalized = normalizeTrain(expanded);
+      const normalized = normalizeTraining(expanded);
 
       if (!normalized.userId && currentUserId) {
         normalized.userId = currentUserId;
@@ -507,7 +509,7 @@ export function useTrainingTimer({
 
   // finishAndLog completes the train and sends it to the backend.
   const finishAndLog = useCallback(async () => {
-    const cur = trainingRef.current || loadPersistedTrain();
+    const cur = trainingRef.current || loadPersistedTraining();
     if (!cur) return { ok: false, error: "no train" };
 
     if (finishingRef.current === cur.trainingId) {
@@ -743,7 +745,7 @@ export function useTrainingTimer({
         next.lastUpdatedAt = at;
         applyStepFlags(next);
 
-        persistTrain(next);
+        persistTraining(next);
         return next;
       });
     };

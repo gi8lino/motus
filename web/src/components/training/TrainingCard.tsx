@@ -60,12 +60,12 @@ type StepGroup = {
   estimatedSeconds: number;
 };
 
-// TrainCard renders the main training status card and controls.
+// TrainingCard renders the main training status card and controls.
 // NOTE: This component is intentionally "dumb":
 // - no timers
 // - no scheduling
 // - no logging
-export function TrainCard({
+export function TrainingCard({
   training,
   currentStep,
   elapsed,

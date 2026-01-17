@@ -4,6 +4,7 @@ import { SoundIcon } from "../icons/SoundIcon";
 import { TrashIcon } from "../icons/TrashIcon";
 import { isGoDuration } from "../../utils/time";
 import { isRepRange } from "../../utils/validation";
+import { MESSAGES, toErrorMessage } from "../../utils/messages";
 import {
   EXERCISE_TYPE_COUNTDOWN,
   EXERCISE_TYPE_REP,
@@ -144,8 +145,10 @@ export function WorkoutExerciseRow({
                 name: created.name,
                 exerciseId: created.id,
               });
-            } catch (err: any) {
-              await notifyUser(err?.message || "Unable to create exercise");
+            } catch (err) {
+              await notifyUser(
+                toErrorMessage(err, MESSAGES.createExerciseFailed),
+              );
             }
           }}
         />

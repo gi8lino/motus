@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 import { changePassword, exportWorkout, importWorkout } from "../api";
 import type { Workout } from "../types";
@@ -41,8 +42,8 @@ export function useProfileActions({
       a.click();
       URL.revokeObjectURL(url);
       showToast("Workout exported.");
-    } catch (err: any) {
-      await notify(err.message || "Unable to export workout");
+    } catch (err) {
+      await notify(toErrorMessage(err, MESSAGES.exportWorkoutFailed));
     }
   }, [exportWorkoutId, notify, showToast]);
 
@@ -65,8 +66,8 @@ export function useProfileActions({
         setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
         setSelectedWorkoutId(created.id);
         showToast("Workout imported.");
-      } catch (err: any) {
-        await notify(err.message || "Unable to import workout");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.importWorkoutFailed));
       }
     },
     [currentUserId, notify, setSelectedWorkoutId, setWorkouts, showToast],
@@ -78,8 +79,8 @@ export function useProfileActions({
       try {
         await changePassword(currentPassword, newPassword);
         await notify("Password updated.");
-      } catch (err: any) {
-        await notify(err.message || "Unable to update password");
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.updatePasswordFailed));
       }
     },
     [notify],

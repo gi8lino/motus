@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 // useDataLoader wraps async loading with loading/error state.
-export function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = []) {
+export function useDataLoader<T>(
+  loader: () => Promise<T>,
+  deps: unknown[] = [],
+) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +22,7 @@ export function useDataLoader<T>(loader: () => Promise<T>, deps: unknown[] = [])
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err?.message || "load failed");
+        setError(toErrorMessage(err, MESSAGES.loadFailed));
       })
       .finally(() => {
         if (cancelled) return;
