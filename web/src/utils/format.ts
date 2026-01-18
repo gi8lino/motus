@@ -9,20 +9,41 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+// Shared helper: formats whole hours/minutes/seconds as HH:MM:SS
+function formatHHMMSS(totalSeconds: number): string {
+  const safe = Math.max(0, totalSeconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 // Elapsed time (stopwatch semantics)
 // 19.9s → 00:19
-export function formatElapsedMillis(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
+export function formatElapsedMillis(
+  ms: number,
+  options?: { showHours?: boolean },
+): string {
+  if (!Number.isFinite(ms) || ms <= 0)
+    return options?.showHours ? "00:00:00" : "00:00";
   const totalSeconds = Math.floor(ms / 1000);
-  return formatMMSS(totalSeconds);
+  return options?.showHours
+    ? formatHHMMSS(totalSeconds)
+    : formatMMSS(totalSeconds);
 }
 
 // Remaining time (countdown semantics)
 // 19.1s → 00:20
-export function formatCountdownMillis(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "00:00";
+export function formatCountdownMillis(
+  ms: number,
+  options?: { showHours?: boolean },
+): string {
+  if (!Number.isFinite(ms) || ms <= 0)
+    return options?.showHours ? "00:00:00" : "00:00";
   const totalSeconds = Math.ceil(ms / 1000);
-  return formatMMSS(totalSeconds);
+  return options?.showHours
+    ? formatHHMMSS(totalSeconds)
+    : formatMMSS(totalSeconds);
 }
 
 // formatExerciseLine renders an exercise based on its type.

@@ -112,12 +112,14 @@ export default function App() {
     defaultPauseAutoAdvance,
     repeatRestAfterLastDefault,
     pauseOnTabHidden,
+    showHours,
     updateRepeatRestAfterLastDefault,
     updateDefaultStepSoundKey,
     updateDefaultPauseDuration,
     updateDefaultPauseSoundKey,
     updateDefaultPauseAutoAdvance,
     updatePauseOnTabHidden,
+    updateShowHours,
   } = useUserDefaults({ currentUserId });
 
   const allowRegistration = config?.allowRegistration ?? true;
@@ -511,6 +513,7 @@ export default function App() {
               workoutName: currentWorkoutName,
               sounds: sounds.data || [],
               pauseOnTabHidden,
+              showHours,
             }}
             actions={{
               onSelectWorkout: setSelectedWorkoutId,
@@ -567,6 +570,7 @@ export default function App() {
               defaultPauseAutoAdvance,
               repeatRestAfterLastDefault,
               pauseOnTabHidden,
+              showHours,
               exportWorkoutId,
               activeWorkouts,
               importInputRef,
@@ -583,6 +587,7 @@ export default function App() {
               onRepeatRestAfterLastDefaultChange:
                 updateRepeatRestAfterLastDefault,
               onPauseOnTabHiddenChange: updatePauseOnTabHidden,
+              onShowHoursChange: updateShowHours,
               onExportWorkoutChange: setExportWorkoutId,
               onExportWorkout: handleExportSelected,
               onImportWorkout: handleImportSelected,

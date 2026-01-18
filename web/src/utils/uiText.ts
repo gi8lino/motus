@@ -70,6 +70,8 @@ export const UI_TEXT = {
     templateCopied: "Template copied to clipboard.",
     workoutDeleted: "Workout deleted.",
     copiedSummary: "Copied summary",
+    workoutExported: "Workout exported.",
+    workoutImported: "Workout imported.",
     createdPersonalCopy: "Created a personal copy.",
     invalidWorkoutJson: "Invalid workout JSON.",
     passwordUpdated: "Password updated.",
@@ -100,6 +102,7 @@ export const UI_TEXT = {
     defaultPauseAutoAdvance: "Auto-advance pauses by default",
     repeatRestAfterLast: "Repeat the rest step after the final round",
     pauseOnTabHidden: "Pause training when tab is hidden",
+    showHours: "Show hours in timers",
   },
   actions: {
     start: "Start",
@@ -110,6 +113,8 @@ export const UI_TEXT = {
   },
   options: {
     none: "None",
+    mmss: "MM:SS",
+    hhmmss: "HH:MM:SS",
   },
   placeholders: {
     workoutName: "Push Day",
@@ -192,6 +197,9 @@ export const UI_TEXT = {
     },
     training: {
       title: "Training",
+      overrunTitle: "Still training?",
+      overrunMessage: "You passed the target. Auto-pause in",
+      overrunPostpone: "Postpone (+30s)",
     },
     profile: {
       title: "Profile",
@@ -199,6 +207,7 @@ export const UI_TEXT = {
       accountLabel: "Account",
       appearanceLabel: "Appearance",
       defaultsLabel: "Defaults",
+      timeFormatLabel: "Time format",
       transferLabel: "Workout transfer",
       exportLabel: "Export workout",
       exportButton: "Export",
@@ -219,6 +228,7 @@ export const UI_TEXT = {
       defaultPauseAutoAdvanceLabel: "Default pause auto-advance",
       repeatRestAfterLastLabel: "Repeat rest after last (default)",
       pauseOnTabHiddenLabel: "Pause training when tab is hidden",
+      showHoursLabel: "Show hours in timers",
       autoTheme: "Auto (system)",
       darkTheme: "Dark",
       lightTheme: "Light",

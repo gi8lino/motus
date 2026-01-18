@@ -13,6 +13,7 @@ export function useUserDefaults({ currentUserId }: UseUserDefaultsArgs) {
   const [repeatRestAfterLastDefault, setRepeatRestAfterLastDefault] =
     useState(false);
   const [pauseOnTabHidden, setPauseOnTabHidden] = useState(false);
+  const [showHours, setShowHours] = useState(false);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -22,6 +23,7 @@ export function useUserDefaults({ currentUserId }: UseUserDefaultsArgs) {
       setDefaultPauseSoundKey("");
       setDefaultPauseAutoAdvance(false);
       setPauseOnTabHidden(false);
+      setShowHours(false);
       return;
     }
 
@@ -44,6 +46,9 @@ export function useUserDefaults({ currentUserId }: UseUserDefaultsArgs) {
     );
     setPauseOnTabHidden(
       localStorage.getItem(`motus:pauseOnHidden:${currentUserId}`) === "true",
+    );
+    setShowHours(
+      localStorage.getItem(`motus:showHours:${currentUserId}`) === "true",
     );
   }, [currentUserId]);
 
@@ -92,6 +97,15 @@ export function useUserDefaults({ currentUserId }: UseUserDefaultsArgs) {
     );
   };
 
+  const updateShowHours = (value: boolean) => {
+    setShowHours(value);
+    if (!currentUserId) return;
+    localStorage.setItem(
+      `motus:showHours:${currentUserId}`,
+      value ? "true" : "false",
+    );
+  };
+
   return {
     defaultStepSoundKey,
     defaultPauseDuration,
@@ -99,11 +113,13 @@ export function useUserDefaults({ currentUserId }: UseUserDefaultsArgs) {
     defaultPauseAutoAdvance,
     repeatRestAfterLastDefault,
     pauseOnTabHidden,
+    showHours,
     updateRepeatRestAfterLastDefault,
     updateDefaultStepSoundKey,
     updateDefaultPauseDuration,
     updateDefaultPauseSoundKey,
     updateDefaultPauseAutoAdvance,
     updatePauseOnTabHidden,
+    updateShowHours,
   };
 }

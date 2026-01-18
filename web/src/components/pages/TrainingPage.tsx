@@ -30,6 +30,7 @@ export type TrainingViewData = {
   workoutName: string;
   sounds: SoundOption[];
   pauseOnTabHidden: boolean;
+  showHours: boolean;
 };
 
 export type TrainingViewActions = {
@@ -174,7 +175,7 @@ export function TrainingView({
                   {" • "}
                   {headerStatus}
                   {" • "}
-                  {formatElapsedMillis(elapsed)}
+                  {formatElapsedMillis(elapsed, { showHours: data.showHours })}
                 </>
               ) : (
                 <span>{PROMPTS.selectWorkoutToStart}</span>
@@ -205,6 +206,7 @@ export function TrainingView({
           currentStep={currentStep}
           elapsed={elapsed}
           workoutName={workoutName}
+          showHours={data.showHours}
           onStart={handleStart}
           onPause={handlePause}
           onNext={() => {
@@ -228,6 +230,7 @@ export function TrainingView({
         countdown={overrunCountdown}
         onPause={handleOverrunPause}
         onPostpone={handleOverrunPostpone}
+        showHours={data.showHours}
       />
     </>
   );

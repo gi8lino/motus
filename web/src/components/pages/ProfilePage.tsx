@@ -19,6 +19,7 @@ export type ProfileViewData = {
   defaultPauseAutoAdvance: boolean;
   repeatRestAfterLastDefault: boolean;
   pauseOnTabHidden: boolean;
+  showHours: boolean;
   exportWorkoutId: string;
   activeWorkouts: Workout[];
   importInputRef: RefObject<HTMLInputElement | null>;
@@ -35,6 +36,7 @@ export type ProfileViewActions = {
   onDefaultPauseAutoAdvanceChange: (value: boolean) => void;
   onRepeatRestAfterLastDefaultChange: (value: boolean) => void;
   onPauseOnTabHiddenChange: (value: boolean) => void;
+  onShowHoursChange: (value: boolean) => void;
   onExportWorkoutChange: (id: string) => void;
   onExportWorkout: () => void | Promise<void>;
   onImportWorkout: (file: File) => void | Promise<void>;
@@ -63,6 +65,7 @@ export function ProfileView({
     defaultPauseAutoAdvance,
     repeatRestAfterLastDefault,
     pauseOnTabHidden,
+    showHours,
     exportWorkoutId,
     activeWorkouts,
     importInputRef,
@@ -78,6 +81,7 @@ export function ProfileView({
     onDefaultPauseAutoAdvanceChange,
     onRepeatRestAfterLastDefaultChange,
     onPauseOnTabHiddenChange,
+    onShowHoursChange,
     onExportWorkoutChange,
     onExportWorkout,
     onImportWorkout,
@@ -216,6 +220,17 @@ export function ProfileView({
                 <span className="switch-slider" aria-hidden="true" />
                 <span className="switch-label">
                   {UI_TEXT.pages.profile.pauseOnTabHiddenLabel}
+                </span>
+              </label>
+              <label className="switch" title={UI_TEXT.titles.showHours}>
+                <input
+                  type="checkbox"
+                  checked={showHours}
+                  onChange={(e) => onShowHoursChange(e.target.checked)}
+                />
+                <span className="switch-slider" aria-hidden="true" />
+                <span className="switch-label">
+                  {UI_TEXT.pages.profile.showHoursLabel}
                 </span>
               </label>
             </div>

@@ -23,8 +23,6 @@ export const MESSAGES = {
   backfillExercisesFailed: "Unable to backfill exercises",
   updateNameFailed: "Unable to update name",
   logTrainingFailed: "Unable to log training",
-  workoutExported: "Workout exported.",
-  workoutImported: "Workout imported.",
 } as const;
 
 // PROMPTS centralizes non-error UI copy.

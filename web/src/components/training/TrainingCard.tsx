@@ -27,6 +27,7 @@ export function TrainingCard({
   currentStep,
   elapsed,
   workoutName,
+  showHours,
   onStart,
   onPause,
   onNext,
@@ -39,6 +40,7 @@ export function TrainingCard({
   currentStep: TrainingStepState | null;
   elapsed: number;
   workoutName?: string;
+  showHours?: boolean;
   onStart: () => void;
   onPause: () => void;
   onNext: () => void;
@@ -98,11 +100,11 @@ export function TrainingCard({
   }, [currentStep, elapsed, isAutoAdvance]);
 
   const clockText = useMemo(() => {
-    if (!currentStep) return "00:00";
+    if (!currentStep) return formatElapsedMillis(0, { showHours });
     return isAutoAdvance
-      ? formatCountdownMillis(displayMillis)
-      : formatElapsedMillis(displayMillis);
-  }, [currentStep, displayMillis, isAutoAdvance]);
+      ? formatCountdownMillis(displayMillis, { showHours })
+      : formatElapsedMillis(displayMillis, { showHours });
+  }, [currentStep, displayMillis, isAutoAdvance, showHours]);
 
   const currentExerciseLabel = useMemo(() => {
     if (!currentStep) return PROMPTS.noTraining;
@@ -259,7 +261,9 @@ export function TrainingCard({
               : "";
           const pauseDuration =
             group.type === STEP_TYPE_PAUSE && group.estimatedSeconds
-              ? ` • ${formatCountdownMillis(group.estimatedSeconds * 1000)}`
+              ? ` • ${formatCountdownMillis(group.estimatedSeconds * 1000, {
+                  showHours,
+                })}`
               : "";
           const groupTitle =
             group.setName && group.setName.trim()

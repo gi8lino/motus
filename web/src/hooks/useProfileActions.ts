@@ -42,7 +42,7 @@ export function useProfileActions({
       a.download = `${workout.name || "workout"}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast(MESSAGES.workoutExported);
+      showToast(UI_TEXT.toasts.workoutExported);
     } catch (err) {
       await notify(toErrorMessage(err, MESSAGES.exportWorkoutFailed));
     }
@@ -66,7 +66,7 @@ export function useProfileActions({
         });
         setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
         setSelectedWorkoutId(created.id);
-        showToast(MESSAGES.workoutImported);
+        showToast(UI_TEXT.toasts.workoutImported);
       } catch (err) {
         await notify(toErrorMessage(err, MESSAGES.importWorkoutFailed));
       }
