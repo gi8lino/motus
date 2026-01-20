@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gi8lino/motus/internal/handler"
+	"github.com/gi8lino/motus/internal/logging"
 	"github.com/gi8lino/motus/internal/middleware"
 )
 
@@ -93,7 +94,11 @@ func NewRouter(
 	var h http.Handler = mux
 	h = handler.WithCORS(api.Origin, h)
 	if routePrefix != "" {
-		api.Logger.Info("mounted under prefix", "prefix", routePrefix)
+		logging.SystemLogger(api.Logger, nil).Info(
+			"mounted under prefix",
+			"event", "routes_mounted",
+			"prefix", routePrefix,
+		)
 		h = mountUnderPrefix(h, routePrefix)
 	}
 

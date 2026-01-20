@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/logging"
 )
 
 // store defines the persistence methods needed by EnsureAdminUser.
@@ -42,10 +43,20 @@ func EnsureAdminUser(ctx context.Context, store store, logger *slog.Logger, emai
 		return err
 	}
 	if created {
-		logger.Info("created bootstrap admin user", "user", user.ID)
+		logging.SystemLogger(logger, ctx).Info(
+			"created bootstrap admin user",
+			"event", "bootstrap_admin_created",
+			"resource", "user",
+			"resource_id", user.ID,
+		)
 		return nil
 	}
-	logger.Info("updated bootstrap admin user", "user", user.ID)
+	logging.SystemLogger(logger, ctx).Info(
+		"updated bootstrap admin user",
+		"event", "bootstrap_admin_updated",
+		"resource", "user",
+		"resource_id", user.ID,
+	)
 
 	return nil
 }

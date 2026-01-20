@@ -6,6 +6,7 @@ import (
 
 	"github.com/gi8lino/motus/internal/auth"
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/logging"
 	"github.com/gi8lino/motus/internal/service/exercises"
 	"github.com/gi8lino/motus/internal/service/sounds"
 	"github.com/gi8lino/motus/internal/service/templates"
@@ -70,8 +71,26 @@ func NewAPI(
 // respondJSON writes a JSON response.
 func (a *API) respondJSON(w http.ResponseWriter, status int, v any) {
 	if err := encode(w, status, v); err != nil {
-		a.Logger.Error("encode response failed", "err", err)
+		logging.AccessLogger(a.Logger, nil).Error(
+			"encode response failed",
+			"event", "encode_response_failed",
+			"err", err,
+		)
 	}
+}
+
+// businessLogger returns a logger enriched with request context for business events.
+func (a *API) businessLogger(r *http.Request) *slog.Logger {
+	return logging.BusinessLogger(a.Logger, r.Context())
+}
+
+// logRequestError records a structured error for the current request.
+func (a *API) logRequestError(r *http.Request, event, message string, err error) {
+	logging.AccessLogger(a.Logger, r.Context()).Error(
+		message,
+		"event", event,
+		"err", err,
+	)
 }
 
 // resolveUserID selects the user id from auth header or request payload.

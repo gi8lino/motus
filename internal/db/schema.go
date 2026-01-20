@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/gi8lino/motus/internal/logging"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -133,10 +134,11 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		if err := writeSchemaVersion(ctx, tx, migration.version); err != nil {
 			return err
 		}
-		s.logger.Info(
+		logging.DBLogger(s.logger, ctx).Info(
 			"db migration applied",
-			slog.Int("from", startVersion),
-			slog.Int("to", migration.version),
+			slog.String("event", "db_migration_applied"),
+			slog.Int("from_version", startVersion),
+			slog.Int("to_version", migration.version),
 			slog.String("name", migration.name),
 		)
 		currentVersion = migration.version

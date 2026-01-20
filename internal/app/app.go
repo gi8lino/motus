@@ -37,11 +37,20 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 
 	// Configure the logger early so startup errors are visible.
 	logger := logging.SetupLogger(opts.LogFormat, opts.Debug, w)
-	logger.Info("starting Motus", "version", version, "commit", commit)
+	logging.SystemLogger(logger, nil).Info(
+		"starting Motus",
+		"event", "app_starting",
+		"version", version,
+		"commit", commit,
+	)
 
 	// Record any CLI overrides to aid debugging.
 	if len(opts.OverriddenValues) > 0 {
-		logger.Info("CLI Overrides", "overrides", opts.OverriddenValues)
+		logging.SystemLogger(logger, nil).Info(
+			"CLI Overrides",
+			"event", "cli_overrides",
+			"overrides", opts.OverriddenValues,
+		)
 	}
 
 	// Connect to the database.

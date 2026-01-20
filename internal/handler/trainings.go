@@ -19,18 +19,25 @@ func (a *API) CreateTraining() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[createTrainingRequest](r)
 		if err != nil {
-			a.Logger.Error("decode request failed", "err", err)
+			a.logRequestError(r, "decode_request_failed", "decode request failed", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		state, err := a.Trainings.CreateState(r.Context(), req.WorkoutID)
 		if err != nil {
-			a.Logger.Error("create training state failed", "err", err)
+			a.logRequestError(r, "create_training_state_failed", "create training state failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.businessLogger(r).Info("training created",
+			"event", "training_created",
+			"resource", "training",
+			"resource_id", state.TrainingID,
+			"user_id", state.UserID,
+			"workout_id", state.WorkoutID,
+		)
 		a.respondJSON(w, http.StatusCreated, createTrainingResponse{
 			TrainingID: state.TrainingID,
 			State:      state,
@@ -45,14 +52,14 @@ func (a *API) ListTrainingHistory() http.HandlerFunc {
 
 		resolvedID, err := a.resolveUserID(r, userID)
 		if err != nil {
-			a.Logger.Error("resolve user id failed", "err", err)
+			a.logRequestError(r, "resolve_user_id_failed", "resolve user id failed", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		items, err := a.Trainings.BuildTrainingHistory(r.Context(), resolvedID, 25)
 		if err != nil {
-			a.Logger.Error("build training history failed", "err", err)
+			a.logRequestError(r, "build_training_history_failed", "build training history failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
@@ -66,7 +73,7 @@ func (a *API) TrainingSteps() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		steps, err := a.Trainings.FetchStepTimings(r.Context(), r.PathValue("id"))
 		if err != nil {
-			a.Logger.Error("fetch step timings failed", "err", err)
+			a.logRequestError(r, "fetch_step_timings_failed", "fetch step timings failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
@@ -89,14 +96,14 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := decode[completeTrainingRequest](r)
 		if err != nil {
-			a.Logger.Error("decode request failed", "err", err)
+			a.logRequestError(r, "decode_request_failed", "decode request failed", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		resolvedUserID, err := a.resolveUserID(r, req.UserID)
 		if err != nil {
-			a.Logger.Error("resolve user id failed", "err", err)
+			a.logRequestError(r, "resolve_user_id_failed", "resolve user id failed", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
@@ -112,11 +119,19 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 			Steps:       req.Steps,
 		})
 		if err != nil {
-			a.Logger.Error("record training failed", "err", err)
+			a.logRequestError(r, "record_training_failed", "record training failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
 
+		a.businessLogger(r).Info("training completed",
+			"event", "training_completed",
+			"resource", "training",
+			"resource_id", log.ID,
+			"user_id", log.UserID,
+			"workout_id", log.WorkoutID,
+			"count", len(req.Steps),
+		)
 		a.respondJSON(w, http.StatusCreated, log)
 	}
 }

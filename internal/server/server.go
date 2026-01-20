@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gi8lino/motus/internal/logging"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,7 +26,11 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 
 	// Start the server.
 	eg.Go(func() error {
-		logger.Info("starting server", "listenAddr", server.Addr)
+		logging.SystemLogger(logger, nil).Info(
+			"starting server",
+			"event", "server_starting",
+			"listen_addr", server.Addr,
+		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
 		}
@@ -37,7 +42,10 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 		select {
 		// Shutdown the server when the context is canceled.
 		case <-ctx.Done():
-			logger.Info("shutting down server")
+			logging.SystemLogger(logger, nil).Info(
+				"shutting down server",
+				"event", "server_shutting_down",
+			)
 
 			// Use a bounded timeout to finish in-flight requests.
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

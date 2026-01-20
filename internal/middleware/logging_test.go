@@ -37,9 +37,9 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		assert.Equal(t, http.StatusTeapot, rec.Code)
 		assert.Contains(t, logs.String(), "method=POST")
-		assert.Contains(t, logs.String(), "url_path=/bump")
-		assert.Contains(t, logs.String(), "status_code=418")
-		assert.Contains(t, logs.String(), "remote_addr=1.2.3.4:5678")
+		assert.Contains(t, logs.String(), "path=/bump")
+		assert.Contains(t, logs.String(), "status=418")
+		assert.Contains(t, logs.String(), "ip=1.2.3.4:5678")
 		assert.Contains(t, logs.String(), "user_agent=unit-test")
 		assert.Contains(t, logs.String(), "duration_ms=")
 		assert.Contains(t, logs.String(), `msg="HTTP request"`)
@@ -62,6 +62,6 @@ func TestLoggingMiddleware(t *testing.T) {
 		logged.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, logs.String(), "status_code=200")
+		assert.Contains(t, logs.String(), "status=200")
 	})
 }
