@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"io"
 	"log/slog"
 )
 
@@ -11,10 +12,12 @@ const RequestIDHeader = "X-Request-Id"
 
 type requestIDKey struct{}
 
+var requestIDReader io.Reader = rand.Reader
+
 // NewRequestID generates a random request id.
 func NewRequestID() string {
 	var buf [16]byte
-	if _, err := rand.Read(buf[:]); err != nil {
+	if _, err := io.ReadFull(requestIDReader, buf[:]); err != nil {
 		return ""
 	}
 	return hex.EncodeToString(buf[:])
