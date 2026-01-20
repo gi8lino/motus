@@ -13,14 +13,6 @@ func LoggingMiddleware(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			startTime := time.Now() // Start measuring time before calling next.ServeHTTP
-			requestID := r.Header.Get(logging.RequestIDHeader)
-			if requestID == "" {
-				requestID = logging.NewRequestID()
-			}
-			if requestID != "" {
-				r = r.WithContext(logging.WithRequestID(r.Context(), requestID))
-				w.Header().Set(logging.RequestIDHeader, requestID)
-			}
 
 			// Capture response status
 			rec := &responseRecorder{ResponseWriter: w, statusCode: http.StatusOK}

@@ -104,8 +104,8 @@ func NewRouter(
 
 	// Optional debug logging middleware.
 	if debug {
-		return middleware.Chain(h, middleware.LoggingMiddleware(api.Logger)), nil
+		return middleware.Chain(h, middleware.LoggingMiddleware(api.Logger), middleware.RequestIDMiddleware()), nil
 	}
 
-	return h, nil
+	return middleware.Chain(h, middleware.RequestIDMiddleware()), nil
 }
