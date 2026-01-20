@@ -2,9 +2,9 @@
 .envrc
 cover.out
 web/node_modules/
-cover.out
 # Build outputs
 web/dist/*
+!web/dist/.gitkeep
 
 # Noe deps in web
 web/node_modules/
