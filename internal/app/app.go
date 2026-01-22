@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/containeroo/httpgrace/server"
 	"github.com/containeroo/tinyflags"
 
 	"github.com/gi8lino/motus/internal/bootstrap"
@@ -16,7 +17,7 @@ import (
 	"github.com/gi8lino/motus/internal/flag"
 	"github.com/gi8lino/motus/internal/handler"
 	"github.com/gi8lino/motus/internal/logging"
-	"github.com/gi8lino/motus/internal/server"
+	"github.com/gi8lino/motus/internal/routes"
 )
 
 // Run is the entry point for the application lifecycle.
@@ -90,13 +91,13 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	)
 
 	// Configure the HTTP router and SPA asset handler.
-	router, err := server.NewRouter(assets, opts.RoutePrefix, api, opts.Debug)
+	router, err := routes.NewRouter(assets, opts.RoutePrefix, api, opts.Debug)
 	if err != nil {
 		return fmt.Errorf("configure router: %w", err)
 	}
 
 	// Start the HTTP server and block until shutdown.
-	if err := server.Run(ctx, opts.ListenAddr, router, logger); err != nil {
+	if err := server.Run(ctx, opts.ListenAddr, router, logging.SystemLogger(logger, nil)); err != nil {
 		return fmt.Errorf("run server: %w", err)
 	}
 
