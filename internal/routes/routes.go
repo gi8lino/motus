@@ -3,10 +3,10 @@ package routes
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net/http"
 
 	"github.com/gi8lino/motus/internal/handler"
-	"github.com/gi8lino/motus/internal/logging"
 	"github.com/gi8lino/motus/internal/middleware"
 )
 
@@ -14,6 +14,7 @@ import (
 func NewRouter(
 	spaFS fs.FS,
 	routePrefix string,
+	logger *slog.Logger,
 	api *handler.API,
 	debug bool,
 ) (http.Handler, error) {
@@ -94,7 +95,7 @@ func NewRouter(
 	var h http.Handler = mux
 	h = handler.WithCORS(api.Origin, h)
 	if routePrefix != "" {
-		logging.SystemLogger(api.Logger, nil).Info(
+		logger.Info(
 			"mounted under prefix",
 			"event", "routes_mounted",
 			"prefix", routePrefix,

@@ -26,6 +26,10 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	// Create another context to listen for reload signals
+	reloadCh := make(chan os.Signal, 1)
+	signal.Notify(reloadCh, syscall.SIGHUP)
+
 	// Parse CLI flags and handle help/version requests.
 	opts, err := flag.ParseFlags(args, version)
 	if err != nil {
@@ -91,7 +95,7 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	)
 
 	// Configure the HTTP router and SPA asset handler.
-	router, err := routes.NewRouter(assets, opts.RoutePrefix, api, opts.Debug)
+	router, err := routes.NewRouter(assets, opts.RoutePrefix, logging.SystemLogger(logger, nil), api, opts.Debug)
 	if err != nil {
 		return fmt.Errorf("configure router: %w", err)
 	}
