@@ -118,27 +118,21 @@ func TestCategoryLoggers(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(buf, nil))
 	ctx := WithRequestID(context.Background(), "req-789")
 
-	t.Run("access logger", func(t *testing.T) {
-		t.Parallel()
+	t.Run("test logger seriesly", func(t *testing.T) {
 		AccessLogger(logger, ctx).Info("access")
 		entry := readLogJSON(t, buf)
 		assert.Equal(t, CategoryAccess, entry["category"])
 		assert.Equal(t, "req-789", entry["request_id"])
-	})
-	t.Run("business logger", func(t *testing.T) {
-		t.Parallel()
+
 		buf.Reset()
 		BusinessLogger(logger, ctx).Info("business")
-		entry := readLogJSON(t, buf)
+		entry = readLogJSON(t, buf)
 		assert.Equal(t, CategoryBusiness, entry["category"])
 		assert.Equal(t, "req-789", entry["request_id"])
-	})
 
-	t.Run("system logger", func(t *testing.T) {
-		t.Parallel()
 		buf.Reset()
 		SystemLogger(logger, ctx).Info("system")
-		entry := readLogJSON(t, buf)
+		entry = readLogJSON(t, buf)
 		assert.Equal(t, CategorySystem, entry["category"])
 		assert.Equal(t, "req-789", entry["request_id"])
 	})
