@@ -42,7 +42,8 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 
 	// Configure the logger early so startup errors are visible.
 	logger := logging.SetupLogger(opts.LogFormat, opts.Debug, w)
-	logging.SystemLogger(logger, nil).Info(
+	sysLogger := logging.SystemLogger(logger, nil)
+	sysLogger.Info(
 		"starting Motus",
 		"event", "app_starting",
 		"version", version,
@@ -51,7 +52,7 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 
 	// Record any CLI overrides to aid debugging.
 	if len(opts.OverriddenValues) > 0 {
-		logging.SystemLogger(logger, nil).Info(
+		sysLogger.Info(
 			"CLI Overrides",
 			"event", "cli_overrides",
 			"overrides", opts.OverriddenValues,
@@ -59,14 +60,14 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	}
 
 	// Connect to the database.
-	store, err := db.New(ctx, opts.DatabaseURL, logger)
+	store, err := db.New(ctx, opts.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("connect db: %w", err)
 	}
 	defer store.Close()
 
 	// Ensure database schema is up to date before serving requests.
-	if err := store.EnsureSchema(ctx); err != nil {
+	if err := store.EnsureSchema(ctx, sysLogger); err != nil {
 		return fmt.Errorf("ensure schema: %w", err)
 	}
 
@@ -77,7 +78,7 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 
 	// Load extra core exercises if the CLI flag was set.
 	if opts.CoreExercisesFile != "" {
-		if err := bootstrap.SeedCoreExercises(ctx, store, logger, opts.CoreExercisesFile); err != nil {
+		if err := bootstrap.SeedCoreExercises(ctx, store, sysLogger, opts.CoreExercisesFile); err != nil {
 			return fmt.Errorf("load core exercises: %w", err)
 		}
 	}
@@ -95,13 +96,13 @@ func Run(ctx context.Context, assets embed.FS, version, commit string, args []st
 	)
 
 	// Configure the HTTP router and SPA asset handler.
-	router, err := routes.NewRouter(assets, opts.RoutePrefix, logging.SystemLogger(logger, nil), api, opts.Debug)
+	router, err := routes.NewRouter(assets, opts.RoutePrefix, sysLogger, api, opts.Debug)
 	if err != nil {
 		return fmt.Errorf("configure router: %w", err)
 	}
 
 	// Start the HTTP server and block until shutdown.
-	if err := server.Run(ctx, opts.ListenAddr, router, logging.SystemLogger(logger, nil)); err != nil {
+	if err := server.Run(ctx, opts.ListenAddr, router, sysLogger); err != nil {
 		return fmt.Errorf("run server: %w", err)
 	}
 

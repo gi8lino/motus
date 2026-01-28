@@ -33,11 +33,6 @@ func BusinessLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
 	return WithCategory(WithRequestIDLogger(logger, ctx), CategoryBusiness)
 }
 
-// DBLogger returns a logger tagged for db logs.
-func DBLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
-	return WithCategory(WithRequestIDLogger(logger, ctx), CategoryDB)
-}
-
 // SystemLogger returns a logger tagged for system logs.
 func SystemLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
 	return WithCategory(WithRequestIDLogger(logger, ctx), CategorySystem)

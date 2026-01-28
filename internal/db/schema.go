@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/gi8lino/motus/internal/logging"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -105,7 +104,7 @@ var schemaMigrations = []schemaMigration{
 }
 
 // EnsureSchema applies the baseline schema and any pending migrations.
-func (s *Store) EnsureSchema(ctx context.Context) error {
+func (s *Store) EnsureSchema(ctx context.Context, logger *slog.Logger) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -134,7 +133,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		if err := writeSchemaVersion(ctx, tx, migration.version); err != nil {
 			return err
 		}
-		logging.DBLogger(s.logger, ctx).Info(
+		logger.Info(
 			"db migration applied",
 			slog.String("event", "db_migration_applied"),
 			slog.Int("from_version", startVersion),
