@@ -500,10 +500,6 @@ select {
   margin-bottom: 0;
 }
 
-.exercise-row .select-dropdown {
-  min-width: 0;
-}
-
 .exercise-row .field.compact input,
 .exercise-row .field.compact select {
   width: 100%;
@@ -786,11 +782,13 @@ select {
 
 .select-dropdown {
   position: relative;
-  min-width: 340px;
+  display: inline-flex;
+  width: max-content;
+  max-width: none;
 }
 
 .select-dropdown-trigger {
-  width: 100%;
+  width: max-content;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -804,11 +802,9 @@ select {
 }
 
 .select-dropdown-label {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: max-content;
   text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -820,7 +816,6 @@ select {
 .select-dropdown-menu {
   position: absolute;
   left: 0;
-  right: 0;
   top: calc(100% + 6px);
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -830,13 +825,17 @@ select {
   max-height: 260px;
   overflow: auto;
   z-index: 20;
+  width: max-content;
+  max-width: none;
+  display: inline-flex;
+  flex-direction: column;
 }
 
 .select-dropdown-option {
-  width: 100%;
-  display: flex;
+  width: max-content;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   padding: 8px 10px;
   border-radius: 8px;
@@ -846,6 +845,11 @@ select {
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
+}
+
+.select-dropdown-option > span,
+.select-dropdown-option > .muted {
+  flex: 0 0 auto;
 }
 
 .select-dropdown-option:hover {
@@ -898,10 +902,6 @@ select {
 }
 
 @media (max-width: 720px) {
-  .select-dropdown {
-    min-width: 0;
-  }
-
   .exercise-row {
     grid-template-columns: 1fr;
   }
