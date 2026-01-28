@@ -31,7 +31,7 @@ func TestNewRouter(t *testing.T) {
 		Commit:            "abc123",
 	}
 
-	router, err := NewRouter(webFS, "/motus", api, false)
+	router, err := NewRouter(webFS, "/motus", logger, api, false)
 	require.NoError(t, err)
 
 	t.Run("GET /motus/", func(t *testing.T) {

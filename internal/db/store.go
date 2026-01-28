@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,21 +13,17 @@ type HealthChecker interface {
 
 // Store wraps all database access.
 type Store struct {
-	pool   *pgxpool.Pool
-	logger *slog.Logger
+	pool *pgxpool.Pool
 }
 
 // New establishes a connection pool.
-func New(ctx context.Context, url string, logger *slog.Logger) (*Store, error) {
+func New(ctx context.Context, url string) (*Store, error) {
 	// Initialize the pgx connection pool with the provided URL.
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		return nil, err
 	}
-	if logger == nil {
-		logger = slog.Default()
-	}
-	return &Store{pool: pool, logger: logger}, nil
+	return &Store{pool: pool}, nil
 }
 
 // Close releases the underlying connection pool.

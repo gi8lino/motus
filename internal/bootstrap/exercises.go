@@ -11,7 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/gi8lino/motus/internal/db"
-	"github.com/gi8lino/motus/internal/logging"
 )
 
 // exerciseStore is an interface for storing exercises.
@@ -52,7 +51,7 @@ func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Lo
 			}
 			return fmt.Errorf("create core exercise %q: %w", name, err)
 		}
-		logging.SystemLogger(logger, ctx).Info(
+		logger.Info(
 			"seeded core exercise",
 			"event", "bootstrap_exercise_seeded",
 			"resource", "exercise",

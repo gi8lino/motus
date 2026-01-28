@@ -114,13 +114,11 @@ func TestWithCategory(t *testing.T) {
 func TestCategoryLoggers(t *testing.T) {
 	t.Parallel()
 
-	t.Run("adds category and request_id", func(t *testing.T) {
-		t.Parallel()
+	buf := &bytes.Buffer{}
+	logger := slog.New(slog.NewJSONHandler(buf, nil))
+	ctx := WithRequestID(context.Background(), "req-789")
 
-		buf := &bytes.Buffer{}
-		logger := slog.New(slog.NewJSONHandler(buf, nil))
-		ctx := WithRequestID(context.Background(), "req-789")
-
+	t.Run("test logger seriesly", func(t *testing.T) {
 		AccessLogger(logger, ctx).Info("access")
 		entry := readLogJSON(t, buf)
 		assert.Equal(t, CategoryAccess, entry["category"])
@@ -130,12 +128,6 @@ func TestCategoryLoggers(t *testing.T) {
 		BusinessLogger(logger, ctx).Info("business")
 		entry = readLogJSON(t, buf)
 		assert.Equal(t, CategoryBusiness, entry["category"])
-		assert.Equal(t, "req-789", entry["request_id"])
-
-		buf.Reset()
-		DBLogger(logger, ctx).Info("db")
-		entry = readLogJSON(t, buf)
-		assert.Equal(t, CategoryDB, entry["category"])
 		assert.Equal(t, "req-789", entry["request_id"])
 
 		buf.Reset()
