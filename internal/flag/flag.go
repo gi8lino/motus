@@ -93,7 +93,8 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	if err := tf.Parse(args); err != nil {
-		return Options{}, err
+		// tinyflags.ContinueOnError will try to parse as many flags as possible, so we try to fetch the logFormat
+		return opts, err
 	}
 
 	opts.ListenAddr = (*listenAddr).String()
