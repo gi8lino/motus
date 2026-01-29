@@ -43,10 +43,18 @@ export function buildSummary(source: SummarySource): string {
     .join("\n");
   const startedAt = normalizeTimestamp(source.startedAt) || "n/a";
   const completedAt = normalizeTimestamp(source.completedAt) || "n/a";
+  let durationLabel = "";
+  if (startedAt !== "n/a" && completedAt !== "n/a") {
+    const startMs = Date.parse(startedAt);
+    const endMs = Date.parse(completedAt);
+    if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs >= startMs) {
+      durationLabel = ` (${formatElapsedMillis(endMs - startMs, { showHours: true })})`;
+    }
+  }
   return `Workout: ${source.workoutName || source.workoutId || "n/a"}
 User: ${source.userId || "n/a"}
 Started: ${startedAt}
-Finished: ${completedAt}
+Finished: ${completedAt}${durationLabel}
 Steps:
 ${lines || "No steps available."}`;
 }

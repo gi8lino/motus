@@ -1,4 +1,5 @@
 import type { TrainingHistoryItem, TrainingState } from "../../types";
+import { formatElapsedMillis } from "../../utils/format";
 import { UI_TEXT } from "../../utils/uiText";
 
 // HistoryList renders past trainings and supports selection/resume.
@@ -55,6 +56,17 @@ export function HistoryList({
                 {item.completedAt
                   ? `${UI_TEXT.history.finishedPrefix} ${new Date(item.completedAt).toLocaleString()}`
                   : UI_TEXT.history.notFinished}
+                {item.startedAt && item.completedAt
+                  ? (() => {
+                      const startMs = Date.parse(item.startedAt);
+                      const endMs = Date.parse(item.completedAt);
+                      if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
+                        return "";
+                      }
+                      const delta = Math.max(0, endMs - startMs);
+                      return ` • ${formatElapsedMillis(delta, { showHours: true })}`;
+                    })()
+                  : ""}
               </div>
             </div>
           </div>
