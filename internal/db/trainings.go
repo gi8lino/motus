@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -11,10 +11,10 @@ import (
 func (s *Store) RecordTraining(ctx context.Context, log TrainingLog, steps []TrainingStepLog) error {
 	// Persist the training log and optional step timings in one transaction.
 	if log.ID == "" {
-		return fmt.Errorf("training id required")
+		return errors.New("training id required")
 	}
 	if log.StartedAt.IsZero() || log.CompletedAt.IsZero() {
-		return fmt.Errorf("training timestamps required")
+		return errors.New("training timestamps required")
 	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {

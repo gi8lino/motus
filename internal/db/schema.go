@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const schemaVersionLatest = 1
+const schemaVersionLatest = 2
 
 type schemaMigration struct {
 	version    int
@@ -17,7 +17,7 @@ type schemaMigration struct {
 
 var schemaMigrations = []schemaMigration{
 	{
-		version: schemaVersionLatest,
+		version: 1,
 		name:    "baseline",
 		statements: []string{
 			`CREATE TABLE IF NOT EXISTS users (
@@ -49,6 +49,7 @@ var schemaMigrations = []schemaMigration{
             repeat_rest_after_last BOOLEAN NOT NULL DEFAULT FALSE,
             repeat_rest_sound_key TEXT NOT NULL DEFAULT '',
             repeat_rest_auto_advance BOOLEAN NOT NULL DEFAULT FALSE,
+            repeat_rest_name TEXT NOT NULL DEFAULT '',
             created_at TIMESTAMPTZ NOT NULL
         )`,
 			`CREATE TABLE IF NOT EXISTS workout_subsets (
@@ -99,6 +100,14 @@ var schemaMigrations = []schemaMigration{
             estimated_seconds INT NOT NULL,
             elapsed_millis BIGINT NOT NULL DEFAULT 0
         )`,
+		},
+	},
+	{
+		version: 2,
+		name:    "repeat rest name",
+		statements: []string{
+			`ALTER TABLE workout_steps
+				ADD COLUMN IF NOT EXISTS repeat_rest_name TEXT NOT NULL DEFAULT ''`,
 		},
 	},
 }

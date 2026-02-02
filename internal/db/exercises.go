@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"time"
 
@@ -173,7 +173,7 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 	// Insert a new exercise row.
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
-		return nil, fmt.Errorf("exercise name required")
+		return nil, errors.New("exercise name required")
 	}
 	ex := &Exercise{
 		ID:          utils.NewID(),
@@ -200,7 +200,7 @@ func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise,
 	// Update exercise name and propagate to workout references.
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
-		return nil, fmt.Errorf("exercise name required")
+		return nil, errors.New("exercise name required")
 	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {

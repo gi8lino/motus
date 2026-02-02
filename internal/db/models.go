@@ -42,6 +42,7 @@ type WorkoutStep struct {
 	RepeatRestAfterLast   bool            `json:"repeatRestAfterLast,omitempty"`   // RepeatRestAfterLast includes rest after last repeat.
 	RepeatRestSoundKey    string          `json:"repeatRestSoundKey,omitempty"`    // RepeatRestSoundKey plays during repeat rest.
 	RepeatRestAutoAdvance bool            `json:"repeatRestAutoAdvance,omitempty"` // RepeatRestAutoAdvance skips repeat rest automatically.
+	RepeatRestName        string          `json:"repeatRestName,omitempty"`        // RepeatRestName overrides the repeat pause label.
 
 	CreatedAt time.Time `json:"createdAt"` // CreatedAt records when the step was created.
 }
@@ -55,6 +56,7 @@ func (w *WorkoutStep) NormalizeRepeatSettings() {
 		w.RepeatRestAfterLast = false
 		w.RepeatRestSoundKey = ""
 		w.RepeatRestAutoAdvance = false
+		w.RepeatRestName = ""
 	}
 }
 

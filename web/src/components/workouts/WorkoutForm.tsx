@@ -296,6 +296,7 @@ export function WorkoutForm({
             typeof s.repeatRestAutoAdvance === "boolean"
               ? s.repeatRestAutoAdvance
               : true,
+          repeatRestName: s.repeatRestName || "",
         };
 
         if (isPauseStepType(step.type)) step.subsets = [];
@@ -350,6 +351,7 @@ export function WorkoutForm({
         repeatRestAfterLast: repeatRestAfterLastDefault,
         repeatRestSoundKey: "",
         repeatRestAutoAdvance: true,
+        repeatRestName: "",
         subsets: [createBlankSubset()],
       };
 
@@ -615,6 +617,17 @@ export function WorkoutForm({
               />
             </div>
 
+            <div className="field">
+              <label>Pause name</label>
+              <input
+                value={step.repeatRestName || ""}
+                onChange={(e) =>
+                  updateStep(idx, { repeatRestName: e.target.value })
+                }
+                placeholder="Pause"
+              />
+            </div>
+
             <PauseOptionsField
               autoAdvance={Boolean(step.repeatRestAutoAdvance)}
               soundKey={step.repeatRestSoundKey || ""}
@@ -772,6 +785,9 @@ export function WorkoutForm({
               : "",
           repeatRestAutoAdvance:
             Boolean(s.repeatRestSeconds) && Boolean(s.repeatRestAutoAdvance),
+          repeatRestName: s.repeatRestSeconds
+            ? (s.repeatRestName || "").trim()
+            : "",
           subsets: cleanSubsets,
         };
       });

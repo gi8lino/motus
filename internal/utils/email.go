@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"errors"
 	"net/mail"
 )
 
@@ -9,12 +9,12 @@ import (
 func NormalizeEmail(value string) (string, error) {
 	trimmed := NormalizeToken(value)
 	if trimmed == "" {
-		return "", fmt.Errorf("email is required")
+		return "", errors.New("email is required")
 	}
 
 	addr, err := mail.ParseAddress(trimmed)
 	if err != nil || addr.Address != trimmed {
-		return "", fmt.Errorf("valid email is required")
+		return "", errors.New("valid email is required")
 	}
 
 	return trimmed, nil

@@ -27,11 +27,12 @@ func normalizeRepeatRest(
 	repeatRestAutoAdvance bool,
 	repeatRestAfterLast bool,
 	repeatRestSoundKey string,
-) (seconds int, autoAdvance bool, afterLast bool, soundKey string) {
+	repeatRestName string,
+) (seconds int, autoAdvance bool, afterLast bool, soundKey string, name string) {
 	if repeatCount <= 1 || repeatRestSeconds == 0 {
-		return 0, false, false, ""
+		return 0, false, false, "", ""
 	}
-	return repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey
+	return repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey, repeatRestName
 }
 
 // parseDurationField parses a duration string to seconds or returns the fallback.
@@ -89,14 +90,16 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 		if repeatRestSoundKey != "" && validSoundKey != nil && !validSoundKey(repeatRestSoundKey) {
 			return nil, fmt.Errorf("invalid rest sound selection for step %s", name)
 		}
+		repeatRestName := strings.TrimSpace(in.RepeatRestName)
 
 		repeatCount := max(in.RepeatCount, 1)
-		repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey := normalizeRepeatRest(
+		repeatRestSeconds, repeatRestAutoAdvance, repeatRestAfterLast, repeatRestSoundKey, repeatRestName := normalizeRepeatRest(
 			repeatCount,
 			max(in.RepeatRestSeconds, 0),
 			in.RepeatRestAutoAdvance,
 			in.RepeatRestAfterLast,
 			repeatRestSoundKey,
+			repeatRestName,
 		)
 
 		autoAdvance := stepType == utils.StepTypePause && in.PauseOptions.AutoAdvance
@@ -112,6 +115,7 @@ func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.W
 			RepeatRestAfterLast:   repeatRestAfterLast,
 			RepeatRestSoundKey:    repeatRestSoundKey,
 			RepeatRestAutoAdvance: repeatRestAutoAdvance,
+			RepeatRestName:        repeatRestName,
 		}
 
 		if stepType == utils.StepTypePause {
@@ -148,10 +152,8 @@ func normalizeSubsets(stepName string, inputs []SubsetInput, validSoundKey func(
 // normalizeSubset builds a WorkoutSubset, enforcing duration and sound rules.
 func normalizeSubset(stepName string, index int, input SubsetInput, validSoundKey func(string) bool) (db.WorkoutSubset, error) {
 	name := strings.TrimSpace(input.Name)
-	label := name
-	if label == "" {
-		label = fmt.Sprintf("subset %d of %s", index+1, stepName)
-	}
+	label := utils.DefaultIfZero(name, fmt.Sprintf("subset %d of %s", index+1, stepName))
+
 	seconds, err := parseDurationField(input.Duration, 0)
 	if err != nil {
 		return db.WorkoutSubset{}, fmt.Errorf("invalid duration for %s: %w", label, err)
@@ -178,10 +180,8 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 	var exercises []db.SubsetExercise
 	for _, ex := range inputs {
 		exName := strings.TrimSpace(ex.Name)
-		token := utils.NormalizeToken(ex.Type)
-		if token == "" {
-			token = utils.ExerciseTypeRep
-		}
+		token := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
+
 		switch token {
 		case utils.ExerciseTypeRep, utils.ExerciseTypeStopwatch, utils.ExerciseTypeCountdown:
 		default:

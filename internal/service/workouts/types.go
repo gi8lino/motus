@@ -42,6 +42,7 @@ type StepInput struct {
 	RepeatRestAfterLast   bool          `json:"repeatRestAfterLast"`
 	RepeatRestSoundKey    string        `json:"repeatRestSoundKey"`
 	RepeatRestAutoAdvance bool          `json:"repeatRestAutoAdvance"`
+	RepeatRestName        string        `json:"repeatRestName"`
 }
 
 // SubsetInput describes a logical subset inside a set step.

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -140,7 +141,7 @@ func (s *Store) UpdateUserName(ctx context.Context, userID, name string) error {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
+		return errors.New("user not found")
 	}
 	return nil
 }
@@ -150,10 +151,10 @@ func (s *Store) UpsertAdminUser(ctx context.Context, email, passwordHash string)
 	// Insert or update the bootstrap admin account.
 	normalized := utils.NormalizeToken(email)
 	if normalized == "" {
-		return nil, false, fmt.Errorf("admin email is required")
+		return nil, false, errors.New("admin email is required")
 	}
 	if strings.TrimSpace(passwordHash) == "" {
-		return nil, false, fmt.Errorf("admin password hash is required")
+		return nil, false, errors.New("admin password hash is required")
 	}
 	now := time.Now().UTC()
 	row := s.pool.QueryRow(

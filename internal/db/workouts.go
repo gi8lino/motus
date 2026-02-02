@@ -60,9 +60,10 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 				repeat_rest_after_last,
 				repeat_rest_sound_key,
 				repeat_rest_auto_advance,
+				repeat_rest_name,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		`,
 			step.ID,
 			step.WorkoutID,
@@ -77,6 +78,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 			step.RepeatRestAfterLast,
 			step.RepeatRestSoundKey,
 			step.RepeatRestAutoAdvance,
+			step.RepeatRestName,
 			step.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -142,6 +144,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			repeat_rest_after_last,
 			repeat_rest_sound_key,
 			repeat_rest_auto_advance,
+			repeat_rest_name,
 			created_at
 		FROM workout_steps
 		WHERE workout_id=$1
@@ -170,6 +173,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			&st.RepeatRestAfterLast,
 			&st.RepeatRestSoundKey,
 			&st.RepeatRestAutoAdvance,
+			&st.RepeatRestName,
 			&st.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -352,9 +356,10 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 				repeat_rest_after_last,
 				repeat_rest_sound_key,
 				repeat_rest_auto_advance,
+				repeat_rest_name,
 				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		`,
 			step.ID,
 			step.WorkoutID,
@@ -369,6 +374,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 			step.RepeatRestAfterLast,
 			step.RepeatRestSoundKey,
 			step.RepeatRestAutoAdvance,
+			step.RepeatRestName,
 			step.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -475,10 +481,7 @@ func (s *Store) insertSubsetExercises(ctx context.Context, tx pgx.Tx, subsetID s
 		ex.ID = utils.NewID()
 		ex.SubsetID = subsetID
 		ex.Order = idx
-		token := utils.NormalizeToken(ex.Type)
-		if token == "" {
-			token = utils.ExerciseTypeRep
-		}
+		token := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
 		exType := utils.NormalizeExerciseType(token)
 
 		if _, err := tx.Exec(ctx, `

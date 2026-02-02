@@ -54,6 +54,7 @@ export type WorkoutStep = {
   repeatRestAfterLast?: boolean;
   repeatRestSoundKey?: string;
   repeatRestAutoAdvance?: boolean;
+  repeatRestName?: string;
 
   loopIndex?: number;
   loopTotal?: number;

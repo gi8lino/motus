@@ -105,14 +105,15 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Tr
 			}
 
 			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
+				restName := utils.DefaultIfZero(strings.TrimSpace(st.RepeatRestName), "Pause")
 				restState := TrainingStepState{
 					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
-					Name:             "Pause",
+					Name:             restName,
 					Type:             utils.StepTypePause.String(),
 					EstimatedSeconds: st.RepeatRestSeconds,
 					SoundURL:         soundURLByKey(st.RepeatRestSoundKey),
 					Current:          len(state.Steps) == 0,
-					SetName:          "Pause",
+					SetName:          restName,
 				}
 				if st.RepeatRestAutoAdvance {
 					restState.PauseOptions = PauseOptions{AutoAdvance: true}

@@ -25,6 +25,7 @@ export function expandWorkoutSteps(
     const restAfterLast = Boolean(step.repeatRestAfterLast);
     const restSoundKey = step.repeatRestSoundKey || "";
     const restAutoAdvance = Boolean(step.repeatRestAutoAdvance);
+    const restName = (step.repeatRestName || "").trim();
 
     for (let loop = 0; loop < repeatCount; loop += 1) {
       const loopIndex = repeatCount > 1 ? loop + 1 : undefined;
@@ -65,7 +66,7 @@ export function expandWorkoutSteps(
       if (restSeconds > 0 && (loop < repeatCount - 1 || restAfterLast)) {
         expanded.push({
           type: "pause",
-          name: "Pause",
+          name: restName || "Pause",
           estimatedSeconds: restSeconds,
           soundKey: restSoundKey,
           pauseOptions: restAutoAdvance ? { autoAdvance: true } : undefined,

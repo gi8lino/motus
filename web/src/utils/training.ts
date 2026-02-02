@@ -63,12 +63,13 @@ export function extractExerciseLabels(
   if (!step) return [];
 
   if (step.type === STEP_TYPE_PAUSE) {
+    const pauseLabel = getStepName(step);
     const durationText = step.estimatedSeconds
       ? formatCountdownMillis(step.estimatedSeconds * 1000)
       : "";
     const pauseText = durationText
-      ? `${UI_TEXT.labels.pause} • ${durationText}`
-      : UI_TEXT.labels.pause;
+      ? `${pauseLabel} • ${durationText}`
+      : pauseLabel;
     return [pauseText];
   }
 
