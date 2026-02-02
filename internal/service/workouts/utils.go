@@ -1,6 +1,7 @@
 package workouts
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -60,7 +61,7 @@ func isEmptyRepExercise(ex ExerciseInput) bool {
 // NormalizeSteps validates and converts step inputs into database steps.
 func NormalizeSteps(inputs []StepInput, validSoundKey func(string) bool) ([]db.WorkoutStep, error) {
 	if len(inputs) == 0 {
-		return nil, fmt.Errorf("at least one step is required")
+		return nil, errors.New("at least one step is required")
 	}
 
 	steps := make([]db.WorkoutStep, 0, len(inputs))

@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/gi8lino/motus/internal/utils"
@@ -47,7 +47,7 @@ func (s *Store) CreateTemplateFromWorkout(ctx context.Context, workoutID string,
 		return nil, err
 	}
 	if src.IsTemplate {
-		return nil, fmt.Errorf("workout is already a template")
+		return nil, errors.New("workout is already a template")
 	}
 	template := &Workout{
 		UserID: src.UserID,
@@ -68,7 +68,7 @@ func (s *Store) CreateWorkoutFromTemplate(ctx context.Context, templateID, userI
 		return nil, err
 	}
 	if !template.IsTemplate {
-		return nil, fmt.Errorf("workout is not a template")
+		return nil, errors.New("workout is not a template")
 	}
 	workout := &Workout{
 		UserID: userID,

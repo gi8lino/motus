@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -297,7 +296,7 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 	var w Workout
 	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("workout not found")
+			return nil, errors.New("workout not found")
 		}
 		return nil, err
 	}

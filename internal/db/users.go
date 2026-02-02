@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -107,7 +106,7 @@ func (s *Store) UpdateUserPassword(ctx context.Context, userID, passwordHash str
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
+		return errors.New("user not found")
 	}
 	return nil
 }
@@ -124,7 +123,7 @@ func (s *Store) UpdateUserAdmin(ctx context.Context, userID string, isAdmin bool
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("user not found")
+		return errors.New("user not found")
 	}
 	return nil
 }

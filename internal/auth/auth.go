@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -30,7 +29,7 @@ func ResolveUserID(r *http.Request, store Store, authHeader string, autoCreateUs
 	if authHeader != "" {
 		id := strings.TrimSpace(r.Header.Get(authHeader))
 		if id == "" {
-			return "", fmt.Errorf("auth header is required")
+			return "", errors.New("auth header is required")
 		}
 
 		email, err := utils.NormalizeEmail(id)
@@ -59,7 +58,7 @@ func ResolveUserID(r *http.Request, store Store, authHeader string, autoCreateUs
 	// Require the local auth header when no proxy header is configured.
 	id := strings.TrimSpace(r.Header.Get(localAuthHeader))
 	if id == "" {
-		return "", fmt.Errorf("userId is required")
+		return "", errors.New("userId is required")
 	}
 
 	email, err := utils.NormalizeEmail(id)

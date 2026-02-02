@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/mail"
@@ -26,7 +27,7 @@ func EnsureAdminUser(ctx context.Context, store store, logger *slog.Logger, emai
 		return nil
 	}
 	if email == "" || password == "" {
-		return fmt.Errorf("admin email and password must both be set")
+		return errors.New("admin email and password must both be set")
 	}
 	if _, err := mail.ParseAddress(email); err != nil {
 		return fmt.Errorf("invalid admin email: %w", err)
