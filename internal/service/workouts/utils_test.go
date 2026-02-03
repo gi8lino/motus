@@ -18,7 +18,7 @@ func TestNormalizeRepeatRest(t *testing.T) {
 
 	t.Run("Defaults", func(t *testing.T) {
 		t.Parallel()
-		seconds, auto, after, _ := normalizeRepeatRest(3, 10, true, false, "ok")
+		seconds, auto, after, _, _ := normalizeRepeatRest(3, 10, true, false, "ok", "Rest")
 		assert.Equal(t, 10, seconds)
 		assert.True(t, auto)
 		assert.False(t, after)
@@ -26,7 +26,7 @@ func TestNormalizeRepeatRest(t *testing.T) {
 
 	t.Run("Auto-advance", func(t *testing.T) {
 		t.Parallel()
-		seconds, auto, after, _ := normalizeRepeatRest(1, 10, true, false, "ok")
+		seconds, auto, after, _, _ := normalizeRepeatRest(1, 10, true, false, "ok", "Rest")
 		assert.Equal(t, 0, seconds)
 		assert.False(t, auto)
 		assert.False(t, after)
