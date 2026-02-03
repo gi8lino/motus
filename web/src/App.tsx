@@ -96,6 +96,9 @@ export default function App() {
     setView,
     setCurrentUserId,
   });
+  const allowRegistration = config?.allowRegistration ?? true;
+  const authHeaderEnabled = config?.authHeaderEnabled ?? false;
+  const appVersion = config?.version || "dev";
   const {
     users,
     sounds,
@@ -104,7 +107,8 @@ export default function App() {
     templates,
     activeWorkouts,
     currentUser,
-  } = useWorkoutsData({ currentUserId });
+    currentUserLoader,
+  } = useWorkoutsData({ currentUserId, authHeaderEnabled });
   const {
     defaultStepSoundKey,
     defaultPauseDuration,
@@ -121,10 +125,6 @@ export default function App() {
     updatePauseOnTabHidden,
     updateShowHours,
   } = useUserDefaults({ currentUserId });
-
-  const allowRegistration = config?.allowRegistration ?? true;
-  const authHeaderEnabled = config?.authHeaderEnabled ?? false;
-  const appVersion = config?.version || "dev";
 
   const currentWorkoutName = useMemo(() => {
     if (!selectedWorkoutId) return "";
@@ -156,17 +156,23 @@ export default function App() {
     return () => media.removeEventListener("change", handler);
   }, [themeMode]);
 
-  // ---------- validate stored user id once local users are known ----------
+  // ---------- validate stored user id once local user info is known ----------
   useEffect(() => {
     if (authHeaderEnabled) return;
-    if (!users.data) return;
-    if (currentUserId && users.data.find((u) => u.id === currentUserId)) return;
+    if (!currentUserId) return;
+    if (currentUser) return;
+    if (currentUserLoader.loading) return;
+    if (!currentUserLoader.error) return;
 
-    if (currentUserId) {
-      localStorage.removeItem("motus:userId");
-      setCurrentUserId(null);
-    }
-  }, [authHeaderEnabled, users.data, currentUserId]);
+    localStorage.removeItem("motus:userId");
+    setCurrentUserId(null);
+  }, [
+    authHeaderEnabled,
+    currentUserId,
+    currentUser,
+    currentUserLoader.loading,
+    currentUserLoader.error,
+  ]);
 
   // ---------- clear login errors when leaving login view ----------
   useEffect(() => {
@@ -182,9 +188,9 @@ export default function App() {
   // ---------- force login when local auth has no user ----------
   useEffect(() => {
     if (authHeaderEnabled) return;
-    if (!users.data) return;
+    if (currentUserLoader.loading) return;
     if (!currentUserId && view !== "login") setView("login");
-  }, [authHeaderEnabled, currentUserId, users.data, view, setView]);
+  }, [authHeaderEnabled, currentUserId, currentUserLoader.loading, view, setView]);
 
   // ---------- keep exercise catalog in sync ----------
   useEffect(() => {
