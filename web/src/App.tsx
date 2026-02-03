@@ -190,7 +190,13 @@ export default function App() {
     if (authHeaderEnabled) return;
     if (currentUserLoader.loading) return;
     if (!currentUserId && view !== "login") setView("login");
-  }, [authHeaderEnabled, currentUserId, currentUserLoader.loading, view, setView]);
+  }, [
+    authHeaderEnabled,
+    currentUserId,
+    currentUserLoader.loading,
+    view,
+    setView,
+  ]);
 
   // ---------- keep exercise catalog in sync ----------
   useEffect(() => {

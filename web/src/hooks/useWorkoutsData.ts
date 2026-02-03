@@ -51,9 +51,10 @@ export function useWorkoutsData({
   const templates = useDataLoader<Template[]>(listTemplates, []);
 
   const activeWorkouts = workouts.data || [];
-  const currentUser = useMemo(() => currentUserLoader.data || null, [
-    currentUserLoader.data,
-  ]);
+  const currentUser = useMemo(
+    () => currentUserLoader.data || null,
+    [currentUserLoader.data],
+  );
 
   return {
     currentUserLoader,
