@@ -58,7 +58,7 @@ export function TrainingCard({
       : false;
 
   const hasProgress = training?.steps?.some(
-    (s: any) => (s.elapsedMillis || 0) > 0 || Boolean(s.completed),
+    (step) => (step.elapsedMillis || 0) > 0 || Boolean(step.completed),
   );
   const hasStarted = Boolean(training?.running) || Boolean(hasProgress);
 
@@ -66,10 +66,8 @@ export function TrainingCard({
   // show remaining; otherwise show elapsed.
   const isAutoAdvance =
     (currentStep?.type === STEP_TYPE_PAUSE &&
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Boolean((currentStep as any).pauseOptions?.autoAdvance)) ||
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Boolean((currentStep as any)?.autoAdvance);
+      Boolean(currentStep.pauseOptions?.autoAdvance)) ||
+    Boolean(currentStep?.autoAdvance);
 
   const startLabel = training?.running
     ? UI_TEXT.actions.pause
@@ -108,7 +106,7 @@ export function TrainingCard({
 
   const currentExerciseLabel = useMemo(() => {
     if (!currentStep) return PROMPTS.noTraining;
-    return getCurrentExerciseLabel(currentStep as any);
+    return getCurrentExerciseLabel(currentStep);
   }, [currentStep]);
 
   const extractLabels = useCallback(
@@ -126,12 +124,12 @@ export function TrainingCard({
   const currentNumber = training ? training.currentIndex + 1 : 0;
 
   const remainingSteps = useMemo(
-    () => (training?.steps || []).filter((s: any) => !s.completed),
+    () => (training?.steps || []).filter((step) => !step.completed),
     [training?.trainingId, training?.steps],
   );
 
   const groupedSteps = useMemo(
-    () => buildStepGroups(remainingSteps as TrainingStepState[]),
+    () => buildStepGroups(remainingSteps),
     [remainingSteps],
   );
 

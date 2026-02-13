@@ -1,12 +1,17 @@
-import type { NormalizedState } from "./timerState";
-import { normalizeTraining } from "./timerState";
-import { now } from "./time";
+import { now } from "./clock";
+import { normalizeTraining } from "./state";
+import type { NormalizedState } from "./types";
 
 // STORAGE_KEY stores the persisted train payload.
 const STORAGE_KEY = "motus:train";
 
+type PersistedTraining = Partial<NormalizedState> & {
+  trainingId?: string;
+  lastUpdatedAt?: number;
+};
+
 // persistTraining stores the current train state in localStorage.
-export function persistTraining(state: NormalizedState | null) {
+export function persistTraining(state: NormalizedState | null): void {
   if (!state || state.done) {
     localStorage.removeItem(STORAGE_KEY);
     return;
@@ -26,10 +31,10 @@ export function loadPersistedTraining(): NormalizedState | null {
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw);
-    if (!parsed?.trainingId) return null;
+    const parsed = JSON.parse(raw) as PersistedTraining;
+    if (!parsed.trainingId) return null;
 
-    const state = normalizeTraining(parsed);
+    const state = normalizeTraining(parsed as NormalizedState);
 
     // Never resume "running" from storage. Restore elapsed (capped) then pause.
     const delta = parsed.lastUpdatedAt
@@ -56,6 +61,6 @@ export function loadPersistedTraining(): NormalizedState | null {
 }
 
 // clearPersistedTraining removes stored train data.
-export function clearPersistedTraining() {
+export function clearPersistedTraining(): void {
   localStorage.removeItem(STORAGE_KEY);
 }

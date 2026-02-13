@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 
 // useDataLoader wraps async loading with loading/error state.
@@ -9,35 +9,43 @@ export function useDataLoader<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loaderRef = useRef(loader);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    loaderRef.current = loader;
+  }, [loader]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const reload = useCallback(() => {
-    let cancelled = false;
+    const requestID = ++requestIdRef.current;
     setLoading(true);
 
-    loader()
+    loaderRef.current()
       .then((res) => {
-        if (cancelled) return;
+        if (!mountedRef.current || requestID !== requestIdRef.current) return;
         setData(res);
         setError(null);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (!mountedRef.current || requestID !== requestIdRef.current) return;
         setError(toErrorMessage(err, MESSAGES.loadFailed));
       })
       .finally(() => {
-        if (cancelled) return;
+        if (!mountedRef.current || requestID !== requestIdRef.current) return;
         setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {
-    const cancel = reload();
-    return cancel;
+    reload();
   }, [reload]);
 
   return { data, loading, error, setData, reload };

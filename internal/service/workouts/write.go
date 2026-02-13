@@ -5,8 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
-
+	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 	"github.com/gi8lino/motus/internal/service/sounds"
 )
@@ -53,6 +52,9 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*W
 	workout := &Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps}
 	updated, err := s.store.UpdateWorkout(ctx, workout)
 	if err != nil {
+		if errors.Is(err, db.ErrWorkoutNotFound) {
+			return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
+		}
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 
@@ -67,7 +69,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	}
 
 	if err := s.store.DeleteWorkout(ctx, id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || isNotFoundError(err) {
+		if errors.Is(err, db.ErrWorkoutNotFound) {
 			return errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
 		}
 		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)

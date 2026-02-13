@@ -33,7 +33,7 @@ func (a *API) CreateUser() http.HandlerFunc {
 
 		user, err := a.Users.Create(r.Context(), req.Email, req.AvatarURL, req.Password)
 		if err != nil {
-			a.Logger.Debug("create user failed", "err", err)
+			a.logRequestError(r, "create_user_failed", "create user failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
 		}
@@ -122,6 +122,7 @@ func (a *API) ChangePassword() http.HandlerFunc {
 		if err != nil {
 			a.logRequestError(r, "resolve_user_id_failed", "resolve user id failed", err)
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+			return
 		}
 
 		req, err := decode[changePasswordRequest](r)

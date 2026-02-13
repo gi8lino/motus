@@ -32,10 +32,6 @@ func Run(
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Create another context to listen for reload signals
-	reloadCh := make(chan os.Signal, 1)
-	signal.Notify(reloadCh, syscall.SIGHUP)
-
 	// Parse CLI flags and handle help/version requests.
 	opts, err := flag.ParseFlags(args, version)
 	// Setup logger immediately so startup errors are correctly logged.

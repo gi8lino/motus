@@ -48,6 +48,18 @@ function resumeMessage(
   return `Resume ${name}?`;
 }
 
+// shouldResetStoredUserID checks whether a loader error means the local user id is invalid.
+function shouldResetStoredUserID(error: string | null): boolean {
+  const text = (error || "").toLowerCase();
+  if (!text) return false;
+  return (
+    text.includes("unauthorized") ||
+    text.includes("not found") ||
+    text.includes("auth header is required") ||
+    text.includes("userid is required")
+  );
+}
+
 export default function App() {
   const { view, setView } = useViewState("train");
 
@@ -162,7 +174,7 @@ export default function App() {
     if (!currentUserId) return;
     if (currentUser) return;
     if (currentUserLoader.loading) return;
-    if (!currentUserLoader.error) return;
+    if (!shouldResetStoredUserID(currentUserLoader.error)) return;
 
     localStorage.removeItem("motus:userId");
     setCurrentUserId(null);

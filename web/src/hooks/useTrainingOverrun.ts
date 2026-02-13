@@ -1,37 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MutableRefObject } from "react";
 
-import type { TrainingState, TrainingStepState } from "../types";
-
-type OverrunState = {
-  show: boolean;
-  deadlineMs: number;
-};
-
-type OverrunRefState = {
-  key: string | null;
-  thresholdMs: number;
-  postponedUntilMs: number | null;
-  hasShown: boolean;
-};
-
-type TrainingRefs = {
-  trainingRef: MutableRefObject<TrainingState | null>;
-  currentStepRef: MutableRefObject<TrainingStepState | null>;
-  elapsedRef: MutableRefObject<number>;
-};
-
-type UseTrainingOverrunArgs = {
-  training: TrainingState | null;
-  currentStep: TrainingStepState | null;
-  elapsed: number;
-  onPause: () => void;
-  refs: TrainingRefs;
-};
-
-const OVERRUN_GRACE_MS = 30_000;
-const OVERRUN_MODAL_MS = 60_000;
-const OVERRUN_COUNTDOWN_TICK_MS = 250;
+import {
+  OVERRUN_COUNTDOWN_TICK_MS,
+  OVERRUN_GRACE_MS,
+  OVERRUN_MODAL_MS,
+} from "./trainingOverrun/constants";
+import {
+  buildOverrunKey,
+  clearTimer,
+  getEffectiveThresholdMs,
+  getOverrunThresholdMs,
+} from "./trainingOverrun/helpers";
+import type { OverrunRefState, OverrunState, UseTrainingOverrunArgs } from "./trainingOverrun/types";
 
 // useTrainingOverrun manages the "over target" modal countdown logic.
 export function useTrainingOverrun({
@@ -62,14 +42,8 @@ export function useTrainingOverrun({
   });
 
   const clearOverrunTimers = useCallback(() => {
-    if (overrunTimeoutRef.current) {
-      clearTimeout(overrunTimeoutRef.current);
-      overrunTimeoutRef.current = null;
-    }
-    if (overrunIntervalRef.current) {
-      clearInterval(overrunIntervalRef.current);
-      overrunIntervalRef.current = null;
-    }
+    clearTimer(overrunTimeoutRef);
+    clearTimer(overrunIntervalRef);
   }, []);
 
   const resetOverrunState = useCallback(() => {
@@ -84,8 +58,8 @@ export function useTrainingOverrun({
   }, [onPause, resetOverrunState]);
 
   const handleOverrunPostpone = useCallback(() => {
-    const s = trainingRef.current;
-    if (!s?.running) return;
+    const current = trainingRef.current;
+    if (!current?.running) return;
 
     overrunRef.current.postponedUntilMs = elapsedRef.current + OVERRUN_GRACE_MS;
     overrunRef.current.hasShown = false;
@@ -98,21 +72,14 @@ export function useTrainingOverrun({
     if (!training?.running) resetOverrunState();
   }, [training?.running, resetOverrunState]);
 
+  // Recompute overrun thresholds when switching to another step.
   useEffect(() => {
     resetOverrunState();
 
-    const estimateMs = currentStep?.estimatedSeconds
-      ? currentStep.estimatedSeconds * 1000
-      : 0;
-
-    const key =
-      training?.trainingId && typeof training.currentIndex === "number"
-        ? `${training.trainingId}:${training.currentIndex}:${currentStep?.id || ""}`
-        : null;
-
-    overrunRef.current.key = key;
-    overrunRef.current.thresholdMs =
-      estimateMs > 0 ? estimateMs + OVERRUN_GRACE_MS : 0;
+    overrunRef.current.key = buildOverrunKey(training, currentStep);
+    overrunRef.current.thresholdMs = getOverrunThresholdMs(
+      currentStep?.estimatedSeconds,
+    );
     overrunRef.current.postponedUntilMs = null;
     overrunRef.current.hasShown = false;
   }, [
@@ -123,6 +90,7 @@ export function useTrainingOverrun({
     resetOverrunState,
   ]);
 
+  // Open modal once elapsed passes threshold.
   useEffect(() => {
     if (!training?.running || !currentStep?.estimatedSeconds) return;
     if (overrunModal?.show) return;
@@ -130,13 +98,12 @@ export function useTrainingOverrun({
     const thresholdMs = overrunRef.current.thresholdMs;
     if (thresholdMs <= 0) return;
 
-    const postponedUntilMs = overrunRef.current.postponedUntilMs;
-    const effectiveThreshold =
-      postponedUntilMs && postponedUntilMs > thresholdMs
-        ? postponedUntilMs
-        : thresholdMs;
+    const effectiveThresholdMs = getEffectiveThresholdMs(
+      thresholdMs,
+      overrunRef.current.postponedUntilMs,
+    );
 
-    if (elapsed < effectiveThreshold) return;
+    if (elapsed < effectiveThresholdMs) return;
     if (overrunRef.current.hasShown) return;
 
     overrunRef.current.hasShown = true;
@@ -162,6 +129,7 @@ export function useTrainingOverrun({
     handleOverrunPause,
   ]);
 
+  // Keep countdown in sync while modal is visible.
   useEffect(() => {
     if (!overrunModal?.show) {
       clearOverrunTimers();

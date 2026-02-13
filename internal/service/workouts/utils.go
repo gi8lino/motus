@@ -13,14 +13,6 @@ import (
 
 var repRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
 
-// isNotFoundError reports whether the error matches a not found case.
-func isNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(strings.ToLower(err.Error()), "not found")
-}
-
 // normalizeRepeatRest adjusts repeat rest metadata when there is at least one repeat.
 func normalizeRepeatRest(
 	repeatCount int,

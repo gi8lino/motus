@@ -3,6 +3,7 @@ import { parseDurationSeconds } from "../../utils/time";
 import { STEP_TYPE_SET } from "../../utils/step";
 import {
   EXERCISE_TYPE_COUNTDOWN,
+  EXERCISE_TYPE_REP,
   EXERCISE_TYPE_STOPWATCH,
   normalizeExerciseType,
 } from "../../utils/exercise";
@@ -16,8 +17,7 @@ export function expandExerciseSteps(state: TrainingState): TrainingState {
     const shouldExpand =
       step.type === STEP_TYPE_SET &&
       (step.exercises?.length || 0) > 1 &&
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      !Boolean((step as any).superset);
+      !Boolean(step.superset);
 
     if (!shouldExpand) {
       expanded.steps.push(step);
@@ -26,12 +26,12 @@ export function expandExerciseSteps(state: TrainingState): TrainingState {
 
     step.exercises?.forEach((ex, idx) => {
       const kind = normalizeExerciseType(ex.type);
-      const durSec = parseDurationSeconds(ex.duration);
+      const durationSeconds = parseDurationSeconds(ex.duration);
       const baseName = ex.name || step.name || `Exercise ${idx + 1}`;
       const stepSound = step.soundKey;
 
       const usesStepTarget =
-        kind === "rep" &&
+        kind === EXERCISE_TYPE_REP &&
         step.exercises?.length === 1 &&
         Boolean(step.estimatedSeconds);
 
@@ -43,13 +43,13 @@ export function expandExerciseSteps(state: TrainingState): TrainingState {
         id: `${step.id || "step"}-ex-${idx}`,
         name: baseName,
         estimatedSeconds: isDurationExercise
-          ? durSec
+          ? durationSeconds
           : usesStepTarget
             ? step.estimatedSeconds
             : undefined,
         exercises: [ex],
         soundKey: stepSound,
-        autoAdvance: kind === EXERCISE_TYPE_COUNTDOWN && durSec > 0,
+        autoAdvance: kind === EXERCISE_TYPE_COUNTDOWN && durationSeconds > 0,
       });
     });
   });

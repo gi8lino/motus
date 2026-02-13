@@ -296,7 +296,7 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 	var w Workout
 	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("workout not found")
+			return nil, ErrWorkoutNotFound
 		}
 		return nil, err
 	}
@@ -317,12 +317,16 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 
-	if _, err := tx.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 		UPDATE workouts
 		SET name=$1
 		WHERE id=$2
-	`, w.Name, w.ID); err != nil {
+	`, w.Name, w.ID)
+	if err != nil {
 		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrWorkoutNotFound
 	}
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM workout_steps
@@ -422,7 +426,7 @@ func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return ErrWorkoutNotFound
 	}
 	return nil
 }

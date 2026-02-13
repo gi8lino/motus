@@ -3,6 +3,9 @@ package workouts
 import (
 	"context"
 	"testing"
+
+	"github.com/gi8lino/motus/internal/db"
+	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
 func TestCreate(t *testing.T) {
@@ -45,6 +48,28 @@ func TestUpdate(t *testing.T) {
 		}
 		if !called || workout == nil {
 			t.Fatalf("expected update to run")
+		}
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		t.Parallel()
+		svc := New(&fakeStore{
+			updateFn: func(context.Context, *Workout) (*Workout, error) {
+				return nil, db.ErrWorkoutNotFound
+			},
+		})
+		workout, err := svc.Update(context.Background(), "w1", WorkoutRequest{Name: "Workout", Steps: []StepInput{{Type: "set", Name: "A", Subsets: []SubsetInput{{Exercises: []ExerciseInput{{Name: "X"}}}}}}})
+		if workout != nil {
+			t.Fatalf("expected nil workout")
+		}
+		if err == nil {
+			t.Fatalf("expected error")
+		}
+		if !errpkg.IsKind(err, errpkg.ErrorNotFound) {
+			t.Fatalf("expected not_found error, got: %v", err)
+		}
+		if err.Error() != db.ErrWorkoutNotFound.Error() {
+			t.Fatalf("expected workout not found message, got: %v", err)
 		}
 	})
 }

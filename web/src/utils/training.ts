@@ -3,7 +3,7 @@ import { formatCountdownMillis, formatExerciseLine } from "./format";
 import { STEP_TYPE_PAUSE } from "./step";
 import { UI_TEXT } from "./uiText";
 
-type AnyStep = any;
+type StepLike = Partial<TrainingStepState> | null | undefined;
 
 export type StepGroup = {
   key: string;
@@ -23,14 +23,14 @@ export type StepGroup = {
 };
 
 // getExercises normalizes the exercises list for a step payload.
-export function getExercises(step: AnyStep): Exercise[] {
+export function getExercises(step: StepLike): Exercise[] {
   if (!step) return [];
   if (Array.isArray(step.exercises)) return step.exercises;
   return [];
 }
 
 // getStepName resolves the display label for a step.
-export function getStepName(step: AnyStep): string {
+export function getStepName(step: StepLike): string {
   const subsetLabel = String(step?.subsetLabel || "").trim();
   if (subsetLabel) return subsetLabel;
 
@@ -45,11 +45,9 @@ export function getStepName(step: AnyStep): string {
 }
 
 // getCurrentExerciseLabel builds the display label for the active exercise.
-export function getCurrentExerciseLabel(step: AnyStep): string {
+export function getCurrentExerciseLabel(step: StepLike): string {
   if (!step) return "";
-  const exercise = Array.isArray(step.exercises)
-    ? step.exercises[0]
-    : undefined;
+  const exercise = getExercises(step)[0];
   const formatted = exercise ? formatExerciseLine(exercise) : "";
   return formatted || getStepName(step);
 }

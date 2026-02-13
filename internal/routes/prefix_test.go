@@ -27,14 +27,14 @@ func TestNormalizeRoutePrefix(t *testing.T) {
 	})
 	t.Run("no leading slash", func(t *testing.T) {
 		t.Parallel()
-		if got := NormalizeRoutePrefix("tiledash"); got != "/tiledash" {
-			t.Fatalf("want '/tiledash', got %q", got)
+		if got := NormalizeRoutePrefix("motus"); got != "/motus" {
+			t.Fatalf("want '/motus', got %q", got)
 		}
 	})
 	t.Run("trailing slash", func(t *testing.T) {
 		t.Parallel()
-		if got := NormalizeRoutePrefix("/tiledash/"); got != "/tiledash" {
-			t.Fatalf("want '/tiledash', got %q", got)
+		if got := NormalizeRoutePrefix("/motus/"); got != "/motus" {
+			t.Fatalf("want '/motus', got %q", got)
 		}
 	})
 	t.Run("full url", func(t *testing.T) {
@@ -75,9 +75,9 @@ func TestMountUnderPrefix(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.Equal(t, "root", rec.Body.String())
 
-		// With empty prefix, "/tiledash/foo" is ALSO matched by "/" (catch-all) → 200 "root".
+		// With empty prefix, "/motus/foo" is ALSO matched by "/" (catch-all) → 200 "root".
 		rec2 := httptest.NewRecorder()
-		req2 := httptest.NewRequest(http.MethodGet, "/tiledash/foo", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/motus/foo", nil)
 		h.ServeHTTP(rec2, req2)
 		require.Equal(t, http.StatusOK, rec2.Code)
 		require.Equal(t, "root", rec2.Body.String())
@@ -86,31 +86,31 @@ func TestMountUnderPrefix(t *testing.T) {
 	t.Run("bare prefix redirects to prefix with trailing slash", func(t *testing.T) {
 		t.Parallel()
 
-		h := mountUnderPrefix(inner, "/tiledash")
+		h := mountUnderPrefix(inner, "/motus")
 
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/tiledash", nil) // bare prefix without slash
+		req := httptest.NewRequest(http.MethodGet, "/motus", nil) // bare prefix without slash
 		h.ServeHTTP(rec, req)
 
-		require.Equal(t, http.StatusMovedPermanently, rec.Code)
-		assert.Equal(t, "/tiledash/", rec.Header().Get("Location"))
+		require.Equal(t, http.StatusTemporaryRedirect, rec.Code)
+		assert.Equal(t, "/motus/", rec.Header().Get("Location"))
 	})
 
 	t.Run("prefixed paths are stripped and routed to inner handler", func(t *testing.T) {
 		t.Parallel()
 
-		h := mountUnderPrefix(inner, "/tiledash")
+		h := mountUnderPrefix(inner, "/motus")
 
 		// Request under the prefix should be stripped and served by inner "/foo".
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/tiledash/foo", nil)
+		req := httptest.NewRequest(http.MethodGet, "/motus/foo", nil)
 		h.ServeHTTP(rec, req)
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.Equal(t, "foo", rec.Body.String())
 
 		// Deeper nested path under the prefix should also be routed correctly.
 		rec2 := httptest.NewRecorder()
-		req2 := httptest.NewRequest(http.MethodGet, "/tiledash/api/v1/ok", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/motus/api/v1/ok", nil)
 		h.ServeHTTP(rec2, req2)
 		require.Equal(t, http.StatusOK, rec2.Code)
 		assert.Equal(t, "ok", rec2.Body.String())
@@ -119,9 +119,9 @@ func TestMountUnderPrefix(t *testing.T) {
 	t.Run("non-prefixed paths 404 when mounted under a prefix", func(t *testing.T) {
 		t.Parallel()
 
-		h := mountUnderPrefix(inner, "/tiledash")
+		h := mountUnderPrefix(inner, "/motus")
 
-		// Direct root path should not be served when app is mounted under /tiledash only.
+		// Direct root path should not be served when app is mounted under /motus only.
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
 		h.ServeHTTP(rec, req)

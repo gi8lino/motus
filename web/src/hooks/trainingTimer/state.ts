@@ -1,10 +1,8 @@
 import type { TrainingState, TrainingStepState } from "../../types";
 import { normalizeTimestamp } from "../../utils/time";
 import { STEP_TYPE_PAUSE, normalizeStepType } from "../../utils/step";
-import { now } from "./time";
-
-// NormalizedState adds bookkeeping metadata to train state.
-export type NormalizedState = TrainingState & { lastUpdatedAt: number };
+import { now } from "./clock";
+import type { NormalizedState } from "./types";
 
 // isAutoAdvanceStep returns true when a step should auto-advance at timer end.
 export function isAutoAdvanceStep(
@@ -12,11 +10,9 @@ export function isAutoAdvanceStep(
 ): boolean {
   if (!step) return false;
   if (step.type === STEP_TYPE_PAUSE) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return Boolean((step as any).pauseOptions?.autoAdvance);
+    return Boolean(step.pauseOptions?.autoAdvance);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return Boolean((step as any).autoAdvance);
+  return Boolean(step.autoAdvance);
 }
 
 // normalizeTraining sanitizes stored train data into a consistent shape.
@@ -70,16 +66,16 @@ export function normalizeTraining(raw: TrainingState): NormalizedState {
 }
 
 // ensureStartedAt records the train start timestamp when missing.
-export function ensureStartedAt(state: NormalizedState) {
+export function ensureStartedAt(state: NormalizedState): void {
   if (!state.startedAt) state.startedAt = new Date().toISOString();
 }
 
 // applyStepFlags normalizes step flags based on currentIndex/running/done.
-export function applyStepFlags(state: NormalizedState) {
+export function applyStepFlags(state: NormalizedState): void {
   const idx = state.currentIndex ?? 0;
-  state.steps = (state.steps || []).map((step, i) => {
-    const completed = state.done ? true : Boolean(step.completed || i < idx);
-    const current = !state.done && i === idx;
+  state.steps = (state.steps || []).map((step, index) => {
+    const completed = state.done ? true : Boolean(step.completed || index < idx);
+    const current = !state.done && index === idx;
     const running = Boolean(state.running) && current;
     return { ...step, completed, current, running };
   });
@@ -89,7 +85,7 @@ export function applyStepFlags(state: NormalizedState) {
 export function addRunningDeltaToCurrentStep(
   state: NormalizedState,
   atMs: number,
-) {
+): void {
   if (!state.running) {
     state.lastUpdatedAt = atMs;
     return;
@@ -107,7 +103,7 @@ export function addRunningDeltaToCurrentStep(
   state.lastUpdatedAt = atMs;
 }
 
-// currentStepElapsedNow reads elapsed for the active step *right now* without mutating state.
+// currentStepElapsedNow reads elapsed for the active step without mutating state.
 export function currentStepElapsedNow(
   state: NormalizedState,
   atMs: number,
@@ -122,38 +118,33 @@ export function currentStepElapsedNow(
 }
 
 // setRunning toggles running state and stamps runningSince.
-export function setRunning(state: NormalizedState, running: boolean) {
+export function setRunning(state: NormalizedState, running: boolean): void {
   state.running = running && !state.done;
   state.runningSince = state.running ? now() : null;
   ensureStartedAt(state);
   applyStepFlags(state);
 }
 
-// advanceIndex moves to next step, handling superset skip + done condition.
-export function advanceIndex(state: NormalizedState) {
+// advanceIndex moves to next step and applies superset skip and done logic.
+export function advanceIndex(state: NormalizedState): void {
   const currentIdx = state.currentIndex ?? 0;
   const current = state.steps?.[currentIdx];
 
-  // Mark current completed.
   if (current) {
     current.completed = true;
     current.current = false;
     current.running = false;
   }
 
-  // Superset skip behavior (preserving your original logic).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const skipSubsetId =
-    current && Boolean((current as any).superset) && (current as any).subsetId
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        String((current as any).subsetId)
+    current && current.superset && current.subsetId
+      ? String(current.subsetId)
       : null;
 
   let nextIdx = currentIdx + 1;
   if (skipSubsetId) {
     while (nextIdx < (state.steps?.length || 0)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const candidate = state.steps[nextIdx] as any;
+      const candidate = state.steps[nextIdx];
       if (candidate?.subsetId === skipSubsetId) {
         nextIdx += 1;
         continue;
@@ -163,7 +154,6 @@ export function advanceIndex(state: NormalizedState) {
   }
 
   if (!state.steps?.length || nextIdx >= state.steps.length) {
-    // Done.
     state.done = true;
     state.running = false;
     state.runningSince = null;
@@ -173,7 +163,6 @@ export function advanceIndex(state: NormalizedState) {
     return;
   }
 
-  // Move to next.
   state.currentIndex = nextIdx;
   state.running = true;
   state.runningSince = now();
@@ -181,8 +170,8 @@ export function advanceIndex(state: NormalizedState) {
   applyStepFlags(state);
 }
 
-// completeTraining stamps done state + stable timestamps based on elapsed sum.
-export function completeTraining(state: NormalizedState) {
+// completeTraining stamps done state and derives stable timestamps.
+export function completeTraining(state: NormalizedState): void {
   ensureStartedAt(state);
   state.done = true;
   state.running = false;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getConfig, getCurrentUser, setAuthHeaderEnabled } from "../api";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import type { View } from "../types";
@@ -25,6 +25,11 @@ export function useAppConfig({
 }: UseAppConfigArgs) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const viewRef = useRef<View>(view);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   useEffect(() => {
     getConfig()
@@ -38,7 +43,7 @@ export function useAppConfig({
           .then((user) => {
             setCurrentUserId(user.id);
             setAuthError(null);
-            if (view === "login") setView("train");
+            if (viewRef.current === "login") setView("train");
           })
           .catch((err: Error) => {
             setAuthError(toErrorMessage(err, MESSAGES.authFailed));
@@ -47,7 +52,7 @@ export function useAppConfig({
       .catch((err: Error) => {
         setAuthError(toErrorMessage(err, MESSAGES.configFailed));
       });
-  }, [setCurrentUserId, setView, view]);
+  }, [setCurrentUserId, setView]);
 
   return { config, authError };
 }

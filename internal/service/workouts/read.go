@@ -2,8 +2,10 @@ package workouts
 
 import (
 	"context"
+	"errors"
 	"strings"
 
+	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
@@ -15,7 +17,7 @@ func (s *Service) Get(ctx context.Context, id string) (*Workout, error) {
 	}
 	workout, err := s.store.WorkoutWithSteps(ctx, id)
 	if err != nil {
-		if isNotFoundError(err) {
+		if errors.Is(err, db.ErrWorkoutNotFound) {
 			return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
 		}
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
