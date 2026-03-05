@@ -8,6 +8,8 @@ import (
 
 	"github.com/gi8lino/motus/internal/handler"
 	"github.com/gi8lino/motus/internal/middleware"
+
+	"github.com/containeroo/httpprefix"
 )
 
 // NewRouter wires HTTP routes for Motus.
@@ -102,7 +104,7 @@ func NewRouter(
 			"event", "routes_mounted",
 			"prefix", routePrefix,
 		)
-		h = mountUnderPrefix(h, routePrefix)
+		h = httpprefix.MountUnderPrefix(h, routePrefix)
 	}
 
 	// Optional debug logging middleware.

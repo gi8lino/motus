@@ -4,10 +4,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/containeroo/tinyflags"
-
 	"github.com/gi8lino/motus/internal/logging"
-	"github.com/gi8lino/motus/internal/routes"
+
+	"github.com/containeroo/httpprefix"
+	"github.com/containeroo/tinyflags"
 )
 
 // Options holds the application configuration.
@@ -48,7 +48,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	tf.StringVar(&opts.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /heartbeats). Empty = root.").
 		Finalize(func(input string) string {
-			return routes.NormalizeRoutePrefix(input) // canonical "" or "/motus"
+			return httpprefix.NormalizeRoutePrefix(input) // canonical "" or "/motus"
 		}).
 		Placeholder("PATH").
 		Value()

@@ -9,15 +9,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/containeroo/httpgrace/server"
-	"github.com/containeroo/tinyflags"
-
 	"github.com/gi8lino/motus/internal/bootstrap"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/flag"
 	"github.com/gi8lino/motus/internal/handler"
 	"github.com/gi8lino/motus/internal/logging"
 	"github.com/gi8lino/motus/internal/routes"
+
+	"github.com/containeroo/httpgrace/server"
+	"github.com/containeroo/tinyflags"
 )
 
 // Run is the entry point for the application lifecycle.
