@@ -1,5 +1,5 @@
-github.com/containeroo/httpgrace v0.0.1 h1:TeBuTqV8N1bLnQ2uvrvVkrC9TxDeWJ2wXiUdaOAooPk=
-github.com/containeroo/httpgrace v0.0.1/go.mod h1:FDFAWmONVV6nBd7Wqcg2oGM+vKBMjoHo9nSL0QIEcgs=
+github.com/containeroo/httpgrace v0.0.5 h1:9kSvJgCYHx6l/SwDOPhGNVBoBBO56OqMvzVq7LV8G70=
+github.com/containeroo/httpgrace v0.0.5/go.mod h1:fxz9CocSiqeqNpoB/768Bi4xdly7qU7DHoHHL1vRSV8=
 github.com/containeroo/httpprefix v0.0.1 h1:sSPLNYJgoHvhRqKVTadC08aBIV010DQD6hiBGyaE1rA=
 github.com/containeroo/httpprefix v0.0.1/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
 github.com/containeroo/tinyflags v0.0.64 h1:OPQxaBjtS4aSNjjbZ+qs2H7Eyr77Up09M+RNb1fuIIg=
