@@ -1,4 +1,13 @@
-import { Modal } from "../common/Modal";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 
 type TrainingFinishModalProps = {
   summary: string | null;
@@ -6,7 +15,6 @@ type TrainingFinishModalProps = {
   onCopySummary: () => void;
 };
 
-// copySummary writes the summary to the clipboard when supported.
 const copySummary = (summary: string, onCopySummary: () => void) => {
   if (navigator?.clipboard?.writeText) {
     navigator.clipboard.writeText(summary).catch(() => {});
@@ -14,7 +22,6 @@ const copySummary = (summary: string, onCopySummary: () => void) => {
   onCopySummary();
 };
 
-// TrainingFinishModal shows the end-of-training summary overlay.
 export function TrainingFinishModal({
   summary,
   onClose,
@@ -23,25 +30,29 @@ export function TrainingFinishModal({
   if (!summary) return null;
 
   return (
-    <Modal open onClose={onClose}>
-      <h3>Great job!</h3>
-      <p className="muted">Training finished. Copy the summary for AI.</p>
-      <textarea
-        readOnly
-        value={summary}
-        style={{ width: "100%", minHeight: "180px" }}
-      />
-      <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-        <button
-          className="btn subtle"
-          onClick={() => copySummary(summary, onCopySummary)}
-        >
-          Copy
-        </button>
-        <button className="btn primary" onClick={onClose}>
+    <Dialog open onClose={onClose} fullWidth maxWidth="md">
+      <DialogTitle>Great job!</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2}>
+          <Typography color="text.secondary">
+            Training finished. Copy the summary for AI.
+          </Typography>
+
+          <TextField
+            value={summary}
+            multiline
+            minRows={10}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => copySummary(summary, onCopySummary)}>Copy</Button>
+        <Button variant="contained" onClick={onClose}>
           Close
-        </button>
-      </div>
-    </Modal>
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

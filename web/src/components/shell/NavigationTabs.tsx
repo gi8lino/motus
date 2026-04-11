@@ -1,4 +1,14 @@
 import { useState } from "react";
+import MenuIcon from "@mui/icons-material/Menu";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  Tab,
+  Tabs,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import type { View } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
 
@@ -19,43 +29,76 @@ const LABELS: Record<View, string> = {
   admin: UI_TEXT.nav.admin,
 };
 
-/**
- * NavTabs renders the main navigation (desktop + mobile).
- * It is intentionally dumb:
- * - no routing logic
- * - no auth logic
- * - no side effects
- */
 export function NavTabs({ view, views, onSelect }: NavTabsProps) {
-  const [open, setOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  if (isMobile) {
+    return (
+      <>
+        <Button
+          color="inherit"
+          variant="outlined"
+          startIcon={<MenuIcon />}
+          aria-label={UI_TEXT.accessibility.navToggle}
+          onClick={(event) => setAnchorEl(event.currentTarget)}
+          sx={{ justifyContent: "flex-start", borderColor: "divider" }}
+        >
+          {LABELS[view]}
+        </Button>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+        >
+          {views.map((nextView) => (
+            <MenuItem
+              key={nextView}
+              selected={view === nextView}
+              onClick={() => {
+                onSelect(nextView);
+                setAnchorEl(null);
+              }}
+            >
+              {LABELS[nextView]}
+            </MenuItem>
+          ))}
+        </Menu>
+      </>
+    );
+  }
 
   return (
-    <div className="nav-shell">
-      {/* Mobile toggle */}
-      <button
-        className="btn icon nav-toggle"
-        type="button"
-        aria-label={UI_TEXT.accessibility.navToggle}
-        onClick={() => setOpen((v) => !v)}
-      >
-        ☰
-      </button>
-
-      <nav className={open ? "nav-menu open" : "nav-menu"}>
-        {views.map((v) => (
-          <button
-            key={v}
-            type="button"
-            className={view === v ? "tab active" : "tab"}
-            onClick={() => {
-              onSelect(v);
-              setOpen(false);
-            }}
-          >
-            {LABELS[v]}
-          </button>
-        ))}
-      </nav>
-    </div>
+    <Tabs
+      value={view}
+      onChange={(_event, nextValue: View) => onSelect(nextValue)}
+      variant="scrollable"
+      allowScrollButtonsMobile
+      sx={{
+        minHeight: 0,
+        "& .MuiTabs-flexContainer": {
+          gap: 0.75,
+        },
+        "& .MuiTab-root": {
+          minHeight: 44,
+          px: 1.5,
+          borderRadius: 99,
+          color: "text.secondary",
+        },
+        "& .Mui-selected": {
+          color: "text.primary",
+          bgcolor: "action.selected",
+        },
+        "& .MuiTabs-indicator": {
+          height: 0,
+        },
+      }}
+    >
+      {views.map((nextView) => (
+        <Tab key={nextView} value={nextView} label={LABELS[nextView]} />
+      ))}
+    </Tabs>
   );
 }

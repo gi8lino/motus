@@ -1,4 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Typography,
+} from "@mui/material";
 
 import type {
   TrainingState,
@@ -11,14 +25,12 @@ import { PROMPTS } from "../../utils/messages";
 import { UI_TEXT } from "../../utils/uiText";
 import { getTrainingHeaderStatus } from "../../utils/training";
 import { TrainingCard } from "../training/TrainingCard";
-import { WorkoutPicker } from "../workouts/WorkoutPicker";
 import { TrainingFinishModal } from "../training/FinishTrainingModal";
 import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
 import { useTrainingAudio } from "../../hooks/useTrainingAudio";
 import { useTrainingOverrun } from "../../hooks/useTrainingOverrun";
 import { useTrainingKeyboard } from "../../hooks/useTrainingKeyboard";
 
-// Training runs the active workout training.
 export type TrainingViewData = {
   workouts: Workout[];
   selectedWorkoutId: string | null;
@@ -78,16 +90,18 @@ export function TrainingView({
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
   const autoFinishRef = useRef<string | null>(null);
 
-  // ---------- Refs for stable handlers ----------
   const trainingRef = useRef<TrainingState | null>(training);
   const currentStepRef = useRef<TrainingStepState | null>(currentStep);
   const elapsedRef = useRef(elapsed);
+
   useEffect(() => {
     trainingRef.current = training;
   }, [training]);
+
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
+
   useEffect(() => {
     elapsedRef.current = elapsed;
   }, [elapsed]);
@@ -118,7 +132,6 @@ export function TrainingView({
     refs: { trainingRef, currentStepRef, elapsedRef },
   });
 
-  // ---------- Keyboard shortcuts (ignore key repeat) ----------
   const runButtonRef = useRef<HTMLButtonElement>(null!);
   const nextActionButtonRef = useRef<HTMLButtonElement>(null!);
 
@@ -160,65 +173,151 @@ export function TrainingView({
       ? UI_TEXT.actions.new
       : UI_TEXT.actions.select;
 
+  const selectedWorkout = useMemo(
+    () => workouts.find((workout) => workout.id === selectedWorkoutId) ?? null,
+    [selectedWorkoutId, workouts],
+  );
+
   return (
     <>
-      <section className="panel">
-        <div className="panel-header">
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <h3 style={{ margin: 0 }}>{UI_TEXT.pages.training.title}</h3>
-            <div className="muted small">
-              {headerStatus ? (
-                <>
-                  <strong>
-                    {workoutName || UI_TEXT.training.headers.workoutFallback}
-                  </strong>
-                  {" • "}
-                  {headerStatus}
-                  {" • "}
-                  {formatElapsedMillis(elapsed, { showHours: data.showHours })}
-                </>
-              ) : (
-                <span>{PROMPTS.selectWorkoutToStart}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="btn-group">
-            <WorkoutPicker
-              workouts={workouts}
-              value={selectedWorkoutId}
-              onSelect={onSelectWorkout}
-              onClear={() => onSelectWorkout("")}
-            />
-            <button
-              className="btn primary"
-              onClick={onStartTraining}
-              disabled={startDisabled}
-              title={startTitle}
+      <Card
+        sx={{
+          overflow: "visible",
+          border: 1,
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Stack spacing={2.5}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              justifyContent="space-between"
+              spacing={2}
             >
-              {startLabel}
-            </button>
-          </div>
-        </div>
+              <Box>
+                <Typography variant="h4" sx={{ mb: 0.75 }}>
+                  {UI_TEXT.pages.training.title}
+                </Typography>
 
-        <TrainingCard
-          training={training}
-          currentStep={currentStep}
-          elapsed={elapsed}
-          workoutName={workoutName}
-          showHours={data.showHours}
-          onStart={handleStart}
-          onPause={handlePause}
-          onNext={() => {
-            stopActiveAudio();
-            onNext();
-          }}
-          onFinish={handleFinish}
-          onStopAudio={stopActiveAudio}
-          runButtonRef={runButtonRef}
-          nextButtonRef={nextActionButtonRef}
-        />
-      </section>
+                {headerStatus ? (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    flexWrap="wrap"
+                    sx={{ alignItems: "center" }}
+                  >
+                    <Chip
+                      size="small"
+                      color="primary"
+                      label={
+                        workoutName || UI_TEXT.training.headers.workoutFallback
+                      }
+                    />
+                    <Chip size="small" label={headerStatus} />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={formatElapsedMillis(elapsed, {
+                        showHours: data.showHours,
+                      })}
+                    />
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary">
+                    {PROMPTS.selectWorkoutToStart}
+                  </Typography>
+                )}
+              </Box>
+
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1.25}
+                sx={{
+                  width: { xs: "100%", md: "auto" },
+                  alignItems: { xs: "stretch", md: "center" },
+                }}
+              >
+                <FormControl
+                  size="small"
+                  sx={{ minWidth: { xs: "100%", sm: 280 } }}
+                >
+                  <InputLabel id="training-workout-label">
+                    {UI_TEXT.labels.workout}
+                  </InputLabel>
+                  <Select
+                    labelId="training-workout-label"
+                    value={selectedWorkoutId ?? ""}
+                    label={UI_TEXT.labels.workout}
+                    onChange={(event) =>
+                      onSelectWorkout(String(event.target.value))
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>{UI_TEXT.placeholders.selectWorkout}</em>
+                    </MenuItem>
+                    {workouts.map((workout) => (
+                      <MenuItem key={workout.id} value={workout.id}>
+                        {workout.name} · {workout.steps.length} steps
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<PlayCircleFilledRoundedIcon />}
+                  onClick={onStartTraining}
+                  disabled={startDisabled}
+                  title={startTitle}
+                  sx={{
+                    minWidth: { xs: "100%", sm: 148 },
+                    alignSelf: "stretch",
+                  }}
+                >
+                  {startLabel}
+                </Button>
+              </Stack>
+            </Stack>
+
+            {selectedWorkout && !training ? (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1.25,
+                  borderRadius: 3,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  {selectedWorkout.name} is ready with {selectedWorkout.steps.length}{" "}
+                  steps. Hit start to jump into the first exercise.
+                </Typography>
+              </Box>
+            ) : null}
+
+            <TrainingCard
+              training={training}
+              currentStep={currentStep}
+              elapsed={elapsed}
+              workoutName={workoutName}
+              showHours={data.showHours}
+              onStart={handleStart}
+              onPause={handlePause}
+              onNext={() => {
+                stopActiveAudio();
+                onNext();
+              }}
+              onFinish={handleFinish}
+              onStopAudio={stopActiveAudio}
+              runButtonRef={runButtonRef}
+              nextButtonRef={nextActionButtonRef}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
 
       <TrainingFinishModal
         summary={finishSummary}

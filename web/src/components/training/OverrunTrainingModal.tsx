@@ -1,5 +1,12 @@
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from "@mui/material";
 import { formatCountdownMillis } from "../../utils/format";
-import { Modal } from "../common/Modal";
 import { UI_TEXT } from "../../utils/uiText";
 
 type TrainingOverrunModalProps = {
@@ -10,7 +17,6 @@ type TrainingOverrunModalProps = {
   showHours?: boolean;
 };
 
-// TrainingOverrunModal prompts when a target duration has elapsed.
 export function TrainingOverrunModal({
   show,
   countdown,
@@ -21,20 +27,20 @@ export function TrainingOverrunModal({
   if (!show) return null;
 
   return (
-    <Modal open onClose={onPause}>
-      <h3>{UI_TEXT.pages.training.overrunTitle}</h3>
-      <p className="muted">
-        {UI_TEXT.pages.training.overrunMessage}{" "}
-        {formatCountdownMillis(countdown, { showHours })}.
-      </p>
-      <div className="btn-group" style={{ justifyContent: "flex-end" }}>
-        <button className="btn subtle" onClick={onPostpone}>
-          {UI_TEXT.pages.training.overrunPostpone}
-        </button>
-        <button className="btn primary" onClick={onPause}>
+    <Dialog open onClose={onPause} maxWidth="xs" fullWidth>
+      <DialogTitle>{UI_TEXT.pages.training.overrunTitle}</DialogTitle>
+      <DialogContent dividers>
+        <Typography color="text.secondary">
+          {UI_TEXT.pages.training.overrunMessage}{" "}
+          {formatCountdownMillis(countdown, { showHours })}.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onPostpone}>{UI_TEXT.pages.training.overrunPostpone}</Button>
+        <Button variant="contained" onClick={onPause}>
           {UI_TEXT.actions.pause}
-        </button>
-      </div>
-    </Modal>
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

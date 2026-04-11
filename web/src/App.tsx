@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import {
   applyTemplate,
   getWorkout,
@@ -30,6 +31,7 @@ import DialogModal from "./components/common/DialogModal";
 import { isValidEmail } from "./utils/validation";
 import { PROMPTS, toErrorMessage } from "./utils/messages";
 import { UI_TEXT } from "./utils/uiText";
+import { buildAppTheme } from "./theme";
 
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
@@ -76,6 +78,17 @@ export default function App() {
     if (stored === "dark" || stored === "light" || stored === "auto")
       return stored;
     return "auto";
+  });
+  const [resolvedThemeMode, setResolvedThemeMode] = useState<
+    "dark" | "light"
+  >(() => {
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      return "dark";
+    }
+    return "light";
   });
 
   // train view state
@@ -152,10 +165,13 @@ export default function App() {
         const prefersDark = window.matchMedia(
           "(prefers-color-scheme: dark)",
         ).matches;
-        root.dataset.theme = prefersDark ? "dark" : "light";
+        const nextMode = prefersDark ? "dark" : "light";
+        root.dataset.theme = nextMode;
+        setResolvedThemeMode(nextMode);
         return;
       }
       root.dataset.theme = themeMode;
+      setResolvedThemeMode(themeMode);
     };
 
     localStorage.setItem("motus:theme", themeMode);
@@ -167,6 +183,11 @@ export default function App() {
     media.addEventListener("change", handler);
     return () => media.removeEventListener("change", handler);
   }, [themeMode]);
+
+  const theme = useMemo(
+    () => buildAppTheme(resolvedThemeMode),
+    [resolvedThemeMode],
+  );
 
   // ---------- validate stored user id once local user info is known ----------
   useEffect(() => {
@@ -426,7 +447,9 @@ export default function App() {
   const resumeOpen = promptedResume && Boolean(training && !training.done);
 
   return (
-    <>
+    <ThemeProvider theme={theme}>
+      <CssBaseline enableColorScheme />
+
       <AppShell
         view={view}
         onViewChange={setView}
@@ -644,6 +667,6 @@ export default function App() {
           onClose={closeDialog}
         />
       )}
-    </>
+    </ThemeProvider>
   );
 }

@@ -1,20 +1,32 @@
+import { Box, Stack, Typography } from "@mui/material";
 import { withBasePath } from "../../utils/basePath";
 import { UI_TEXT } from "../../utils/uiText";
 
-// brandLogoSrc resolves the Motus icon URL with the configured base path.
 const brandLogoSrc = withBasePath("/brand.svg");
 
-// BrandHeader keeps the brand consistent across early-return layouts.
 export function BrandHeader() {
   return (
-    <header className="topbar">
-      <h1 className="brand">
-        <img
-          className="brand-logo"
-          src={brandLogoSrc}
-          alt={UI_TEXT.accessibility.brandAlt}
-        />
-      </h1>
-    </header>
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Box
+        component="img"
+        src={brandLogoSrc}
+        alt={UI_TEXT.accessibility.brandAlt}
+        sx={{
+          width: 42,
+          height: 42,
+          flexShrink: 0,
+          filter: "drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18))",
+        }}
+      />
+
+      <Box>
+        <Typography variant="h5" lineHeight={1} fontWeight={800}>
+          Motus
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Training cockpit
+        </Typography>
+      </Box>
+    </Stack>
   );
 }
