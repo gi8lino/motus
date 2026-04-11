@@ -1,5 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  CssBaseline,
+  ThemeProvider,
+  Typography,
+} from "@mui/material";
 import {
   applyTemplate,
   getWorkout,
@@ -16,15 +32,6 @@ import { useAppConfig } from "./hooks/useAppConfig";
 import { useWorkoutsData } from "./hooks/useWorkoutsData";
 import { useUserDefaults } from "./hooks/useUserDefaults";
 
-import { LoginView } from "./components/pages/LoginPage";
-import { AdminView } from "./components/pages/AdminPage";
-import { WorkoutsView } from "./components/pages/WorkoutsPage";
-import { TrainingView } from "./components/pages/TrainingPage";
-import { TemplatesView } from "./components/pages/TemplatesPage";
-import { HistoryView } from "./components/pages/HistoryPage";
-import { ProfileView } from "./components/pages/ProfilePage";
-import { ExercisesView } from "./components/pages/ExercisesPage";
-
 import { AppShell } from "./components/shell/AppShell";
 import DialogModal from "./components/common/DialogModal";
 
@@ -40,6 +47,47 @@ import { useProfileActions } from "./hooks/useProfileActions";
 import { useTrainingActions } from "./hooks/useTrainingActions";
 
 import "./styles.css";
+
+const LoginView = lazy(() =>
+  import("./components/pages/LoginPage").then((module) => ({
+    default: module.LoginView,
+  })),
+);
+const AdminView = lazy(() =>
+  import("./components/pages/AdminPage").then((module) => ({
+    default: module.AdminView,
+  })),
+);
+const WorkoutsView = lazy(() =>
+  import("./components/pages/WorkoutsPage").then((module) => ({
+    default: module.WorkoutsView,
+  })),
+);
+const TrainingView = lazy(() =>
+  import("./components/pages/TrainingPage").then((module) => ({
+    default: module.TrainingView,
+  })),
+);
+const TemplatesView = lazy(() =>
+  import("./components/pages/TemplatesPage").then((module) => ({
+    default: module.TemplatesView,
+  })),
+);
+const HistoryView = lazy(() =>
+  import("./components/pages/HistoryPage").then((module) => ({
+    default: module.HistoryView,
+  })),
+);
+const ProfileView = lazy(() =>
+  import("./components/pages/ProfilePage").then((module) => ({
+    default: module.ProfileView,
+  })),
+);
+const ExercisesView = lazy(() =>
+  import("./components/pages/ExercisesPage").then((module) => ({
+    default: module.ExercisesView,
+  })),
+);
 
 // resumeMessage formats a resume prompt for an in-progress training.
 function resumeMessage(
@@ -59,6 +107,30 @@ function shouldResetStoredUserID(error: string | null): boolean {
     text.includes("not found") ||
     text.includes("auth header is required") ||
     text.includes("userid is required")
+  );
+}
+
+function PageFallback() {
+  return (
+    <Card sx={{ maxWidth: 560, mx: "auto" }}>
+      <CardContent
+        sx={{
+          minHeight: 220,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={28} />
+        <Box>
+          <Typography variant="h6">Loading view</Typography>
+          <Typography color="text.secondary">
+            Pulling in the next part of the app.
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -475,8 +547,9 @@ export default function App() {
         toast={toast}
         appVersion={appVersion}
       >
-        {view === "login" && !authHeaderEnabled && (
-          <LoginView
+          <Suspense fallback={<PageFallback />}>
+            {view === "login" && !authHeaderEnabled && (
+              <LoginView
             data={{
               allowRegistration,
               loginError,
@@ -493,11 +566,11 @@ export default function App() {
               },
               onClearError: () => setLoginError(null),
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "admin" && currentUser?.isAdmin && (
-          <AdminView
+            {view === "admin" && currentUser?.isAdmin && (
+              <AdminView
             data={{
               users: users.data || [],
               loading: users.loading,
@@ -515,11 +588,11 @@ export default function App() {
               },
               onBackfill: backfillCatalog,
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "workouts" && (
-          <WorkoutsView
+            {view === "workouts" && (
+              <WorkoutsView
             workouts={activeWorkouts}
             loading={workouts.loading}
             setWorkouts={(updater) => workouts.setData?.(updater)}
@@ -544,11 +617,11 @@ export default function App() {
               promptUser: askPrompt,
               onToast: showToast,
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "train" && (
-          <TrainingView
+            {view === "train" && (
+              <TrainingView
             data={{
               workouts: activeWorkouts,
               selectedWorkoutId,
@@ -573,11 +646,11 @@ export default function App() {
               onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
               onToast: showToast,
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "templates" && (
-          <TemplatesView
+            {view === "templates" && (
+              <TemplatesView
             data={{
               templates: templates.data || [],
               loading: templates.loading,
@@ -587,11 +660,11 @@ export default function App() {
               onRefresh: () => templates.reload(),
               onApplyTemplate: handleApplyTemplate,
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "history" && (
-          <HistoryView
+            {view === "history" && (
+              <HistoryView
             data={{
               items: history.data || [],
               activeTraining: training,
@@ -601,11 +674,11 @@ export default function App() {
               loadWorkout: getWorkout,
               onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "profile" && (
-          <ProfileView
+            {view === "profile" && (
+              <ProfileView
             data={{
               profileTab,
               currentName: currentUser?.name || "",
@@ -640,11 +713,11 @@ export default function App() {
               onImportWorkout: handleImportSelected,
               onPasswordChange: handlePasswordSubmit,
             }}
-          />
-        )}
+              />
+            )}
 
-        {view === "exercises" && (
-          <ExercisesView
+            {view === "exercises" && (
+              <ExercisesView
             data={{
               exercises: exerciseCatalog,
               isAdmin: Boolean(currentUser?.isAdmin),
@@ -655,8 +728,9 @@ export default function App() {
               onRenameExercise: handleRenameExercise,
               onDeleteExercise: handleDeleteExercise,
             }}
-          />
-        )}
+              />
+            )}
+          </Suspense>
       </AppShell>
 
       {dialog && (

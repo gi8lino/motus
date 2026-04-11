@@ -23,12 +23,12 @@ export function buildAppTheme(mode: PaletteMode) {
         dark: isDark ? "#d97706" : "#9a3412",
       },
       background: {
-        default: isDark ? "#071018" : "#f4efe7",
-        paper: isDark ? "#10202d" : "#fffdf8",
+        default: isDark ? "#081019" : "#f5f0e9",
+        paper: isDark ? "#10202b" : "#fffaf3",
       },
       divider: isDark
-        ? alpha("#d7ecff", 0.1)
-        : alpha("#163047", 0.12),
+        ? alpha("#d7ecff", 0.08)
+        : alpha("#163047", 0.1),
       text: {
         primary: isDark ? "#eff7ff" : "#102235",
         secondary: isDark ? "#a9bfd2" : "#5c7083",
@@ -86,13 +86,13 @@ export function buildAppTheme(mode: PaletteMode) {
             backgroundImage: isDark
               ? [
                   "radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 28%)",
-                  "radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 32%)",
-                  "linear-gradient(180deg, #08121a 0%, #071018 55%, #06111a 100%)",
+                  "radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 32%)",
+                  "linear-gradient(180deg, #08121a 0%, #09121a 55%, #060d14 100%)",
                 ].join(",")
               : [
                   "radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 28%)",
-                  "radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 32%)",
-                  "linear-gradient(180deg, #f7f3ec 0%, #f4efe7 55%, #efe7dc 100%)",
+                  "radial-gradient(circle at top right, rgba(194, 65, 12, 0.1), transparent 32%)",
+                  "linear-gradient(180deg, #f8f4ee 0%, #f5f0e9 55%, #eee5d8 100%)",
                 ].join(","),
             backgroundAttachment: "fixed",
           },
@@ -114,8 +114,11 @@ export function buildAppTheme(mode: PaletteMode) {
           root: {
             backgroundImage: "none",
             boxShadow: isDark
-              ? "0 24px 60px rgba(0, 0, 0, 0.28)"
-              : "0 24px 60px rgba(47, 63, 89, 0.12)",
+              ? "0 16px 42px rgba(0, 0, 0, 0.22)"
+              : "0 16px 42px rgba(47, 63, 89, 0.08)",
+            border: `1px solid ${
+              isDark ? alpha("#d7ecff", 0.08) : alpha("#163047", 0.08)
+            }`,
           },
         },
       },
@@ -136,6 +139,16 @@ export function buildAppTheme(mode: PaletteMode) {
           },
           sizeLarge: {
             minHeight: 52,
+            paddingInline: 22,
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark
+              ? alpha("#0f1a24", 0.72)
+              : alpha("#ffffff", 0.72),
           },
         },
       },
@@ -144,6 +157,7 @@ export function buildAppTheme(mode: PaletteMode) {
           root: {
             borderRadius: 999,
             fontWeight: 600,
+            backdropFilter: "blur(10px)",
           },
         },
       },
