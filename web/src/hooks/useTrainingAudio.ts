@@ -29,6 +29,7 @@ export function useTrainingAudio({
   const audioRef = useRef(createAudioController());
   const {
     tokenRef,
+    unlock: unlockAudio,
     pause: pauseAudio,
     resume: resumeAudio,
     stopAll: stopAllAudio,
@@ -76,9 +77,10 @@ export function useTrainingAudio({
   }, [onPause, pauseAudio]);
 
   const handleStart = useCallback(() => {
+    void unlockAudio();
     onStartStep();
     resumeAudio();
-  }, [onStartStep, resumeAudio]);
+  }, [onStartStep, resumeAudio, unlockAudio]);
 
   usePauseOnHidden({
     pauseOnTabHidden,

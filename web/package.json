@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --experimental-specifier-resolution=node --test tests/**/*.test.ts"
+    "test": "node --experimental-strip-types --experimental-specifier-resolution=node --test tests/*.test.ts tests/**/*.test.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
