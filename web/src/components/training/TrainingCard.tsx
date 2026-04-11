@@ -1,10 +1,8 @@
 import { useCallback, useMemo, type RefObject } from "react";
-import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import SkipNextRoundedIcon from "@mui/icons-material/SkipNextRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
-import TimerRoundedIcon from "@mui/icons-material/TimerRounded";
 import {
   Box,
   Button,
@@ -54,6 +52,33 @@ function formatRoundLabel(step: TrainingStepState | null) {
   const total = step?.loopTotal ?? 0;
   if (total <= 1) return "";
   return `Round ${step?.loopIndex || 1}/${total}`;
+}
+
+function formatRoundValue(step: TrainingStepState | null) {
+  const total = step?.loopTotal ?? 0;
+  if (total <= 1) return "";
+  return `${step?.loopIndex || 1}/${total}`;
+}
+
+function formatStepValue(current: number, total: number) {
+  if (!total) return "";
+  return `${current}/${total}`;
+}
+
+function getAdaptiveTitleSize(
+  text: string,
+  options: {
+    short: string;
+    medium: string;
+    long: string;
+    xlong: string;
+  },
+) {
+  const length = text.trim().length;
+  if (length > 28) return options.xlong;
+  if (length > 22) return options.long;
+  if (length > 16) return options.medium;
+  return options.short;
 }
 
 function formatNextSupportLine(
@@ -300,8 +325,10 @@ export function TrainingCard({
       ? "Recovery block"
       : currentStepPills.length > 1
         ? currentStepPills.slice(1).join(" • ")
-        : workoutName || "Current movement";
+        : "";
   const roundLabel = formatRoundLabel(currentStep);
+  const roundValue = formatRoundValue(currentStep);
+  const stepValue = formatStepValue(currentNumber, totalSteps);
   const currentTone =
     currentStep?.type === STEP_TYPE_PAUSE ? "pause" : training ? "live" : "idle";
 
@@ -320,6 +347,18 @@ export function TrainingCard({
     nextSecondaryLabels,
     showHours,
   );
+  const heroTitleSize = getAdaptiveTitleSize(heroTitle, {
+    short: "clamp(3.2rem, 5vw, 5.2rem)",
+    medium: "clamp(2.8rem, 4.4vw, 4.5rem)",
+    long: "clamp(2.35rem, 3.8vw, 3.8rem)",
+    xlong: "clamp(1.95rem, 3.2vw, 3.1rem)",
+  });
+  const nextTitleSize = getAdaptiveTitleSize(nextPrimaryLabel, {
+    short: "2.2rem",
+    medium: "1.95rem",
+    long: "1.65rem",
+    xlong: "1.4rem",
+  });
 
   return (
     <Stack spacing={2.5}>
@@ -341,43 +380,73 @@ export function TrainingCard({
         >
           <CardContent sx={{ p: { xs: 2.25, md: 3.25 } }}>
             <Stack spacing={{ xs: 2, md: 2.75 }}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                spacing={1}
+              <Box
+                sx={{
+                  width: "100%",
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  alignItems: "start",
+                  columnGap: 2,
+                  rowGap: 1,
+                }}
               >
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Chip
                     size="small"
-                    icon={
-                      currentTone === "pause" ? (
-                        <PauseCircleRoundedIcon />
-                      ) : (
-                        <FitnessCenterRoundedIcon />
-                      )
-                    }
                     label={UI_TEXT.training.cards.now}
                     color={currentTone === "pause" ? "warning" : "primary"}
                   />
-                  {training ? (
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={formatStepCounter(currentNumber, totalSteps)}
-                    />
-                  ) : null}
-                  {roundLabel ? (
-                    <Chip size="small" variant="outlined" label={roundLabel} />
-                  ) : null}
                 </Stack>
 
-                {workoutName ? (
-                  <Typography variant="body2" color="text.secondary">
-                    {workoutName}
-                  </Typography>
+                {training ? (
+                  <Box
+                    sx={{
+                      minWidth: 116,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifySelf: "end",
+                      alignItems: "flex-end",
+                      gap: 0.9,
+                    }}
+                  >
+                    {roundValue ? (
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            letterSpacing: "0.12em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Round
+                        </Typography>
+                        <Typography variant="h6" sx={{ lineHeight: 1.05 }}>
+                          {roundValue}
+                        </Typography>
+                      </Box>
+                    ) : null}
+
+                    {stepValue ? (
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            letterSpacing: "0.12em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Step
+                        </Typography>
+                        <Typography variant="body1" fontWeight={700} sx={{ lineHeight: 1.05 }}>
+                          {stepValue}
+                        </Typography>
+                      </Box>
+                    ) : null}
+                  </Box>
                 ) : null}
-              </Stack>
+              </Box>
 
               <Stack
                 spacing={{ xs: 1.5, md: 2.25 }}
@@ -385,27 +454,30 @@ export function TrainingCard({
                 justifyContent="space-between"
               >
                 <Stack spacing={1.25}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <TimerRoundedIcon color="action" />
-                    <Typography
-                      variant={isMobile ? "h2" : "h1"}
-                      sx={{
-                        fontVariantNumeric: "tabular-nums",
-                        letterSpacing: "-0.06em",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {clockText}
-                    </Typography>
-                  </Stack>
+                  <Typography
+                    variant={isMobile ? "h2" : "h1"}
+                    sx={{
+                      fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.06em",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {clockText}
+                  </Typography>
 
                   <Box>
                     <Typography
                       variant={isMobile ? "h4" : "h2"}
                       sx={{
-                        maxWidth: "12ch",
+                        fontSize: {
+                          xs: "clamp(2.15rem, 6vw, 3.2rem)",
+                          md: heroTitleSize,
+                        },
                         textTransform: currentStep ? "uppercase" : "none",
                         letterSpacing: currentStep ? "0.02em" : undefined,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "clip",
                       }}
                     >
                       {heroTitle}
@@ -423,24 +495,26 @@ export function TrainingCard({
                   </Box>
                 </Stack>
 
-                <Box
-                  sx={{
-                    maxWidth: 620,
-                    px: 1.5,
-                    py: 1.25,
-                    borderRadius: 3,
-                    bgcolor: alpha(
-                      currentTone === "pause"
-                        ? theme.palette.warning.main
-                        : theme.palette.common.black,
-                      currentTone === "pause" ? 0.08 : 0.12,
-                    ),
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    {heroSupport || UI_TEXT.training.states.startToSeeSets}
-                  </Typography>
-                </Box>
+                {heroSupport ? (
+                  <Box
+                    sx={{
+                      maxWidth: 760,
+                      px: 1.5,
+                      py: 1.1,
+                      borderRadius: 2,
+                      bgcolor: alpha(
+                        currentTone === "pause"
+                          ? theme.palette.warning.main
+                          : theme.palette.common.black,
+                        currentTone === "pause" ? 0.08 : 0.1,
+                      ),
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {heroSupport}
+                    </Typography>
+                  </Box>
+                ) : null}
               </Stack>
 
               {!training ? (
@@ -478,7 +552,15 @@ export function TrainingCard({
                 sx={{ flex: 1, pt: 1.25 }}
               >
                 <Box>
-                  <Typography variant="h5" sx={{ minHeight: 72 }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      minHeight: 72,
+                      fontSize: nextTitleSize,
+                      lineHeight: 1.15,
+                      textWrap: "balance",
+                    }}
+                  >
                     {nextPrimaryLabel}
                   </Typography>
                   <Typography
@@ -581,7 +663,7 @@ export function TrainingCard({
                     sx={{
                       px: { xs: 1.5, md: 1.75 },
                       py: 1.5,
-                      borderRadius: 3,
+                      borderRadius: 1.5,
                       borderLeft: "3px solid",
                       borderLeftColor: group.current
                         ? "primary.main"
@@ -632,19 +714,71 @@ export function TrainingCard({
                       </Stack>
 
                       {group.subsets.length ? (
-                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                          {group.subsets.flatMap((subset) =>
-                            buildExercisePills(subset.exercises),
-                          ).map((text, idx) => (
-                            <Chip
-                              key={`${group.key}-${idx}`}
-                              size="small"
-                              label={text}
-                              sx={{
-                                bgcolor: alpha(theme.palette.common.white, 0.04),
-                              }}
-                            />
-                          ))}
+                        <Stack spacing={0.9}>
+                          {group.subsets.map((subset) => {
+                            const subsetExercises = buildExercisePills(
+                              subset.exercises,
+                            );
+                            const showSubsetMeta =
+                              group.subsets.length > 1 ||
+                              Boolean(subset.label) ||
+                              subset.superset;
+
+                            return (
+                              <Box
+                                key={`${group.key}-${subset.key}`}
+                                sx={{
+                                  pt: showSubsetMeta ? 0.35 : 0,
+                                  borderTop:
+                                    showSubsetMeta && group.subsets.length > 1
+                                      ? `1px solid ${alpha(theme.palette.divider, 0.8)}`
+                                      : "none",
+                                }}
+                              >
+                                {showSubsetMeta ? (
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    useFlexGap
+                                    flexWrap="wrap"
+                                    sx={{ mb: 0.35 }}
+                                  >
+                                    {subset.label ? (
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{
+                                          textTransform: "uppercase",
+                                          letterSpacing: "0.1em",
+                                        }}
+                                      >
+                                        {subset.label}
+                                      </Typography>
+                                    ) : null}
+                                    {subset.superset ? (
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
+                                        label="Subset"
+                                        sx={{ borderRadius: 1.5 }}
+                                      />
+                                    ) : null}
+                                  </Stack>
+                                ) : null}
+
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    whiteSpace: "normal",
+                                    overflowWrap: "anywhere",
+                                    lineHeight: 1.55,
+                                  }}
+                                >
+                                  {subsetExercises.join(" • ")}
+                                </Typography>
+                              </Box>
+                            );
+                          })}
                         </Stack>
                       ) : group.type === STEP_TYPE_PAUSE ? null : (
                         <Typography variant="body2" color="text.secondary">

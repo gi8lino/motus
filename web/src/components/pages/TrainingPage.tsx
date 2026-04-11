@@ -267,14 +267,16 @@ export function TrainingView({
 
                 <Button
                   variant="contained"
-                  size="large"
+                  size="medium"
                   startIcon={<PlayCircleFilledRoundedIcon />}
                   onClick={onStartTraining}
                   disabled={startDisabled}
                   title={startTitle}
                   sx={{
-                    minWidth: { xs: "100%", sm: 148 },
-                    alignSelf: "stretch",
+                    minWidth: { xs: "100%", sm: 124 },
+                    minHeight: { xs: 48, sm: 44 },
+                    px: { xs: 2.5, sm: 2.25 },
+                    alignSelf: { xs: "stretch", md: "center" },
                   }}
                 >
                   {startLabel}

@@ -153,6 +153,32 @@ mv $(1) $(1)-$(3) ;\
 ln -sf $(1)-$(3) $(1)
 endef
 
+##@ Frontend
+
+.PHONY: lint-web
+lint-web: ## Run frontend eslint checks.
+	npm --prefix web run lint
+
+.PHONY: lint-fix-web
+lint-fix-web: ## Run frontend eslint with auto-fix.
+	npm --prefix web run lint:fix
+
+.PHONY: web-install
+web-install: ## Install frontend dependencies (prefers lockfile; falls back to npm install if out-of-sync).
+	@npm --prefix web ci || ( \
+		echo "npm ci failed (lockfile out-of-sync); running npm install to refresh web/package-lock.json"; \
+		npm --prefix web install \
+	)
+
+.PHONY: web-ci
+web-ci: ## Strict frontend install from lockfile (for CI).
+	npm --prefix web ci
+
+.PHONY: web
+web: ## Build frontend app.
+	npm --prefix web run build
+
+
 ##@ General
 
 .PHONY: help

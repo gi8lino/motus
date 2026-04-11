@@ -33,7 +33,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	tf := tinyflags.NewFlagSet("motus", tinyflags.ContinueOnError)
 	tf.Version(version)
-	tf.EnvPrefix("MOTUS")
+	tf.EnvPrefix("MOTUS_")
 
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "Listen address").
 		Short("a").
