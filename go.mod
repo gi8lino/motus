@@ -6,7 +6,7 @@ require (
 	github.com/containeroo/httpgrace v0.0.5
 	github.com/containeroo/httpprefix v0.0.1
 	github.com/containeroo/tinyflags v0.0.64
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.50.0
 	gopkg.in/yaml.v3 v3.0.1
