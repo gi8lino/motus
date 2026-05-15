@@ -4,6 +4,7 @@ import type { TrainingState } from "../types";
 import { getCountdownAutoAdvanceDelay } from "../utils/countdown";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import { logTimerEvent } from "../utils/timerLogger";
+import { claimAdvanceTransition, syncAdvanceTransition } from "./trainingTimer/advanceGuard";
 import { now, structuredCloneSafe } from "./trainingTimer/clock";
 import { expandExerciseSteps } from "./trainingTimer/expansion";
 import {
@@ -59,9 +60,11 @@ export function useTrainingTimer({
 
   // Finish/log concurrency guard.
   const finishingRef = useRef<string | null>(null);
+  const advanceGuardRef = useRef<string | null>(null);
 
   useEffect(() => {
     trainingRef.current = training;
+    syncAdvanceTransition(advanceGuardRef, training);
   }, [training]);
 
   // Persist + notify parent.
@@ -144,6 +147,8 @@ export function useTrainingTimer({
   const nextStep = useCallback(
     (reason: "manual" | "auto" = "manual") => {
       const current = trainingRef.current;
+      if (!claimAdvanceTransition(advanceGuardRef, current)) return;
+
       if (current) {
         const at = now();
         const step = current.steps?.[current.currentIndex ?? 0];
