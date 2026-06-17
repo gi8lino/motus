@@ -3,7 +3,7 @@ module github.com/gi8lino/motus
 go 1.25.4
 
 require (
-	github.com/containeroo/httpgrace v0.1.0
+	github.com/containeroo/httpgrace v0.1.1
 	github.com/containeroo/httpprefix v0.0.1
 	github.com/containeroo/tinyflags v0.0.75
 	github.com/jackc/pgx/v5 v5.10.0
