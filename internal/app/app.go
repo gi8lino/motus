@@ -5,9 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gi8lino/motus/internal/bootstrap"
 	"github.com/gi8lino/motus/internal/db"
@@ -29,8 +26,8 @@ func Run(
 	w io.Writer,
 ) error {
 	// Create a cancellable context that listens for termination signals.
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	ctx, stop := server.SignalContext(ctx)
+	defer stop()
 
 	// Parse CLI flags and handle help/version requests.
 	opts, err := flag.ParseFlags(args, version)
@@ -42,7 +39,8 @@ func Run(
 			fmt.Fprint(w, err.Error()) // nolint:errcheck
 			return nil
 		}
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "parse_flags",
 			"err", err,
@@ -51,7 +49,8 @@ func Run(
 	}
 
 	// Configure the logger early so startup errors are visible.
-	sysLogger.Info("starting Motus",
+	sysLogger.Info(
+		"starting Motus",
 		"event", "app_starting",
 		"version", version,
 		"commit", commit,
@@ -59,7 +58,8 @@ func Run(
 
 	// Record any CLI overrides to aid debugging.
 	if len(opts.OverriddenValues) > 0 {
-		sysLogger.Info("CLI Overrides",
+		sysLogger.Info(
+			"CLI Overrides",
 			"event", "cli_overrides",
 			"overrides", opts.OverriddenValues,
 		)
@@ -68,7 +68,8 @@ func Run(
 	// Connect to the database.
 	store, err := db.New(ctx, opts.DatabaseURL)
 	if err != nil {
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "connect_db",
 			"err", err,
@@ -79,7 +80,8 @@ func Run(
 
 	// Ensure database schema is up to date before serving requests.
 	if err := store.EnsureSchema(ctx, sysLogger); err != nil {
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_schema",
 			"err", err,
@@ -89,7 +91,8 @@ func Run(
 
 	// Bootstrap an admin user if credentials were configured.
 	if err := bootstrap.EnsureAdminUser(ctx, store, logger, opts.AdminEmail, opts.AdminPassword); err != nil {
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_admin_user",
 			"err", err,
@@ -100,7 +103,8 @@ func Run(
 	// Load extra core exercises if the CLI flag was set.
 	if opts.CoreExercisesFile != "" {
 		if err := bootstrap.SeedCoreExercises(ctx, store, sysLogger, opts.CoreExercisesFile); err != nil {
-			sysLogger.Error("application failed",
+			sysLogger.Error(
+				"application failed",
 				"event", "app_failed",
 				"stage", "seed_core_exercises",
 				"err", err,
@@ -124,7 +128,8 @@ func Run(
 	// Configure the HTTP router and SPA asset handler.
 	router, err := routes.NewRouter(assets, opts.RoutePrefix, sysLogger, api, opts.Debug)
 	if err != nil {
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "create_router",
 			"err", err,
@@ -134,7 +139,8 @@ func Run(
 
 	// Start the HTTP server and block until shutdown.
 	if err := server.Run(ctx, opts.ListenAddr, router, sysLogger); err != nil {
-		sysLogger.Error("application failed",
+		sysLogger.Error(
+			"application failed",
 			"event", "app_failed",
 			"stage", "run_server",
 			"err", err,
