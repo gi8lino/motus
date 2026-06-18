@@ -18,14 +18,8 @@ var webFS embed.FS
 
 // main boots the Motus application.
 func main() {
-	if err := app.Run(
-		context.Background(),
-		webFS,
-		Version,
-		Commit,
-		os.Args[1:],
-		os.Stdout,
-	); err != nil {
+	ctx := context.Background()
+	if err := app.Run(ctx, webFS, Version, Commit, os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		os.Exit(1)
 	}
 }

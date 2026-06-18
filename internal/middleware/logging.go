@@ -21,8 +21,8 @@ func LoggingMiddleware(logger *slog.Logger) Middleware {
 			duration := time.Since(startTime) // Measure total execution time
 
 			// Log request details
-			accessLogger := logging.AccessLogger(logger, r.Context())
-			accessLogger.Info("HTTP request",
+			requestLogger := logging.WithRequestIDLogger(logger, r.Context())
+			requestLogger.Info("HTTP request",
 				"event", "http_request",
 				"method", r.Method,
 				"path", r.URL.Path,

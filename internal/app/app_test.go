@@ -38,28 +38,32 @@ func TestRun(t *testing.T) {
 	clearEnv(t)
 	t.Run("Help returns usage", func(t *testing.T) {
 		var out bytes.Buffer
-		err := Run(context.Background(), embed.FS{}, "v1.2.3", "abc", []string{"--help"}, &out)
+		var errOut bytes.Buffer
+		err := Run(context.Background(), embed.FS{}, "v1.2.3", "abc", []string{"--help"}, &out, &errOut)
 		require.NoError(t, err)
 		assert.Contains(t, out.String(), "Usage: motus")
 	})
 
 	t.Run("Version returns output", func(t *testing.T) {
 		var out bytes.Buffer
-		err := Run(context.Background(), embed.FS{}, "v9.9.9", "abc", []string{"--version"}, &out)
+		var errOut bytes.Buffer
+		err := Run(context.Background(), embed.FS{}, "v9.9.9", "abc", []string{"--version"}, &out, &errOut)
 		require.NoError(t, err)
 		assert.Contains(t, out.String(), "v9.9.9")
 	})
 
 	t.Run("Missing database url fails", func(t *testing.T) {
 		var out bytes.Buffer
-		err := Run(context.Background(), embed.FS{}, "v1", "abc", []string{}, &out)
+		var errOut bytes.Buffer
+		err := Run(context.Background(), embed.FS{}, "v1", "abc", []string{}, &out, &errOut)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "CLI flags error")
+		assert.Contains(t, err.Error(), "flag --database-url is required")
 	})
 
 	t.Run("Invalid database url fails", func(t *testing.T) {
 		var out bytes.Buffer
-		err := Run(context.Background(), embed.FS{}, "v1", "abc", []string{"--database-url", "not-a-url"}, &out)
+		var errOut bytes.Buffer
+		err := Run(context.Background(), embed.FS{}, "v1", "abc", []string{"--database-url", "not-a-url"}, &out, &errOut)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "connect db")
 	})

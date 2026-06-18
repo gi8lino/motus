@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"strings"
 	"testing"
@@ -78,63 +77,6 @@ func TestWithRequestIDLogger(t *testing.T) {
 		require.NotPanics(t, func() {
 			WithRequestIDLogger(nil, context.Background()).Info("hello")
 		})
-	})
-}
-
-func TestWithCategory(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns same logger when category empty", func(t *testing.T) {
-		t.Parallel()
-
-		logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-		assert.Same(t, logger, WithCategory(logger, ""))
-	})
-
-	t.Run("adds category field", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		logger := slog.New(slog.NewJSONHandler(buf, nil))
-		WithCategory(logger, CategoryAccess).Info("hello")
-
-		entry := readLogJSON(t, buf)
-		assert.Equal(t, CategoryAccess, entry["category"])
-	})
-
-	t.Run("does not panic with nil logger", func(t *testing.T) {
-		t.Parallel()
-
-		require.NotPanics(t, func() {
-			WithCategory(nil, CategoryAccess).Info("hello")
-		})
-	})
-}
-
-func TestCategoryLoggers(t *testing.T) {
-	t.Parallel()
-
-	buf := &bytes.Buffer{}
-	logger := slog.New(slog.NewJSONHandler(buf, nil))
-	ctx := WithRequestID(context.Background(), "req-789")
-
-	t.Run("test logger seriesly", func(t *testing.T) {
-		AccessLogger(logger, ctx).Info("access")
-		entry := readLogJSON(t, buf)
-		assert.Equal(t, CategoryAccess, entry["category"])
-		assert.Equal(t, "req-789", entry["request_id"])
-
-		buf.Reset()
-		BusinessLogger(logger, ctx).Info("business")
-		entry = readLogJSON(t, buf)
-		assert.Equal(t, CategoryBusiness, entry["category"])
-		assert.Equal(t, "req-789", entry["request_id"])
-
-		buf.Reset()
-		SystemLogger(logger, ctx).Info("system")
-		entry = readLogJSON(t, buf)
-		assert.Equal(t, CategorySystem, entry["category"])
-		assert.Equal(t, "req-789", entry["request_id"])
 	})
 }
 

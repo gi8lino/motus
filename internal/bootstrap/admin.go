@@ -44,7 +44,7 @@ func EnsureAdminUser(ctx context.Context, store store, logger *slog.Logger, emai
 		return err
 	}
 	if created {
-		logging.SystemLogger(logger, ctx).Info(
+		logging.WithRequestIDLogger(logger, ctx).Info(
 			"created bootstrap admin user",
 			"event", "bootstrap_admin_created",
 			"resource", "user",
@@ -52,7 +52,7 @@ func EnsureAdminUser(ctx context.Context, store store, logger *slog.Logger, emai
 		)
 		return nil
 	}
-	logging.SystemLogger(logger, ctx).Info(
+	logging.WithRequestIDLogger(logger, ctx).Info(
 		"updated bootstrap admin user",
 		"event", "bootstrap_admin_updated",
 		"resource", "user",

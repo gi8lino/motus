@@ -23,52 +23,39 @@ func Run(
 	assets embed.FS,
 	version, commit string,
 	args []string,
-	w io.Writer,
+	stdOut, stdErr io.Writer,
 ) error {
-	// Create a cancellable context that listens for termination signals.
-	ctx, stop := server.SignalContext(ctx)
-	defer stop()
-
-	// Parse CLI flags and handle help/version requests.
-	opts, err := flag.ParseFlags(args, version)
-	// Setup logger immediately so startup errors are correctly logged.
-	logger := logging.SetupLogger(opts.LogFormat, opts.Debug, w)
-	sysLogger := logging.SystemLogger(logger, nil)
+	flags, err := flag.ParseFlags(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
-			fmt.Fprint(w, err.Error()) // nolint:errcheck
+			_, _ = fmt.Fprint(stdOut, err.Error())
 			return nil
 		}
-		sysLogger.Error(
-			"application failed",
-			"event", "app_failed",
-			"stage", "parse_flags",
-			"err", err,
-		)
-		return fmt.Errorf("CLI flags error: %w", err)
+		_, _ = fmt.Fprintln(stdErr, err)
+		return err
 	}
 
-	// Configure the logger early so startup errors are visible.
-	sysLogger.Info(
+	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, stdOut)
+	setupLogger := logger.With("component", "setup")
+	setupLogger.Info(
 		"starting Motus",
 		"event", "app_starting",
 		"version", version,
 		"commit", commit,
 	)
 
-	// Record any CLI overrides to aid debugging.
-	if len(opts.OverriddenValues) > 0 {
-		sysLogger.Info(
+	if len(flags.OverriddenValues) > 0 {
+		setupLogger.Info(
 			"CLI Overrides",
 			"event", "cli_overrides",
-			"overrides", opts.OverriddenValues,
+			"overrides", flags.OverriddenValues,
 		)
 	}
 
 	// Connect to the database.
-	store, err := db.New(ctx, opts.DatabaseURL)
+	store, err := db.New(ctx, flags.DatabaseURL)
 	if err != nil {
-		sysLogger.Error(
+		setupLogger.Error(
 			"application failed",
 			"event", "app_failed",
 			"stage", "connect_db",
@@ -79,8 +66,8 @@ func Run(
 	defer store.Close()
 
 	// Ensure database schema is up to date before serving requests.
-	if err := store.EnsureSchema(ctx, sysLogger); err != nil {
-		sysLogger.Error(
+	if err := store.EnsureSchema(ctx, setupLogger); err != nil {
+		setupLogger.Error(
 			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_schema",
@@ -90,8 +77,8 @@ func Run(
 	}
 
 	// Bootstrap an admin user if credentials were configured.
-	if err := bootstrap.EnsureAdminUser(ctx, store, logger, opts.AdminEmail, opts.AdminPassword); err != nil {
-		sysLogger.Error(
+	if err := bootstrap.EnsureAdminUser(ctx, store, logger, flags.AdminEmail, flags.AdminPassword); err != nil {
+		setupLogger.Error(
 			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_admin_user",
@@ -101,9 +88,9 @@ func Run(
 	}
 
 	// Load extra core exercises if the CLI flag was set.
-	if opts.CoreExercisesFile != "" {
-		if err := bootstrap.SeedCoreExercises(ctx, store, sysLogger, opts.CoreExercisesFile); err != nil {
-			sysLogger.Error(
+	if flags.CoreExercisesFile != "" {
+		if err := bootstrap.SeedCoreExercises(ctx, store, setupLogger, flags.CoreExercisesFile); err != nil {
+			setupLogger.Error(
 				"application failed",
 				"event", "app_failed",
 				"stage", "seed_core_exercises",
@@ -114,21 +101,22 @@ func Run(
 	}
 
 	// Build the API handler with runtime configuration.
+	appLogger := logger.With("component", "app")
 	api := handler.NewAPI(
 		store,
-		logger,
-		opts.AuthHeader,
-		opts.SiteRoot,
+		appLogger,
+		flags.AuthHeader,
+		flags.SiteRoot,
 		version,
 		commit,
-		opts.AllowRegistration,
-		opts.AutoCreateUsers,
+		flags.AllowRegistration,
+		flags.AutoCreateUsers,
 	)
 
 	// Configure the HTTP router and SPA asset handler.
-	router, err := routes.NewRouter(assets, opts.RoutePrefix, sysLogger, api, opts.Debug)
+	router, err := routes.NewRouter(assets, flags.RoutePrefix, setupLogger, api, flags.Debug)
 	if err != nil {
-		sysLogger.Error(
+		setupLogger.Error(
 			"application failed",
 			"event", "app_failed",
 			"stage", "create_router",
@@ -137,9 +125,12 @@ func Run(
 		return fmt.Errorf("configure router: %w", err)
 	}
 
+	ctx, stop := server.SignalContext(ctx)
+	defer stop()
+
 	// Start the HTTP server and block until shutdown.
-	if err := server.Run(ctx, opts.ListenAddr, router, sysLogger); err != nil {
-		sysLogger.Error(
+	if err := server.Run(ctx, flags.ListenAddr, router, appLogger); err != nil {
+		setupLogger.Error(
 			"application failed",
 			"event", "app_failed",
 			"stage", "run_server",

@@ -71,7 +71,7 @@ func NewAPI(
 // respondJSON writes a JSON response.
 func (a *API) respondJSON(w http.ResponseWriter, status int, v any) {
 	if err := encode(w, status, v); err != nil {
-		logging.AccessLogger(a.Logger, nil).Error(
+		logging.WithRequestIDLogger(a.Logger, nil).Error(
 			"encode response failed",
 			"event", "encode_response_failed",
 			"err", err,
@@ -81,12 +81,12 @@ func (a *API) respondJSON(w http.ResponseWriter, status int, v any) {
 
 // businessLogger returns a logger enriched with request context for business events.
 func (a *API) businessLogger(r *http.Request) *slog.Logger {
-	return logging.BusinessLogger(a.Logger, r.Context())
+	return logging.WithRequestIDLogger(a.Logger, r.Context())
 }
 
 // logRequestError records a structured error for the current request.
 func (a *API) logRequestError(r *http.Request, event, message string, err error) {
-	logging.AccessLogger(a.Logger, r.Context()).Error(
+	logging.WithRequestIDLogger(a.Logger, r.Context()).Error(
 		message,
 		"event", event,
 		"err", err,
