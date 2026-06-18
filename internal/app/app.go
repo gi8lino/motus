@@ -59,7 +59,7 @@ func Run(
 			"application failed",
 			"event", "app_failed",
 			"stage", "connect_db",
-			"err", err,
+			"error", err,
 		)
 		return fmt.Errorf("connect db: %w", err)
 	}
@@ -71,7 +71,7 @@ func Run(
 			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_schema",
-			"err", err,
+			"error", err,
 		)
 		return fmt.Errorf("ensure schema: %w", err)
 	}
@@ -82,7 +82,7 @@ func Run(
 			"application failed",
 			"event", "app_failed",
 			"stage", "ensure_admin_user",
-			"err", err,
+			"error", err,
 		)
 		return fmt.Errorf("ensure admin user: %w", err)
 	}
@@ -94,14 +94,14 @@ func Run(
 				"application failed",
 				"event", "app_failed",
 				"stage", "seed_core_exercises",
-				"err", err,
+				"error", err,
 			)
 			return fmt.Errorf("load core exercises: %w", err)
 		}
 	}
 
 	// Build the API handler with runtime configuration.
-	appLogger := logger.With("component", "app")
+	appLogger := logger.With("component", "server")
 	api := handler.NewAPI(
 		store,
 		appLogger,
@@ -120,7 +120,7 @@ func Run(
 			"application failed",
 			"event", "app_failed",
 			"stage", "create_router",
-			"err", err,
+			"error", err,
 		)
 		return fmt.Errorf("configure router: %w", err)
 	}
@@ -134,7 +134,7 @@ func Run(
 			"application failed",
 			"event", "app_failed",
 			"stage", "run_server",
-			"err", err,
+			"error", err,
 		)
 		return fmt.Errorf("run server: %w", err)
 	}
