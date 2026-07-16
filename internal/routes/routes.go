@@ -91,7 +91,8 @@ func NewRouter(
 	apiMux.Handle("POST /trainings/complete", api.CompleteTraining())
 
 	// Mount API under /api
-	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
+	protectedAPI := middleware.Chain(apiMux, middleware.Authenticate(api.AuthStore, api.AuthHeader, api.AutoCreateUsers))
+	mux.Handle("/api/", http.StripPrefix("/api", protectedAPI))
 
 	// SPA
 	mux.Handle("/", handler.SPA(spaContent, routePrefix))

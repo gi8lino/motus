@@ -21,6 +21,17 @@ const localAuthHeader = "X-User-ID"
 const SessionCookieName = "motus_session"
 const sessionLifetime = 30 * 24 * time.Hour
 
+type principalKey struct{}
+
+func WithPrincipal(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, principalKey{}, userID)
+}
+
+func Principal(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(principalKey{}).(string)
+	return id, ok && id != ""
+}
+
 // Store defines the persistence methods needed by auth helpers.
 type Store interface {
 	// GetUser returns a user by id for auth lookups.
@@ -52,6 +63,9 @@ func StartSession(ctx context.Context, w http.ResponseWriter, r *http.Request, s
 
 // ResolveUserID selects the user id from auth header or request payload.
 func ResolveUserID(r *http.Request, store Store, authHeader string, autoCreateUsers bool, fallback string) (string, error) {
+	if id, ok := Principal(r.Context()); ok {
+		return id, nil
+	}
 	// Prefer proxy auth header when configured.
 	if authHeader != "" {
 		id := strings.TrimSpace(r.Header.Get(authHeader))

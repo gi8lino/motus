@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gi8lino/motus/internal/auth"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/utils"
 )
@@ -20,9 +21,11 @@ type adminGetter interface {
 func RequireAdmin(store adminGetter, authHeader string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := utils.DefaultIfZero(authHeader, "X-User-ID")
-
-			userID := strings.TrimSpace(r.Header.Get(header))
+			userID, _ := auth.Principal(r.Context())
+			if userID == "" {
+				header := utils.DefaultIfZero(authHeader, "X-User-ID")
+				userID = strings.TrimSpace(r.Header.Get(header))
+			}
 			if userID == "" {
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte("forbidden"))
