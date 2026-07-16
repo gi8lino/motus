@@ -5,6 +5,7 @@ import {
   useState,
   FormEvent,
   useCallback,
+  useReducer,
 } from "react";
 import type {
   CatalogExercise,
@@ -33,6 +34,7 @@ import {
 } from "../../utils/step";
 import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
 import { MESSAGES, toErrorMessage } from "../../utils/messages";
+import { workoutStepsReducer } from "./workoutDraftReducer";
 import { UI_TEXT } from "../../utils/uiText";
 
 const DEFAULT_WORKOUT_NAME = UI_TEXT.workouts.defaultName;
@@ -111,7 +113,12 @@ export function WorkoutForm({
     repeatRestAfterLastDefault,
   } = defaults;
   const [name, setName] = useState(DEFAULT_WORKOUT_NAME);
-  const [steps, setSteps] = useState<WorkoutStep[]>([]);
+  const [steps, dispatchSteps] = useReducer(workoutStepsReducer, []);
+  const setSteps = useCallback(
+    (update: React.SetStateAction<WorkoutStep[]>) =>
+      dispatchSteps({ type: "updateSteps", update }),
+    [],
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
