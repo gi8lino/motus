@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,4 +82,15 @@ func TestRespondJSON(t *testing.T) {
 		require.NoError(t, json.NewDecoder(rec.Body).Decode(&payload))
 		assert.Equal(t, "ok", payload["status"])
 	})
+}
+
+func TestDecodeRejectsUnknownAndTrailingJSON(t *testing.T) {
+	type payload struct {
+		Name string `json:"name"`
+	}
+	for _, body := range []string{`{"name":"ok","extra":true}`, `{"name":"ok"} {"name":"again"}`} {
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		_, err := decode[payload](req)
+		require.Error(t, err)
+	}
 }
