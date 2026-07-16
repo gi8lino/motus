@@ -237,7 +237,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 			subsetIDs = append(subsetIDs, id)
 		}
 		exRows, err := s.pool.Query(ctx, `
-			SELECT id, subset_id, exercise_order, exercise_id, name, exercise_type, reps, weight, duration, sound_key
+			SELECT id, subset_id, exercise_order, exercise_id, name, exercise_type, reps, weight, duration, sound_key, side
 			FROM workout_subset_exercises
 			WHERE subset_id = ANY($1)
 			ORDER BY subset_id, exercise_order
@@ -259,6 +259,7 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 				&ex.Weight,
 				&ex.Duration,
 				&ex.SoundKey,
+				&ex.Side,
 			); err != nil {
 				return nil, err
 			}
@@ -498,9 +499,10 @@ func (s *Store) insertSubsetExercises(ctx context.Context, tx pgx.Tx, subsetID s
 				reps,
 				weight,
 				duration,
-				sound_key
+				sound_key,
+				side
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		`,
 			ex.ID,
 			ex.SubsetID,
@@ -512,11 +514,21 @@ func (s *Store) insertSubsetExercises(ctx context.Context, tx pgx.Tx, subsetID s
 			strings.TrimSpace(ex.Weight),
 			strings.TrimSpace(ex.Duration),
 			strings.TrimSpace(ex.SoundKey),
+			normalizeExerciseSide(ex.Side),
 		); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func normalizeExerciseSide(side string) string {
+	switch strings.ToLower(strings.TrimSpace(side)) {
+	case "left", "right":
+		return strings.ToLower(strings.TrimSpace(side))
+	default:
+		return "not_applicable"
+	}
 }
 
 // isEmptySubsetExercise returns true when an exercise row has no meaningful content.

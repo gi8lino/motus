@@ -12,6 +12,7 @@ export type Exercise = {
   weight?: string;
   duration?: string;
   soundKey?: string;
+  side?: "left" | "right" | "not_applicable";
 };
 
 // PauseOptions configures pause step behavior.
@@ -165,6 +166,7 @@ export type CatalogExercise = {
   name: string;
   ownerUserId?: string;
   isCore?: boolean;
+  hasSides?: boolean;
   createdAt?: string;
 };
 

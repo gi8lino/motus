@@ -83,6 +83,7 @@ type SubsetExercise struct {
 	Weight     string `json:"weight"`     // Weight is optional load text.
 	Duration   string `json:"duration"`   // Duration is a stopwatch/countdown value.
 	SoundKey   string `json:"soundKey"`   // SoundKey overrides the subset sound.
+	Side       string `json:"side"`       // Side is left, right, or not_applicable.
 }
 
 // Exercise represents a reusable exercise catalog entry.
@@ -91,6 +92,7 @@ type Exercise struct {
 	Name        string    `json:"name"`                  // Name is the exercise label.
 	OwnerUserID string    `json:"ownerUserId,omitempty"` // OwnerUserID is set for user-owned entries.
 	IsCore      bool      `json:"isCore"`                // IsCore marks built-in exercises.
+	HasSides    bool      `json:"hasSides"`              // HasSides marks unilateral exercises.
 	CreatedAt   time.Time `json:"createdAt"`             // CreatedAt records when the entry was created.
 }
 

@@ -125,7 +125,7 @@ func (s *Store) insertMissingCoreExercises(ctx context.Context, tx pgx.Tx, names
 func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {
 	// Return core exercises plus user-owned entries.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, created_at
+		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides, created_at
 		FROM exercises
 		WHERE is_core = TRUE OR owner_user_id = $1 OR owner_user_id IS NULL OR owner_user_id = ''
 		ORDER BY is_core DESC, name ASC`, strings.TrimSpace(userID))
@@ -139,7 +139,7 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 	for rows.Next() {
 		var ex Exercise
 		var ownerID *string
-		if err := rows.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.CreatedAt); err != nil {
+		if err := rows.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.CreatedAt); err != nil {
 			return nil, err
 		}
 		if ownerID != nil {
@@ -154,12 +154,12 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 func (s *Store) GetExercise(ctx context.Context, id string) (*Exercise, error) {
 	// Fetch a single exercise row by id.
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, created_at
+		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides, created_at
 		FROM exercises
 		WHERE id=$1`, strings.TrimSpace(id))
 	var ex Exercise
 	var ownerID *string
-	if err := row.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.CreatedAt); err != nil {
+	if err := row.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.CreatedAt); err != nil {
 		return nil, err
 	}
 	if ownerID != nil {

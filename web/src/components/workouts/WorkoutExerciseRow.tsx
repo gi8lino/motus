@@ -76,6 +76,13 @@ export function WorkoutExerciseRow({
   notifyUser,
 }: WorkoutExerciseRowProps) {
   const kind = normalizeExerciseType(ex.type);
+  const selectedCatalogExercise = catalog.find(
+    (item) => item.id === ex.exerciseId,
+  );
+  const hasSides =
+    selectedCatalogExercise?.hasSides ||
+    ex.side === "left" ||
+    ex.side === "right";
   const showDuration = isDurationExercise(kind);
 
   const amountLabel = showDuration
@@ -133,6 +140,11 @@ export function WorkoutExerciseRow({
             updateExercise(stepIdx, subsetIdx, exIdx, {
               name: selected.name,
               exerciseId: selected.id,
+              side: selected.hasSides
+                ? ex.side === "right"
+                  ? "right"
+                  : "left"
+                : "not_applicable",
             })
           }
           onClear={() =>
@@ -159,6 +171,23 @@ export function WorkoutExerciseRow({
           }}
         />
       </div>
+
+      {hasSides && (
+        <div className="field compact">
+          <label>Side</label>
+          <select
+            value={ex.side === "right" ? "right" : "left"}
+            onChange={(e) =>
+              updateExercise(stepIdx, subsetIdx, exIdx, {
+                side: e.target.value as Exercise["side"],
+              })
+            }
+          >
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+      )}
 
       <div className="field compact">
         <label>Exercise type</label>

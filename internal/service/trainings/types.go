@@ -78,6 +78,7 @@ type Exercise struct {
 	Weight   string `json:"weight"`
 	Duration string `json:"duration"`
 	SoundKey string `json:"soundKey,omitempty"`
+	Side     string `json:"side"`
 }
 
 // TrainingHistoryItem is the API payload for a completed training.

@@ -28,6 +28,7 @@ func mapExercise(ex SubsetExercise) Exercise {
 		Weight:   ex.Weight,
 		Duration: ex.Duration,
 		SoundKey: ex.SoundKey,
+		Side:     ex.Side,
 	}
 }
 

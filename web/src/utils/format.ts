@@ -53,8 +53,9 @@ export function formatExerciseLine(ex: Exercise) {
   const name = (ex.name || "").trim();
   const weight = (ex.weight || "").trim();
   const duration = (ex.duration || "").trim();
+  const side = ex.side && ex.side !== "not_applicable" ? ` (${ex.side})` : "";
   if (isDurationExercise(kind)) {
-    const displayName = name || "";
+    const displayName = name ? `${name}${side}` : "";
     if (!displayName && !duration) return "";
     let base = displayName || duration;
     if (displayName && duration) {
@@ -64,9 +65,9 @@ export function formatExerciseLine(ex: Exercise) {
   }
   let base = "";
   if (reps && name) {
-    base = `${reps} × ${name}`;
+    base = `${reps} × ${name}${side}`;
   } else {
-    base = name || reps;
+    base = name ? `${name}${side}` : reps;
   }
   if (!base) return "";
   if (weight) {
