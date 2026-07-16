@@ -10,6 +10,9 @@ import type {
   Template,
 } from "./types";
 import { withBasePath } from "./utils/basePath";
+import { workoutWriteSteps } from "./utils/workoutWrite";
+
+export { workoutWriteSteps } from "./utils/workoutWrite";
 
 type AppConfig = {
   authHeaderEnabled: boolean;
@@ -152,7 +155,10 @@ export async function createWorkout(payload: {
     `/api/users/${encodeURIComponent(payload.userId)}/workouts`,
     {
       method: "POST",
-      body: JSON.stringify({ name: payload.name, steps: payload.steps }),
+      body: JSON.stringify({
+        name: payload.name,
+        steps: workoutWriteSteps(payload.steps),
+      }),
     },
   );
 }
@@ -164,7 +170,11 @@ export async function updateWorkout(
 ): Promise<Workout> {
   return requestJSON(`/api/workouts/${workoutId}`, {
     method: "PUT",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      userId: payload.userId,
+      name: payload.name,
+      steps: workoutWriteSteps(payload.steps),
+    }),
   });
 }
 

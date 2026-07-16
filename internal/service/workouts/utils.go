@@ -207,6 +207,7 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 		weight := strings.TrimSpace(ex.Weight)
 		duration := strings.TrimSpace(ex.Duration)
 		soundKey := strings.TrimSpace(ex.SoundKey)
+		side := strings.TrimSpace(ex.Side)
 		if validSoundKey != nil && soundKey != "" && !validSoundKey(soundKey) {
 			return nil, fmt.Errorf("invalid exercise sound for %s", name)
 		}
@@ -224,6 +225,7 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 			Weight:     weight,
 			Duration:   duration,
 			SoundKey:   soundKey,
+			Side:       side,
 		})
 	}
 	if len(exercises) == 0 {

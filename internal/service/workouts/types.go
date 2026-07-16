@@ -63,4 +63,5 @@ type ExerciseInput struct {
 	Weight     string `json:"weight"`
 	Duration   string `json:"duration"`
 	SoundKey   string `json:"soundKey"`
+	Side       string `json:"side"`
 }

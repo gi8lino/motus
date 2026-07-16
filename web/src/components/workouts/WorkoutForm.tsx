@@ -677,7 +677,7 @@ export function WorkoutForm({
 
     const cleanSteps: WorkoutStep[] = steps
       .filter((s) => s.name.trim())
-      .map((s, idx) => {
+      .map((s) => {
         const type = normalizeStepType(s.type);
 
         const autoAdvance =
@@ -705,6 +705,7 @@ export function WorkoutForm({
                     weight: ex.weight?.trim() || "",
                     duration: isDur ? ex.duration?.trim() || "" : "",
                     soundKey: ex.soundKey?.trim() || "",
+                    side: ex.side || "not_applicable",
                   };
                 })
                 .filter((ex) => ex.name.trim()),
@@ -712,9 +713,8 @@ export function WorkoutForm({
           : [];
 
         return {
-          ...s,
           type,
-          order: idx,
+          name: s.name.trim(),
           pauseOptions: autoAdvance ? { autoAdvance: true } : undefined,
           duration: s.duration?.trim() || "",
           soundKey: s.soundKey?.trim() || "",
