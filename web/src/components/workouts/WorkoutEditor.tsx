@@ -69,7 +69,11 @@ export function WorkoutsEditor({
     });
 
   return (
-    <Modal open={open} onClose={closeWorkoutModal}>
+    <Modal
+      open={open}
+      onClose={closeWorkoutModal}
+      ariaLabel={editingWorkout ? "Edit workout" : "Create workout"}
+    >
       <WorkoutForm
         userId={currentUserId}
         sounds={formData.sounds}
