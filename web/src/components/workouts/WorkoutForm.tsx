@@ -35,6 +35,7 @@ import {
 import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
 import { MESSAGES, toErrorMessage } from "../../utils/messages";
 import { workoutStepsReducer } from "./workoutDraftReducer";
+import { WorkoutRepeatToggle } from "./WorkoutRepeatToggle";
 import { UI_TEXT } from "../../utils/uiText";
 
 const DEFAULT_WORKOUT_NAME = UI_TEXT.workouts.defaultName;
@@ -511,27 +512,6 @@ export function WorkoutForm({
     [],
   );
 
-  function renderRepeatToggle(idx: number, step: WorkoutStep) {
-    return (
-      <>
-        <button
-          className="btn subtle"
-          type="button"
-          onClick={() => toggleRepeatOptions(idx)}
-        >
-          {expandedRepeats.has(idx)
-            ? UI_TEXT.workouts.repeatOptions.hide
-            : UI_TEXT.workouts.repeatOptions.show}
-        </button>
-        <span className="muted small">
-          {step.repeatCount && step.repeatCount > 1
-            ? `Repeats ${step.repeatCount}x`
-            : UI_TEXT.workouts.repeatOptions.none}
-        </span>
-      </>
-    );
-  }
-
   function renderRepeatFields(idx: number, step: WorkoutStep) {
     if (!expandedRepeats.has(idx)) return null;
 
@@ -632,7 +612,11 @@ export function WorkoutForm({
             >
               Add subset
             </button>
-            {renderRepeatToggle(idx, step)}
+            <WorkoutRepeatToggle
+              step={step}
+              expanded={expandedRepeats.has(idx)}
+              onToggle={() => toggleRepeatOptions(idx)}
+            />
           </div>
         </div>
 
