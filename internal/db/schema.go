@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"embed"
+	"fmt"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
@@ -13,7 +15,11 @@ type schemaMigration struct {
 	version    int
 	name       string
 	statements []string
+	file       string
 }
+
+//go:embed migrations/*.sql
+var migrationFiles embed.FS
 
 var schemaMigrations = []schemaMigration{
 	{
@@ -105,6 +111,7 @@ var schemaMigrations = []schemaMigration{
 	{
 		version: 2,
 		name:    "repeat rest name",
+		file:    "migrations/002_repeat_rest_name.sql",
 		statements: []string{
 			`ALTER TABLE workout_steps
 				ADD COLUMN IF NOT EXISTS repeat_rest_name TEXT NOT NULL DEFAULT ''`,
@@ -113,6 +120,7 @@ var schemaMigrations = []schemaMigration{
 	{
 		version: 3,
 		name:    "exercise sides",
+		file:    "migrations/003_exercise_sides.sql",
 		statements: []string{
 			`ALTER TABLE workout_subset_exercises ADD COLUMN IF NOT EXISTS side TEXT NOT NULL DEFAULT 'not_applicable'`,
 			`ALTER TABLE exercises ADD COLUMN IF NOT EXISTS has_sides BOOLEAN NOT NULL DEFAULT FALSE`,
@@ -140,6 +148,7 @@ var schemaMigrations = []schemaMigration{
 	{
 		version: 4,
 		name:    "local auth sessions",
+		file:    "migrations/004_local_auth_sessions.sql",
 		statements: []string{
 			`CREATE TABLE IF NOT EXISTS user_sessions (
 				token TEXT PRIMARY KEY,
@@ -154,6 +163,7 @@ var schemaMigrations = []schemaMigration{
 	{
 		version: 5,
 		name:    "constraints and indexes",
+		file:    "migrations/005_constraints_and_indexes.sql",
 		statements: []string{
 			`ALTER TABLE workout_subset_exercises ADD CONSTRAINT workout_exercise_side_check CHECK (side IN ('left', 'right', 'not_applicable'))`,
 			`ALTER TABLE workout_subset_exercises ADD CONSTRAINT workout_exercise_type_check CHECK (exercise_type IN ('rep', 'stopwatch', 'countdown'))`,
@@ -192,7 +202,24 @@ func (s *Store) EnsureSchema(ctx context.Context, logger *slog.Logger) error {
 			continue
 		}
 		startVersion := currentVersion
-		for _, stmt := range migration.statements {
+		statements := migration.statements
+		if migration.file != "" {
+			data, err := migrationFiles.ReadFile(migration.file)
+			if err != nil {
+				return fmt.Errorf("read migration %d: %w", migration.version, err)
+			}
+			results, err := tx.Conn().PgConn().Exec(ctx, string(data)).ReadAll()
+			if err != nil {
+				return fmt.Errorf("execute migration %d: %w", migration.version, err)
+			}
+			for _, result := range results {
+				if result.Err != nil {
+					return fmt.Errorf("execute migration %d: %w", migration.version, result.Err)
+				}
+			}
+			statements = nil
+		}
+		for _, stmt := range statements {
 			if _, err := tx.Exec(ctx, stmt); err != nil {
 				return err
 			}

@@ -1,0 +1,2 @@
+ALTER TABLE workout_steps
+ADD COLUMN IF NOT EXISTS repeat_rest_name TEXT NOT NULL DEFAULT '';
