@@ -193,7 +193,7 @@ export function WorkoutExerciseRow({
         </div>
       )}
 
-      <div className="field compact">
+      <div className="field compact exercise-type-field">
         <label>Exercise type</label>
         <select
           value={kind}
@@ -209,7 +209,7 @@ export function WorkoutExerciseRow({
         </select>
       </div>
 
-      <div className="field compact">
+      <div className="field compact exercise-amount-field">
         <label>{amountLabel}</label>
         <input
           value={showDuration ? ex.duration || "" : ex.reps || ""}
@@ -232,7 +232,7 @@ export function WorkoutExerciseRow({
         )}
       </div>
 
-      <div className="field compact">
+      <div className="field compact exercise-weight-field">
         <label>Weight</label>
         <input
           value={ex.weight || ""}
@@ -245,7 +245,7 @@ export function WorkoutExerciseRow({
         />
       </div>
 
-      <div className="field action compact sound">
+      <div className="field action compact sound exercise-sound-field">
         <label>{UI_TEXT.labels.sound}</label>
         <button
           className={[
@@ -298,7 +298,7 @@ export function WorkoutExerciseRow({
         )}
       </div>
 
-      <div className="field action compact">
+      <div className="field action compact exercise-delete-field">
         <button
           className="btn icon delete mobile-full"
           type="button"

@@ -514,11 +514,12 @@ select {
   display: grid;
   grid-template-columns:
     minmax(220px, 1.8fr)
-    minmax(110px, 0.7fr)
-    minmax(90px, 0.6fr)
-    minmax(90px, 0.6fr)
-    minmax(32px, 0.2fr)
-    36px;
+    76px
+    minmax(110px, 0.8fr)
+    minmax(74px, 0.55fr)
+    minmax(74px, 0.55fr)
+    28px
+    28px;
   gap: 8px;
   align-items: stretch;
 }
@@ -537,10 +538,12 @@ select {
   border: 1px solid var(--outline);
   border-radius: 12px;
   background: var(--input-bg);
+  width: 76px;
 }
 
 .side-option {
-  min-width: 36px;
+  min-width: 0;
+  flex: 1;
   border: 0;
   border-radius: 9px;
   background: transparent;
@@ -548,6 +551,30 @@ select {
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+
+.side-field {
+  grid-column: 2;
+}
+
+.exercise-type-field {
+  grid-column: 3;
+}
+
+.exercise-amount-field {
+  grid-column: 4;
+}
+
+.exercise-weight-field {
+  grid-column: 5;
+}
+
+.exercise-sound-field {
+  grid-column: 6;
+}
+
+.exercise-delete-field {
+  grid-column: 7;
 }
 
 .side-option[aria-pressed="true"] {
@@ -1010,6 +1037,10 @@ select {
 
   .exercise-row {
     grid-template-columns: 1fr;
+  }
+
+  .exercise-row > .field {
+    grid-column: auto;
   }
 
   .exercise-row .field.compact input,
