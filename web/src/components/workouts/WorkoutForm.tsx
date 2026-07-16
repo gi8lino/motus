@@ -37,7 +37,10 @@ import { MESSAGES } from "../../utils/messages";
 import { workoutStepsReducer } from "./workoutDraftReducer";
 import { WorkoutRepeatToggle } from "./WorkoutRepeatToggle";
 import { UI_TEXT } from "../../utils/uiText";
-import { runWorkoutSubmit } from "../../utils/workoutSubmit";
+import {
+  runWorkoutSubmit,
+  validateWorkoutDraft,
+} from "../../utils/workoutSubmit";
 
 const DEFAULT_WORKOUT_NAME = UI_TEXT.workouts.defaultName;
 const KEY_COOLDOWN_MS = 500;
@@ -688,7 +691,7 @@ export function WorkoutForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!userId) {
-      await notifyUser(UI_TEXT.prompts.selectUserFirst);
+      setSaveError(UI_TEXT.prompts.selectUserFirst);
       return;
     }
 
@@ -754,8 +757,9 @@ export function WorkoutForm({
         };
       });
 
-    if (!cleanSteps.length) {
-      await notifyUser(UI_TEXT.errors.addStepRequired);
+    const validationError = validateWorkoutDraft(name, cleanSteps);
+    if (validationError) {
+      setSaveError(validationError);
       return;
     }
 
@@ -800,7 +804,7 @@ export function WorkoutForm({
   }, [dirty, tryConsumeKey]);
 
   return (
-    <form className="panel" onSubmit={submit}>
+    <form className="panel" onSubmit={submit} noValidate>
       <div className="panel-header with-close">
         <div>
           <p className="label">
@@ -842,7 +846,7 @@ export function WorkoutForm({
           aria-live="assertive"
           tabIndex={-1}
         >
-          <strong>Workout could not be saved</strong>
+          <strong>Workout needs attention</strong>
           <span>{saveError}</span>
         </div>
       ) : null}

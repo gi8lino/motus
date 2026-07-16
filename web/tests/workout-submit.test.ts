@@ -1,7 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { runWorkoutSubmit } from "../src/utils/workoutSubmit.ts";
+import {
+  runWorkoutSubmit,
+  validateWorkoutDraft,
+} from "../src/utils/workoutSubmit.ts";
+
+test("workout draft validation reports actionable local errors", () => {
+  assert.equal(validateWorkoutDraft("", []), "Enter a workout name.");
+  assert.equal(validateWorkoutDraft("Plan", []), "Add at least one step.");
+  assert.equal(
+    validateWorkoutDraft("Plan", [{ type: "set", subsets: [] }]),
+    "Step 1 needs at least one subset.",
+  );
+  assert.equal(
+    validateWorkoutDraft("Plan", [
+      { type: "set", subsets: [{ exercises: [] }] },
+    ]),
+    "Step 1, subset 1 needs at least one exercise.",
+  );
+  assert.equal(
+    validateWorkoutDraft("Plan", [
+      { type: "set", subsets: [{ exercises: [{}] }] },
+    ]),
+    null,
+  );
+});
 
 test("failed workout submit retains the backend error and skips success cleanup", async () => {
   let successCleanupRan = false;
