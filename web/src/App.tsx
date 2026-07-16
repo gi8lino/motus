@@ -20,6 +20,7 @@ import {
   applyTemplate,
   getWorkout,
   listExercises,
+  logoutUser,
   updateUserName,
 } from "./api";
 
@@ -418,11 +419,26 @@ export default function App() {
   }, [training?.logged, training?.trainingId, history]);
 
   // ---------- logout ----------
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Clear local state even if the session already expired.
+    }
     setCurrentUserId(null);
     setView("login");
     clearTraining();
   };
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setCurrentUserId(null);
+      clearTraining();
+      setView("login");
+    };
+    window.addEventListener("motus:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("motus:unauthorized", handleUnauthorized);
+  }, [clearTraining, setView]);
 
   // ---------- template apply ----------
   const handleApplyTemplate = useCallback(

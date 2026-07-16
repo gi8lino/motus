@@ -36,6 +36,9 @@ async function requestResponse(path: string, init?: RequestInit): Promise<Respon
     } catch {
       // ignore
     }
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("motus:unauthorized"));
+    }
     throw new Error(message);
   }
   return res;
@@ -85,6 +88,10 @@ export async function loginUser(
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+}
+
+export async function logoutUser(): Promise<void> {
+  return requestVoid("/api/logout", { method: "POST" });
 }
 
 // changePassword updates the current user's password.
