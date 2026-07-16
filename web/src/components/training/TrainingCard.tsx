@@ -21,7 +21,8 @@ import { getCountdownDisplayMillis } from "../../utils/countdown";
 import { PROMPTS } from "../../utils/messages";
 import { UI_TEXT } from "../../utils/uiText";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
-import type { Exercise, TrainingState, TrainingStepState } from "../../types";
+import type { TrainingState, TrainingStepState } from "../../types";
+import { formatExerciseMetric, formatRoundLabel, formatRoundValue, formatStepValue, getAdaptiveTitleSize } from "../../utils/trainingCard";
 import {
   buildExercisePills,
   buildStepGroups,
@@ -33,53 +34,6 @@ import {
   getStepName,
   hasFollowingSubsetExercises,
 } from "../../utils/training";
-
-function formatExerciseMetric(exercise: Exercise | undefined) {
-  if (!exercise) return "";
-  if (exercise.reps && exercise.weight) {
-    return `${exercise.reps} reps · ${exercise.weight}`;
-  }
-  if (exercise.reps) return `${exercise.reps} reps`;
-  if (exercise.duration && exercise.weight) {
-    return `${exercise.duration} · ${exercise.weight}`;
-  }
-  if (exercise.duration) return exercise.duration;
-  if (exercise.weight) return exercise.weight;
-  return "";
-}
-
-function formatRoundLabel(step: TrainingStepState | null) {
-  const total = step?.loopTotal ?? 0;
-  if (total <= 1) return "";
-  return `Round ${step?.loopIndex || 1}/${total}`;
-}
-
-function formatRoundValue(step: TrainingStepState | null) {
-  const total = step?.loopTotal ?? 0;
-  if (total <= 1) return "";
-  return `${step?.loopIndex || 1}/${total}`;
-}
-
-function formatStepValue(current: number, total: number) {
-  if (!total) return "";
-  return `${current}/${total}`;
-}
-
-function getAdaptiveTitleSize(
-  text: string,
-  options: {
-    short: string;
-    medium: string;
-    long: string;
-    xlong: string;
-  },
-) {
-  const length = text.trim().length;
-  if (length > 28) return options.xlong;
-  if (length > 22) return options.long;
-  if (length > 16) return options.medium;
-  return options.short;
-}
 
 function formatNextSupportLine(
   nextNameStep: TrainingStepState | null,
