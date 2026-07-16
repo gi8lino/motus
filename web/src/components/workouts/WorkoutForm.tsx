@@ -130,6 +130,16 @@ export function WorkoutForm({
   const [dirty, setDirty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const saveErrorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!saveError) return;
+    saveErrorRef.current?.focus({ preventScroll: true });
+    saveErrorRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [saveError]);
 
   const catalog = exerciseCatalog || [];
   const catalogByName = useMemo(
@@ -822,7 +832,13 @@ export function WorkoutForm({
       </div>
 
       {saveError ? (
-        <div className="form-error" role="alert" aria-live="assertive">
+        <div
+          ref={saveErrorRef}
+          className="form-error"
+          role="alert"
+          aria-live="assertive"
+          tabIndex={-1}
+        >
           <strong>Workout could not be saved</strong>
           <span>{saveError}</span>
         </div>
