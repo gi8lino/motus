@@ -348,23 +348,23 @@ export function WorkoutForm({
   }, [catalogByName, catalog.length]);
 
   const addStep = () => {
-      const newStep: WorkoutStep = {
-        id: makeStepId(),
-        type: STEP_TYPE_SET,
-        name: `Step ${steps.length + 1}`,
-        repeatCount: 1,
-        repeatRestSeconds: 0,
-        repeatRestAfterLast: repeatRestAfterLastDefault,
-        repeatRestSoundKey: "",
-        repeatRestAutoAdvance: true,
-        repeatRestName: "",
-        subsets: [createBlankSubset()],
-      };
+    const newStep: WorkoutStep = {
+      id: makeStepId(),
+      type: STEP_TYPE_SET,
+      name: `Step ${steps.length + 1}`,
+      repeatCount: 1,
+      repeatRestSeconds: 0,
+      repeatRestAfterLast: repeatRestAfterLastDefault,
+      repeatRestSoundKey: "",
+      repeatRestAutoAdvance: true,
+      repeatRestName: "",
+      subsets: [createBlankSubset()],
+    };
 
-      dispatchSteps({ type: "addStep", step: newStep });
-      setExpandedSteps((exp) => new Set(exp).add(steps.length));
-      setRepeatRestInputs((inputs) => [...inputs, ""]);
-      markDirty();
+    dispatchSteps({ type: "addStep", step: newStep });
+    setExpandedSteps((exp) => new Set(exp).add(steps.length));
+    setRepeatRestInputs((inputs) => [...inputs, ""]);
+    markDirty();
   };
 
   const updateStep = (idx: number, patch: Partial<WorkoutStep>) => {
@@ -446,7 +446,13 @@ export function WorkoutForm({
     from: number,
     to: number,
   ) => {
-    dispatchSteps({ type: "moveExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, from, to });
+    dispatchSteps({
+      type: "moveExercise",
+      stepIndex: stepIdx,
+      subsetIndex: subsetIdx,
+      from,
+      to,
+    });
     markDirty();
   };
 
@@ -456,21 +462,29 @@ export function WorkoutForm({
     exIdx: number,
     patch: Partial<Exercise>,
   ) => {
-    dispatchSteps({ type: "updateExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, exerciseIndex: exIdx, patch });
+    dispatchSteps({
+      type: "updateExercise",
+      stepIndex: stepIdx,
+      subsetIndex: subsetIdx,
+      exerciseIndex: exIdx,
+      patch,
+    });
     markDirty();
   };
 
   const addExercise = (stepIdx: number, subsetIdx: number) => {
     dispatchSteps({
-      type: "addExercise", stepIndex: stepIdx, subsetIndex: subsetIdx,
+      type: "addExercise",
+      stepIndex: stepIdx,
+      subsetIndex: subsetIdx,
       exercise: {
-            name: "",
-            reps: "",
-            weight: "",
-            duration: "",
-            exerciseId: "",
-            type: "rep" as Exercise["type"],
-            soundKey: "",
+        name: "",
+        reps: "",
+        weight: "",
+        duration: "",
+        exerciseId: "",
+        type: "rep" as Exercise["type"],
+        soundKey: "",
       },
     });
     markDirty();
@@ -481,7 +495,12 @@ export function WorkoutForm({
     subsetIdx: number,
     exIdx: number,
   ) => {
-    dispatchSteps({ type: "removeExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, exerciseIndex: exIdx });
+    dispatchSteps({
+      type: "removeExercise",
+      stepIndex: stepIdx,
+      subsetIndex: subsetIdx,
+      exerciseIndex: exIdx,
+    });
     markDirty();
   };
 
@@ -644,9 +663,9 @@ export function WorkoutForm({
             isSoundOpen={(s, sub, ex) =>
               Boolean(
                 openSoundPicker &&
-                  openSoundPicker.stepIdx === s &&
-                  openSoundPicker.subsetIdx === sub &&
-                  openSoundPicker.exIdx === ex,
+                openSoundPicker.stepIdx === s &&
+                openSoundPicker.subsetIdx === sub &&
+                openSoundPicker.exIdx === ex,
               )
             }
             setSoundOpen={(s, sub, ex, open) =>

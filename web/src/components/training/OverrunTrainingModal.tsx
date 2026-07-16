@@ -36,7 +36,9 @@ export function TrainingOverrunModal({
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onPostpone}>{UI_TEXT.pages.training.overrunPostpone}</Button>
+        <Button onClick={onPostpone}>
+          {UI_TEXT.pages.training.overrunPostpone}
+        </Button>
         <Button variant="contained" onClick={onPause}>
           {UI_TEXT.actions.pause}
         </Button>

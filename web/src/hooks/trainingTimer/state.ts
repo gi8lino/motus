@@ -74,7 +74,9 @@ export function ensureStartedAt(state: NormalizedState): void {
 export function applyStepFlags(state: NormalizedState): void {
   const idx = state.currentIndex ?? 0;
   state.steps = (state.steps || []).map((step, index) => {
-    const completed = state.done ? true : Boolean(step.completed || index < idx);
+    const completed = state.done
+      ? true
+      : Boolean(step.completed || index < idx);
     const current = !state.done && index === idx;
     const running = Boolean(state.running) && current;
     return { ...step, completed, current, running };

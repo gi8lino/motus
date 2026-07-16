@@ -17,7 +17,7 @@ export function expandExerciseSteps(state: TrainingState): TrainingState {
     const shouldExpand =
       step.type === STEP_TYPE_SET &&
       (step.exercises?.length || 0) > 1 &&
-      !Boolean(step.superset);
+      !step.superset;
 
     if (!shouldExpand) {
       expanded.steps.push(step);

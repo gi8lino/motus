@@ -210,11 +210,14 @@ export function WorkoutExerciseRow({
         <input
           value={showDuration ? ex.duration || "" : ex.reps || ""}
           onChange={(e) =>
-            updateExercise(stepIdx, subsetIdx, exIdx, {
-              ...(showDuration
+            updateExercise(
+              stepIdx,
+              subsetIdx,
+              exIdx,
+              showDuration
                 ? { duration: e.target.value }
-                : { reps: e.target.value }),
-            })
+                : { reps: e.target.value },
+            )
           }
           className={repsInvalid || durationInvalid ? "input-error" : undefined}
           placeholder={amountPlaceholder}

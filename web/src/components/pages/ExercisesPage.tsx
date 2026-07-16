@@ -68,7 +68,10 @@ export function ExercisesView({
               </div>
               <div className="btn-group">
                 {(!ex.isCore || isAdmin) && (
-                  <button className="btn subtle" onClick={() => onToggleSides(ex)}>
+                  <button
+                    className="btn subtle"
+                    onClick={() => onToggleSides(ex)}
+                  >
                     {ex.hasSides ? "Disable sides" : "Enable sides"}
                   </button>
                 )}

@@ -150,11 +150,13 @@ export function AppShell({
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
-                alignItems={{ xs: "flex-start", md: "center" }}
-                justifyContent="space-between"
+                sx={{
+                  alignItems: { xs: "flex-start", md: "center" },
+                  justifyContent: "space-between",
+                }}
               >
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={800}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                     {PROMPTS.resumeTrainingTitle}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -227,9 +229,8 @@ export function AppShell({
       >
         <Typography
           variant="caption"
-          display="block"
-          textAlign="center"
           color="text.secondary"
+          sx={{ display: "block", textAlign: "center" }}
         >
           © 2025 Motus | Version: {appVersion}
         </Typography>

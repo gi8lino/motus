@@ -43,7 +43,8 @@ export function useAppConfig({
           })
           .catch((err: Error) => {
             setCurrentUserId(null);
-            if (cfg.authHeaderEnabled) setAuthError(toErrorMessage(err, MESSAGES.authFailed));
+            if (cfg.authHeaderEnabled)
+              setAuthError(toErrorMessage(err, MESSAGES.authFailed));
           });
       })
       .catch((err: Error) => {

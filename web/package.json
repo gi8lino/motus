@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --deny-warnings src tests",
+    "format:check": "prettier --check src tests package.json tsconfig.json tsconfig.node.json",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --experimental-specifier-resolution=node --test tests/*.test.ts tests/**/*.test.ts"
   },
@@ -21,8 +24,10 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.0",
+    "oxlint": "^1.74.0",
+    "prettier": "^3.9.5",
     "source-map-js": "^1.1.0",
-    "typescript": "^7.0.0",
+    "typescript": "^6.0.3",
     "vite": "^8.0.0"
   }
 }

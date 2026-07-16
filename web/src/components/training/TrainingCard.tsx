@@ -22,12 +22,16 @@ import { PROMPTS } from "../../utils/messages";
 import { UI_TEXT } from "../../utils/uiText";
 import { STEP_TYPE_PAUSE } from "../../utils/step";
 import type { TrainingState, TrainingStepState } from "../../types";
-import { formatExerciseMetric, formatRoundLabel, formatRoundValue, formatStepValue, getAdaptiveTitleSize } from "../../utils/trainingCard";
+import {
+  formatExerciseMetric,
+  formatRoundValue,
+  formatStepValue,
+  getAdaptiveTitleSize,
+} from "../../utils/trainingCard";
 import {
   buildExercisePills,
   buildStepGroups,
   extractExerciseLabels,
-  formatStepCounter,
   getExercises,
   getNextStep,
   getNextSubsetStep,
@@ -43,9 +47,12 @@ function formatNextSupportLine(
   if (!nextNameStep) return "Finish is the next move.";
   if (nextSecondaryLabels.length) return nextSecondaryLabels.join(" • ");
   if (nextNameStep.estimatedSeconds) {
-    return `Target ${formatCountdownMillis(nextNameStep.estimatedSeconds * 1000, {
-      showHours,
-    })}`;
+    return `Target ${formatCountdownMillis(
+      nextNameStep.estimatedSeconds * 1000,
+      {
+        showHours,
+      },
+    )}`;
   }
   return "Ready when you are.";
 }
@@ -134,7 +141,7 @@ export function TrainingCard({
   training,
   currentStep,
   elapsed,
-  workoutName,
+  workoutName: _workoutName,
   showHours,
   onStart,
   onPause,
@@ -251,8 +258,8 @@ export function TrainingCard({
   const shouldShowNextExercises =
     Boolean(
       currentStep?.subsetId &&
-        nextStep?.subsetId &&
-        currentStep.subsetId === nextStep.subsetId,
+      nextStep?.subsetId &&
+      currentStep.subsetId === nextStep.subsetId,
     ) &&
     nextStepExerciseLabels.length > 0 &&
     hasFollowingSubset;
@@ -261,7 +268,10 @@ export function TrainingCard({
     ? nextStep
     : (nextSubsetStep ?? nextStep);
 
-  const activeExercises = useMemo(() => getExercises(currentStep), [currentStep]);
+  const activeExercises = useMemo(
+    () => getExercises(currentStep),
+    [currentStep],
+  );
   const primaryExercise = activeExercises[0];
   const heroTitle = currentStep
     ? primaryExercise?.name || getStepName(currentStep)
@@ -280,11 +290,14 @@ export function TrainingCard({
       : currentStepPills.length > 1
         ? currentStepPills.slice(1).join(" • ")
         : "";
-  const roundLabel = formatRoundLabel(currentStep);
   const roundValue = formatRoundValue(currentStep);
   const stepValue = formatStepValue(currentNumber, totalSteps);
   const currentTone =
-    currentStep?.type === STEP_TYPE_PAUSE ? "pause" : training ? "live" : "idle";
+    currentStep?.type === STEP_TYPE_PAUSE
+      ? "pause"
+      : training
+        ? "live"
+        : "idle";
 
   const nextPrimaryLabel = shouldShowNextExercises
     ? nextStepExerciseLabels[0]
@@ -344,7 +357,12 @@ export function TrainingCard({
                   rowGap: 1,
                 }}
               >
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: "wrap" }}
+                >
                   <Chip
                     size="small"
                     label={UI_TEXT.training.cards.now}
@@ -393,7 +411,10 @@ export function TrainingCard({
                         >
                           Step
                         </Typography>
-                        <Typography variant="body1" fontWeight={700} sx={{ lineHeight: 1.05 }}>
+                        <Typography
+                          variant="body1"
+                          sx={{ lineHeight: 1.05, fontWeight: 700 }}
+                        >
                           {stepValue}
                         </Typography>
                       </Box>
@@ -404,8 +425,7 @@ export function TrainingCard({
 
               <Stack
                 spacing={{ xs: 1.5, md: 2.25 }}
-                sx={{ minHeight: { md: 292 } }}
-                justifyContent="space-between"
+                sx={{ minHeight: { md: 292 }, justifyContent: "space-between" }}
               >
                 <Stack spacing={1.25}>
                   <Typography
@@ -502,8 +522,7 @@ export function TrainingCard({
 
               <Stack
                 spacing={1.25}
-                justifyContent="space-between"
-                sx={{ flex: 1, pt: 1.25 }}
+                sx={{ flex: 1, pt: 1.25, justifyContent: "space-between" }}
               >
                 <Box>
                   <Typography
@@ -631,27 +650,44 @@ export function TrainingCard({
                       <Stack
                         direction={{ xs: "column", sm: "row" }}
                         spacing={1}
-                        justifyContent="space-between"
-                        alignItems={{ xs: "flex-start", sm: "center" }}
+                        sx={{
+                          justifyContent: "space-between",
+                          alignItems: { xs: "flex-start", sm: "center" },
+                        }}
                       >
                         <Stack
                           direction="row"
                           spacing={1}
                           useFlexGap
-                          flexWrap="wrap"
-                          alignItems="center"
+                          sx={{ flexWrap: "wrap", alignItems: "center" }}
                         >
-                          <Typography variant="subtitle1" fontWeight={700}>
+                          <Typography
+                            variant="subtitle1"
+                            sx={{ fontWeight: 700 }}
+                          >
                             {groupTitle}
                           </Typography>
                           {group.current ? (
-                            <Chip size="small" color="primary" label="Current" />
+                            <Chip
+                              size="small"
+                              color="primary"
+                              label="Current"
+                            />
                           ) : null}
                         </Stack>
 
-                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          useFlexGap
+                          sx={{ flexWrap: "wrap" }}
+                        >
                           {roundText ? (
-                            <Chip size="small" variant="outlined" label={roundText} />
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={roundText}
+                            />
                           ) : null}
                           {pauseDuration ? (
                             <Chip
@@ -662,7 +698,11 @@ export function TrainingCard({
                             />
                           ) : null}
                           {group.hasSuperset ? (
-                            <Chip size="small" variant="outlined" label="Superset" />
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label="Superset"
+                            />
                           ) : null}
                         </Stack>
                       </Stack>
@@ -694,8 +734,7 @@ export function TrainingCard({
                                     direction="row"
                                     spacing={1}
                                     useFlexGap
-                                    flexWrap="wrap"
-                                    sx={{ mb: 0.35 }}
+                                    sx={{ mb: 0.35, flexWrap: "wrap" }}
                                   >
                                     {subset.label ? (
                                       <Typography

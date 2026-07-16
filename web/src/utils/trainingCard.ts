@@ -2,9 +2,11 @@ import type { Exercise, TrainingStepState } from "../types";
 
 export function formatExerciseMetric(exercise: Exercise | undefined) {
   if (!exercise) return "";
-  if (exercise.reps && exercise.weight) return `${exercise.reps} reps · ${exercise.weight}`;
+  if (exercise.reps && exercise.weight)
+    return `${exercise.reps} reps · ${exercise.weight}`;
   if (exercise.reps) return `${exercise.reps} reps`;
-  if (exercise.duration && exercise.weight) return `${exercise.duration} · ${exercise.weight}`;
+  if (exercise.duration && exercise.weight)
+    return `${exercise.duration} · ${exercise.weight}`;
   return exercise.duration || exercise.weight || "";
 }
 
@@ -22,7 +24,10 @@ export function formatStepValue(current: number, total: number) {
   return total ? `${current}/${total}` : "";
 }
 
-export function getAdaptiveTitleSize(text: string, options: { short: string; medium: string; long: string; xlong: string }) {
+export function getAdaptiveTitleSize(
+  text: string,
+  options: { short: string; medium: string; long: string; xlong: string },
+) {
   const length = text.trim().length;
   if (length > 28) return options.xlong;
   if (length > 22) return options.long;

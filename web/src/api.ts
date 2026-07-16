@@ -19,12 +19,15 @@ type AppConfig = {
 };
 
 // request wraps fetch with JSON handling, error surfacing, and user header.
-async function requestResponse(path: string, init?: RequestInit): Promise<Response> {
+async function requestResponse(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   const res = await fetch(withBasePath(path), {
-	credentials: "same-origin",
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers || {}),
+      ...init?.headers,
     },
     ...init,
   });
@@ -145,10 +148,13 @@ export async function createWorkout(payload: {
   name: string;
   steps: WorkoutStep[];
 }): Promise<Workout> {
-  return requestJSON(`/api/users/${encodeURIComponent(payload.userId)}/workouts`, {
-    method: "POST",
-    body: JSON.stringify({ name: payload.name, steps: payload.steps }),
-  });
+  return requestJSON(
+    `/api/users/${encodeURIComponent(payload.userId)}/workouts`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name: payload.name, steps: payload.steps }),
+    },
+  );
 }
 
 // updateWorkout updates an existing workout.
@@ -267,7 +273,9 @@ export async function logTrainingCompletion(payload: {
 export async function listTrainingHistory(
   userId: string,
 ): Promise<TrainingHistoryItem[]> {
-  return requestJSON(`/api/users/${encodeURIComponent(userId)}/trainings/history`);
+  return requestJSON(
+    `/api/users/${encodeURIComponent(userId)}/trainings/history`,
+  );
 }
 
 // getTrainingSteps fetches stored per-step timings for a training.

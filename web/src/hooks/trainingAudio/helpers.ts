@@ -1,4 +1,8 @@
-import type { SoundOption, TrainingState, TrainingStepState } from "../../types";
+import type {
+  SoundOption,
+  TrainingState,
+  TrainingStepState,
+} from "../../types";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
 

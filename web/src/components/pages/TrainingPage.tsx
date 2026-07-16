@@ -192,8 +192,8 @@ export function TrainingView({
           <Stack spacing={2.5}>
             <Stack
               direction={{ xs: "column", md: "row" }}
-              justifyContent="space-between"
               spacing={2}
+              sx={{ justifyContent: "space-between" }}
             >
               <Box>
                 <Typography variant="h4" sx={{ mb: 0.75 }}>
@@ -205,8 +205,7 @@ export function TrainingView({
                     direction="row"
                     spacing={1}
                     useFlexGap
-                    flexWrap="wrap"
-                    sx={{ alignItems: "center" }}
+                    sx={{ alignItems: "center", flexWrap: "wrap" }}
                   >
                     <Chip
                       size="small"
@@ -294,8 +293,9 @@ export function TrainingView({
                 }}
               >
                 <Typography variant="body2" color="text.secondary">
-                  {selectedWorkout.name} is ready with {selectedWorkout.steps.length}{" "}
-                  steps. Hit start to jump into the first exercise.
+                  {selectedWorkout.name} is ready with{" "}
+                  {selectedWorkout.steps.length} steps. Hit start to jump into
+                  the first exercise.
                 </Typography>
               </Box>
             ) : null}

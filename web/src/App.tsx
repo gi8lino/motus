@@ -135,17 +135,17 @@ export default function App() {
       return stored;
     return "auto";
   });
-  const [resolvedThemeMode, setResolvedThemeMode] = useState<
-    "dark" | "light"
-  >(() => {
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      return "dark";
-    }
-    return "light";
-  });
+  const [resolvedThemeMode, setResolvedThemeMode] = useState<"dark" | "light">(
+    () => {
+      if (
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      ) {
+        return "dark";
+      }
+      return "light";
+    },
+  );
 
   // train view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
@@ -437,7 +437,8 @@ export default function App() {
       setView("login");
     };
     window.addEventListener("motus:unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("motus:unauthorized", handleUnauthorized);
+    return () =>
+      window.removeEventListener("motus:unauthorized", handleUnauthorized);
   }, [clearTraining, setView]);
 
   // ---------- template apply ----------
@@ -526,191 +527,193 @@ export default function App() {
         toast={toast}
         appVersion={appVersion}
       >
-          <Suspense fallback={<PageFallback />}>
-            {view === "login" && !authHeaderEnabled && (
-              <LoginView
-            data={{
-              allowRegistration,
-              loginError,
-            }}
-            actions={{
-              onLogin: handleLogin,
-              onCreateUser: async (email, password) => {
-                try {
-                  await handleRegister(email, password);
-                  setView("train");
-                } catch (err) {
-                  await notify(toErrorMessage(err, "Unable to create user"));
-                }
-              },
-              onClearError: () => setLoginError(null),
-            }}
-              />
-            )}
+        <Suspense fallback={<PageFallback />}>
+          {view === "login" && !authHeaderEnabled && (
+            <LoginView
+              data={{
+                allowRegistration,
+                loginError,
+              }}
+              actions={{
+                onLogin: handleLogin,
+                onCreateUser: async (email, password) => {
+                  try {
+                    await handleRegister(email, password);
+                    setView("train");
+                  } catch (err) {
+                    await notify(toErrorMessage(err, "Unable to create user"));
+                  }
+                },
+                onClearError: () => setLoginError(null),
+              }}
+            />
+          )}
 
-            {view === "admin" && currentUser?.isAdmin && (
-              <AdminView
-            data={{
-              users: users.data || [],
-              loading: users.loading,
-              currentUserId,
-              allowRegistration,
-            }}
-            actions={{
-              onToggleAdmin: handleToggleAdmin,
-              onCreateUser: async (email, password) => {
-                try {
-                  await handleRegister(email, password);
-                } catch (err) {
-                  await notify(toErrorMessage(err, "Unable to create user"));
-                }
-              },
-              onBackfill: backfillCatalog,
-            }}
-              />
-            )}
+          {view === "admin" && currentUser?.isAdmin && (
+            <AdminView
+              data={{
+                users: users.data || [],
+                loading: users.loading,
+                currentUserId,
+                allowRegistration,
+              }}
+              actions={{
+                onToggleAdmin: handleToggleAdmin,
+                onCreateUser: async (email, password) => {
+                  try {
+                    await handleRegister(email, password);
+                  } catch (err) {
+                    await notify(toErrorMessage(err, "Unable to create user"));
+                  }
+                },
+                onBackfill: backfillCatalog,
+              }}
+            />
+          )}
 
-            {view === "workouts" && (
-              <WorkoutsView
-            workouts={activeWorkouts}
-            loading={workouts.loading}
-            setWorkouts={(updater) => workouts.setData?.(updater)}
-            currentUserId={currentUserId}
-            defaults={{
-              defaultStepSoundKey,
-              defaultPauseDuration,
-              defaultPauseSoundKey,
-              defaultPauseAutoAdvance,
-              repeatRestAfterLastDefault,
-            }}
-            formData={{
-              sounds: sounds.data || [],
-              exerciseCatalog,
-            }}
-            services={{
-              askConfirm,
-              askPrompt,
-              notifyUser: notify,
-              templatesReload: () => templates.reload(),
-              onCreateExercise: createExerciseEntry,
-              promptUser: askPrompt,
-              onToast: showToast,
-            }}
-              />
-            )}
+          {view === "workouts" && (
+            <WorkoutsView
+              workouts={activeWorkouts}
+              loading={workouts.loading}
+              setWorkouts={(updater) => workouts.setData?.(updater)}
+              currentUserId={currentUserId}
+              defaults={{
+                defaultStepSoundKey,
+                defaultPauseDuration,
+                defaultPauseSoundKey,
+                defaultPauseAutoAdvance,
+                repeatRestAfterLastDefault,
+              }}
+              formData={{
+                sounds: sounds.data || [],
+                exerciseCatalog,
+              }}
+              services={{
+                askConfirm,
+                askPrompt,
+                notifyUser: notify,
+                templatesReload: () => templates.reload(),
+                onCreateExercise: createExerciseEntry,
+                promptUser: askPrompt,
+                onToast: showToast,
+              }}
+            />
+          )}
 
-            {view === "train" && (
-              <TrainingView
-            data={{
-              workouts: activeWorkouts,
-              selectedWorkoutId,
-              startDisabled: !selectedWorkoutId || !currentUserId,
-              startTitle: !selectedWorkoutId ? PROMPTS.selectWorkoutFirst : "",
-              training,
-              currentStep,
-              elapsed: displayedElapsed,
-              workoutName: currentWorkoutName,
-              sounds: sounds.data || [],
-              pauseOnTabHidden,
-              showHours,
-            }}
-            actions={{
-              onSelectWorkout: setSelectedWorkoutId,
-              onStartTraining: handleStartTraining,
-              markSoundPlayed,
-              onStartStep: startCurrentStep,
-              onPause: pause,
-              onNext: nextStep,
-              onFinishTraining: handleFinishTraining,
-              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
-              onToast: showToast,
-            }}
-              />
-            )}
+          {view === "train" && (
+            <TrainingView
+              data={{
+                workouts: activeWorkouts,
+                selectedWorkoutId,
+                startDisabled: !selectedWorkoutId || !currentUserId,
+                startTitle: !selectedWorkoutId
+                  ? PROMPTS.selectWorkoutFirst
+                  : "",
+                training,
+                currentStep,
+                elapsed: displayedElapsed,
+                workoutName: currentWorkoutName,
+                sounds: sounds.data || [],
+                pauseOnTabHidden,
+                showHours,
+              }}
+              actions={{
+                onSelectWorkout: setSelectedWorkoutId,
+                onStartTraining: handleStartTraining,
+                markSoundPlayed,
+                onStartStep: startCurrentStep,
+                onPause: pause,
+                onNext: nextStep,
+                onFinishTraining: handleFinishTraining,
+                onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+                onToast: showToast,
+              }}
+            />
+          )}
 
-            {view === "templates" && (
-              <TemplatesView
-            data={{
-              templates: templates.data || [],
-              loading: templates.loading,
-              hasUser: Boolean(currentUserId),
-            }}
-            actions={{
-              onRefresh: () => templates.reload(),
-              onApplyTemplate: handleApplyTemplate,
-            }}
-              />
-            )}
+          {view === "templates" && (
+            <TemplatesView
+              data={{
+                templates: templates.data || [],
+                loading: templates.loading,
+                hasUser: Boolean(currentUserId),
+              }}
+              actions={{
+                onRefresh: () => templates.reload(),
+                onApplyTemplate: handleApplyTemplate,
+              }}
+            />
+          )}
 
-            {view === "history" && (
-              <HistoryView
-            data={{
-              items: history.data || [],
-              activeTraining: training,
-            }}
-            actions={{
-              onResume: () => setView("train"),
-              loadWorkout: getWorkout,
-              onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
-            }}
-              />
-            )}
+          {view === "history" && (
+            <HistoryView
+              data={{
+                items: history.data || [],
+                activeTraining: training,
+              }}
+              actions={{
+                onResume: () => setView("train"),
+                loadWorkout: getWorkout,
+                onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
+              }}
+            />
+          )}
 
-            {view === "profile" && (
-              <ProfileView
-            data={{
-              profileTab,
-              currentName: currentUser?.name || "",
-              themeMode,
-              sounds: sounds.data || [],
-              defaultStepSoundKey,
-              defaultPauseDuration,
-              defaultPauseSoundKey,
-              defaultPauseAutoAdvance,
-              repeatRestAfterLastDefault,
-              pauseOnTabHidden,
-              showHours,
-              exportWorkoutId,
-              activeWorkouts,
-              importInputRef,
-              authHeaderEnabled,
-            }}
-            actions={{
-              onProfileTabChange: setProfileTab,
-              onUpdateName: handleUpdateName,
-              onThemeChange: setThemeMode,
-              onDefaultStepSoundChange: updateDefaultStepSoundKey,
-              onDefaultPauseDurationChange: updateDefaultPauseDuration,
-              onDefaultPauseSoundChange: updateDefaultPauseSoundKey,
-              onDefaultPauseAutoAdvanceChange: updateDefaultPauseAutoAdvance,
-              onRepeatRestAfterLastDefaultChange:
-                updateRepeatRestAfterLastDefault,
-              onPauseOnTabHiddenChange: updatePauseOnTabHidden,
-              onShowHoursChange: updateShowHours,
-              onExportWorkoutChange: setExportWorkoutId,
-              onExportWorkout: handleExportSelected,
-              onImportWorkout: handleImportSelected,
-              onPasswordChange: handlePasswordSubmit,
-            }}
-              />
-            )}
+          {view === "profile" && (
+            <ProfileView
+              data={{
+                profileTab,
+                currentName: currentUser?.name || "",
+                themeMode,
+                sounds: sounds.data || [],
+                defaultStepSoundKey,
+                defaultPauseDuration,
+                defaultPauseSoundKey,
+                defaultPauseAutoAdvance,
+                repeatRestAfterLastDefault,
+                pauseOnTabHidden,
+                showHours,
+                exportWorkoutId,
+                activeWorkouts,
+                importInputRef,
+                authHeaderEnabled,
+              }}
+              actions={{
+                onProfileTabChange: setProfileTab,
+                onUpdateName: handleUpdateName,
+                onThemeChange: setThemeMode,
+                onDefaultStepSoundChange: updateDefaultStepSoundKey,
+                onDefaultPauseDurationChange: updateDefaultPauseDuration,
+                onDefaultPauseSoundChange: updateDefaultPauseSoundKey,
+                onDefaultPauseAutoAdvanceChange: updateDefaultPauseAutoAdvance,
+                onRepeatRestAfterLastDefaultChange:
+                  updateRepeatRestAfterLastDefault,
+                onPauseOnTabHiddenChange: updatePauseOnTabHidden,
+                onShowHoursChange: updateShowHours,
+                onExportWorkoutChange: setExportWorkoutId,
+                onExportWorkout: handleExportSelected,
+                onImportWorkout: handleImportSelected,
+                onPasswordChange: handlePasswordSubmit,
+              }}
+            />
+          )}
 
-            {view === "exercises" && (
-              <ExercisesView
-            data={{
-              exercises: exerciseCatalog,
-              isAdmin: Boolean(currentUser?.isAdmin),
-            }}
-            actions={{
-              onAddExercise: handleAddExercise,
-              onAddCoreExercise: handleAddCoreExercise,
-              onRenameExercise: handleRenameExercise,
-              onDeleteExercise: handleDeleteExercise,
-              onToggleSides: handleToggleExerciseSides,
-            }}
-              />
-            )}
-          </Suspense>
+          {view === "exercises" && (
+            <ExercisesView
+              data={{
+                exercises: exerciseCatalog,
+                isAdmin: Boolean(currentUser?.isAdmin),
+              }}
+              actions={{
+                onAddExercise: handleAddExercise,
+                onAddCoreExercise: handleAddCoreExercise,
+                onRenameExercise: handleRenameExercise,
+                onDeleteExercise: handleDeleteExercise,
+                onToggleSides: handleToggleExerciseSides,
+              }}
+            />
+          )}
+        </Suspense>
       </AppShell>
 
       {dialog && (

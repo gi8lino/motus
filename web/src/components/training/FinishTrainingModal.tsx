@@ -43,12 +43,14 @@ export function TrainingFinishModal({
             multiline
             minRows={10}
             fullWidth
-            InputProps={{ readOnly: true }}
+            slotProps={{ input: { readOnly: true } }}
           />
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => copySummary(summary, onCopySummary)}>Copy</Button>
+        <Button onClick={() => copySummary(summary, onCopySummary)}>
+          Copy
+        </Button>
         <Button variant="contained" onClick={onClose}>
           Close
         </Button>

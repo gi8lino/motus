@@ -13,7 +13,7 @@ const SILENT_WAV_DATA_URL =
 function createManagedAudio(soundUrl = ""): HTMLAudioElement {
   const audio = new Audio(soundUrl);
   audio.preload = "auto";
-  audio.playsInline = true;
+  (audio as unknown as { playsInline: boolean }).playsInline = true;
   return audio;
 }
 

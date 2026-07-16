@@ -26,9 +26,7 @@ export function buildAppTheme(mode: PaletteMode) {
         default: isDark ? "#081019" : "#f5f0e9",
         paper: isDark ? "#10202b" : "#fffaf3",
       },
-      divider: isDark
-        ? alpha("#d7ecff", 0.08)
-        : alpha("#163047", 0.1),
+      divider: isDark ? alpha("#d7ecff", 0.08) : alpha("#163047", 0.1),
       text: {
         primary: isDark ? "#eff7ff" : "#102235",
         secondary: isDark ? "#a9bfd2" : "#5c7083",

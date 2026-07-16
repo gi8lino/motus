@@ -11,6 +11,10 @@ on:
       - "main.go"
       - "go.mod"
       - "go.sum"
+      - "web/**"
+      - "examples/**"
+      - "scripts/**"
+      - ".github/workflows/tests.yml"
   workflow_dispatch:
 
 jobs:
@@ -68,7 +72,18 @@ jobs:
         run: |
           cd web
           npm ci
+          npm run typecheck
+          npm run lint
+          npm run format:check
           npm run build
+
+      - name: Check formatting and exercise YAML
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.6.1 ./...
+          ruby scripts/check-core-exercises.rb
+          git diff --check
 
       - name: Upload web dist artifact
         uses: actions/upload-artifact@v7

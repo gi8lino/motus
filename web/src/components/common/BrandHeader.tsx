@@ -6,7 +6,7 @@ const brandLogoSrc = withBasePath("/brand.svg");
 
 export function BrandHeader() {
   return (
-    <Stack direction="row" spacing={1.5} alignItems="center">
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
       <Box
         component="img"
         src={brandLogoSrc}
@@ -20,7 +20,7 @@ export function BrandHeader() {
       />
 
       <Box>
-        <Typography variant="h5" lineHeight={1} fontWeight={800}>
+        <Typography variant="h5" sx={{ lineHeight: 1, fontWeight: 800 }}>
           Motus
         </Typography>
         <Typography variant="caption" color="text.secondary">

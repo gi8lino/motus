@@ -19,10 +19,15 @@ function makeEvent(input: EventInput) {
     },
     target: input.tagName ? { tagName: input.tagName } : null,
   };
-  return { event: event as unknown as KeyboardEvent, prevented: () => prevented };
+  return {
+    event: event as unknown as KeyboardEvent,
+    prevented: () => prevented,
+  };
 }
 
-function createArgs(overrides?: Partial<Parameters<typeof createTrainingKeyboardHandler>[0]>) {
+function createArgs(
+  overrides?: Partial<Parameters<typeof createTrainingKeyboardHandler>[0]>,
+) {
   const calls = {
     overrunPostpone: 0,
     overrunPause: 0,

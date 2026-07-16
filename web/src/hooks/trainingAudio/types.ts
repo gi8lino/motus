@@ -1,5 +1,9 @@
 import type { MutableRefObject } from "react";
-import type { SoundOption, TrainingState, TrainingStepState } from "../../types";
+import type {
+  SoundOption,
+  TrainingState,
+  TrainingStepState,
+} from "../../types";
 
 // TrainingRefs bundles mutable refs used by audio scheduling logic.
 export type TrainingRefs = {

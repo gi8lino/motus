@@ -27,7 +27,8 @@ export function useDataLoader<T>(
     const requestID = ++requestIdRef.current;
     setLoading(true);
 
-    loaderRef.current()
+    loaderRef
+      .current()
       .then((res) => {
         if (!mountedRef.current || requestID !== requestIdRef.current) return;
         setData(res);

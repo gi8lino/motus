@@ -4,7 +4,10 @@ import type { TrainingState } from "../types";
 import { getCountdownAutoAdvanceDelay } from "../utils/countdown";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import { logTimerEvent } from "../utils/timerLogger";
-import { claimAdvanceTransition, syncAdvanceTransition } from "./trainingTimer/advanceGuard";
+import {
+  claimAdvanceTransition,
+  syncAdvanceTransition,
+} from "./trainingTimer/advanceGuard";
 import { now, structuredCloneSafe } from "./trainingTimer/clock";
 import { expandExerciseSteps } from "./trainingTimer/expansion";
 import {
@@ -17,7 +20,11 @@ import {
   normalizeTraining,
   setRunning,
 } from "./trainingTimer/state";
-import { clearPersistedTraining, loadPersistedTraining, persistTraining } from "./trainingTimer/storage";
+import {
+  clearPersistedTraining,
+  loadPersistedTraining,
+  persistTraining,
+} from "./trainingTimer/storage";
 import type { NormalizedState } from "./trainingTimer/types";
 import { buildStepRunKey, isSameStepRun } from "./trainingTimer/runIdentity";
 
@@ -245,7 +252,10 @@ export function useTrainingTimer({
         return { ok: true, training: next };
       } catch (err) {
         console.warn("log train failed", err);
-        return { ok: false, error: toErrorMessage(err, MESSAGES.logTrainingFailed) };
+        return {
+          ok: false,
+          error: toErrorMessage(err, MESSAGES.logTrainingFailed),
+        };
       }
     } finally {
       finishingRef.current = null;

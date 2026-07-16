@@ -11,7 +11,11 @@ import {
   getEffectiveThresholdMs,
   getOverrunThresholdMs,
 } from "./trainingOverrun/helpers";
-import type { OverrunRefState, OverrunState, UseTrainingOverrunArgs } from "./trainingOverrun/types";
+import type {
+  OverrunRefState,
+  OverrunState,
+  UseTrainingOverrunArgs,
+} from "./trainingOverrun/types";
 
 // useTrainingOverrun manages the "over target" modal countdown logic.
 export function useTrainingOverrun({
