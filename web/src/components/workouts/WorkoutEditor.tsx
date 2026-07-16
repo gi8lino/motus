@@ -89,6 +89,7 @@ export function WorkoutsEditor({
         }}
         editingWorkout={editingWorkout}
         onDirtyChange={setWorkoutDirty}
+        onSaved={onClose}
         onClose={closeWorkoutModal}
       />
     </Modal>

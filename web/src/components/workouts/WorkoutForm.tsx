@@ -88,6 +88,7 @@ export type WorkoutFormProps = {
   defaults: WorkoutFormDefaults;
   services: WorkoutFormServices;
   onDirtyChange?: (dirty: boolean) => void;
+  onSaved?: () => void;
 };
 
 type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
@@ -99,6 +100,7 @@ export function WorkoutForm({
   exerciseCatalog,
   onClose,
   onDirtyChange,
+  onSaved,
   defaults,
   services,
 }: WorkoutFormProps) {
@@ -778,6 +780,7 @@ export function WorkoutForm({
             ? UI_TEXT.workouts.editMode.updatedToast
             : UI_TEXT.workouts.editMode.createdToast,
         );
+        onSaved?.();
       },
       MESSAGES.saveWorkoutFailed,
     );
