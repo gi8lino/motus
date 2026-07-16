@@ -23,6 +23,8 @@ func (s *ownershipAuthStore) CreateUser(context.Context, string, string, string)
 func (s *ownershipAuthStore) CreateSession(context.Context, string, string, time.Time) error {
 	return nil
 }
+func (s *ownershipAuthStore) DeleteSession(context.Context, string) error      { return nil }
+func (s *ownershipAuthStore) DeleteUserSessions(context.Context, string) error { return nil }
 func (s *ownershipAuthStore) GetSessionUser(context.Context, string, time.Time) (*db.User, error) {
 	return s.user, nil
 }

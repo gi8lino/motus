@@ -48,6 +48,7 @@ func NewRouter(
 	apiMux.Handle("GET /config", api.Config())
 	apiMux.Handle("GET /me", api.CurrentUser())
 	apiMux.Handle("POST /login", api.Login())
+	apiMux.Handle("POST /logout", api.Logout())
 	apiMux.Handle("PUT /me/password", api.ChangePassword())
 	apiMux.Handle("PUT /me/name", api.UpdateUserName())
 	apiMux.Handle("GET /users",

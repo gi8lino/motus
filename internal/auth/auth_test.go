@@ -19,14 +19,31 @@ type fakeStore struct {
 	getUserFn    func(context.Context, string) (*db.User, error)
 	createUserFn func(context.Context, string, string, string) (*db.User, error)
 	getSessionFn func(context.Context, string, time.Time) (*db.User, error)
+	deletedToken string
 }
 
 func (f *fakeStore) CreateSession(context.Context, string, string, time.Time) error { return nil }
+func (f *fakeStore) DeleteSession(_ context.Context, token string) error {
+	f.deletedToken = token
+	return nil
+}
+func (f *fakeStore) DeleteUserSessions(context.Context, string) error { return nil }
 func (f *fakeStore) GetSessionUser(context.Context, string, time.Time) (*db.User, error) {
 	if f.getSessionFn != nil {
 		return f.getSessionFn(context.Background(), "token", time.Now())
 	}
 	return nil, pgx.ErrNoRows
+}
+
+func TestEndSessionRevokesTokenAndExpiresCookie(t *testing.T) {
+	store := &fakeStore{}
+	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "secret"})
+	rec := httptest.NewRecorder()
+	require.NoError(t, EndSession(req.Context(), rec, req, store))
+	assert.Equal(t, "secret", store.deletedToken)
+	require.Len(t, rec.Result().Cookies(), 1)
+	assert.Less(t, rec.Result().Cookies()[0].MaxAge, 0)
 }
 
 func (f *fakeStore) GetUser(ctx context.Context, email string) (*db.User, error) {

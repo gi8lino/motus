@@ -40,6 +40,19 @@ type Store interface {
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
 	CreateSession(ctx context.Context, token, userID string, expiresAt time.Time) error
 	GetSessionUser(ctx context.Context, token string, now time.Time) (*db.User, error)
+	DeleteSession(ctx context.Context, token string) error
+	DeleteUserSessions(ctx context.Context, userID string) error
+}
+
+// EndSession revokes the current session and expires its browser cookie.
+func EndSession(ctx context.Context, w http.ResponseWriter, r *http.Request, store Store) error {
+	if cookie, err := r.Cookie(SessionCookieName); err == nil && cookie.Value != "" {
+		if err := store.DeleteSession(ctx, cookie.Value); err != nil {
+			return err
+		}
+	}
+	http.SetCookie(w, &http.Cookie{Name: SessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	return nil
 }
 
 // StartSession creates a local-auth session and writes its opaque token cookie.

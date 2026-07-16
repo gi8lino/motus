@@ -127,6 +127,16 @@ func (a *API) Login() http.HandlerFunc {
 	}
 }
 
+func (a *API) Logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := auth.EndSession(r.Context(), w, r, a.AuthStore); err != nil {
+			a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "logout failed"})
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 // ChangePassword updates the password for the current user.
 func (a *API) ChangePassword() http.HandlerFunc {
 	type changePasswordRequest struct {
@@ -152,6 +162,12 @@ func (a *API) ChangePassword() http.HandlerFunc {
 			a.logRequestError(r, "change_password_failed", "change password failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
+		}
+		if a.AuthStore != nil {
+			if err := a.AuthStore.DeleteUserSessions(r.Context(), userID); err != nil {
+				a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "revoke sessions failed"})
+				return
+			}
 		}
 
 		a.businessLogger(r).Info("user password changed",
