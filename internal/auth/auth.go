@@ -56,13 +56,16 @@ func EndSession(ctx context.Context, w http.ResponseWriter, r *http.Request, sto
 }
 
 // StartSession creates a local-auth session and writes its opaque token cookie.
-func StartSession(ctx context.Context, w http.ResponseWriter, r *http.Request, store Store, userID string) error {
+func StartSession(ctx context.Context, w http.ResponseWriter, r *http.Request, store Store, userID string, lifetime time.Duration) error {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return err
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
-	expires := time.Now().UTC().Add(sessionLifetime)
+	if lifetime <= 0 {
+		lifetime = sessionLifetime
+	}
+	expires := time.Now().UTC().Add(lifetime)
 	if err := store.CreateSession(ctx, token, userID, expires); err != nil {
 		return err
 	}

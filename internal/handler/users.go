@@ -42,7 +42,7 @@ func (a *API) CreateUser() http.HandlerFunc {
 			return
 		}
 		if a.AuthHeader == "" && a.AuthStore != nil {
-			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID); err != nil {
+			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID, a.SessionLifetime); err != nil {
 				a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "create session failed"})
 				return
 			}
@@ -111,7 +111,7 @@ func (a *API) Login() http.HandlerFunc {
 			return
 		}
 		if a.AuthStore != nil {
-			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID); err != nil {
+			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID, a.SessionLifetime); err != nil {
 				a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "create session failed"})
 				return
 			}

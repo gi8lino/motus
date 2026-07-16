@@ -111,6 +111,7 @@ func Run(
 		commit,
 		flags.AllowRegistration,
 		flags.AutoCreateUsers,
+		flags.SessionLifetime,
 	)
 
 	// Configure the HTTP router and SPA asset handler.

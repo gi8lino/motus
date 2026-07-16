@@ -40,7 +40,7 @@ func TestPostgresRejectsCrossUserWorkoutAccess(t *testing.T) {
 
 	token := utils.NewID()
 	require.NoError(t, store.CreateSession(ctx, token, other.ID, time.Now().Add(time.Hour)))
-	api := NewAPI(store, logger, "", "", "test", "test", false, false)
+	api := NewAPI(store, logger, "", "", "test", "test", false, false, time.Hour)
 	req := httptest.NewRequest(http.MethodGet, "/api/workouts/"+workout.ID, nil)
 	req.SetPathValue("id", workout.ID)
 	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: token})

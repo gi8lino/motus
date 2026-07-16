@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gi8lino/motus/internal/auth"
 	"github.com/gi8lino/motus/internal/db"
@@ -31,6 +32,7 @@ type API struct {
 	AuthHeader        string             // AuthHeader specifies the proxy auth header.
 	AllowRegistration bool               // AllowRegistration toggles self-serve user creation.
 	AutoCreateUsers   bool               // AutoCreateUsers toggles proxy-driven user creation.
+	SessionLifetime   time.Duration      // SessionLifetime controls local session expiry.
 }
 
 // apiError is a generic error response.
@@ -51,6 +53,7 @@ func NewAPI(
 	logger *slog.Logger,
 	authHeader, origin, version, commit string,
 	allowRegistration, autoCreateUsers bool,
+	sessionLifetime time.Duration,
 ) *API {
 	return &API{
 		Origin:            origin,
@@ -67,6 +70,7 @@ func NewAPI(
 		AuthHeader:        authHeader,
 		AllowRegistration: allowRegistration,
 		AutoCreateUsers:   autoCreateUsers,
+		SessionLifetime:   sessionLifetime,
 	}
 }
 
