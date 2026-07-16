@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { withBasePath } from "./utils/basePath";
 import { workoutWriteSteps } from "./utils/workoutWrite";
+import { ApiError } from "./utils/apiError";
 
 export { workoutWriteSteps } from "./utils/workoutWrite";
 
@@ -36,16 +37,26 @@ async function requestResponse(
   });
   if (!res.ok) {
     let message = res.statusText;
+    let code = "http_error";
     try {
-      const body = await res.json();
-      message = body.message || body.error || message;
+      const body = (await res.json()) as {
+        code?: unknown;
+        message?: unknown;
+        error?: unknown;
+      };
+      if (typeof body.code === "string" && body.code) code = body.code;
+      if (typeof body.message === "string" && body.message) {
+        message = body.message;
+      } else if (typeof body.error === "string" && body.error) {
+        message = body.error;
+      }
     } catch {
       // ignore
     }
     if (res.status === 401 && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("motus:unauthorized"));
     }
-    throw new Error(message);
+    throw new ApiError(res.status, code, message);
   }
   return res;
 }
