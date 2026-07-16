@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { matchesSearch } from "../../utils/search";
 
 type SelectItem = {
   id: string;
   label: string;
+  searchText?: string;
   right?: React.ReactNode;
 };
 
@@ -17,6 +19,7 @@ export function SelectDropdown({
   renderSelectedRight,
   addLabel,
   onAddNew,
+  searchable = false,
 }: {
   items: SelectItem[];
   value: string | null;
@@ -29,8 +32,10 @@ export function SelectDropdown({
   ) => React.ReactNode;
   addLabel?: string;
   onAddNew?: () => void | Promise<void>;
+  searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const typeBufferRef = useRef("");
@@ -39,6 +44,10 @@ export function SelectDropdown({
   const selected: SelectItem | null = value
     ? (items.find((item) => item.id === value) ?? null)
     : null;
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleItems = normalizedQuery
+    ? items.filter((item) => matchesSearch(item, normalizedQuery))
+    : items;
 
   // Close the menu when the user clicks outside the dropdown.
   useEffect(() => {
@@ -82,6 +91,7 @@ export function SelectDropdown({
   // handleTypeAhead focuses the first matching option by typed prefix.
   const handleTypeAhead = (event: React.KeyboardEvent) => {
     if (!open) return;
+    if (event.target instanceof HTMLInputElement) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     const key = event.key;
     if (key === "Enter") {
@@ -107,7 +117,10 @@ export function SelectDropdown({
 
   // Reset the type-ahead buffer when the menu closes.
   useEffect(() => {
-    if (!open) resetTypeAhead();
+    if (!open) {
+      resetTypeAhead();
+      setQuery("");
+    }
   }, [open]);
 
   // Clear any pending timeouts on unmount.
@@ -139,6 +152,17 @@ export function SelectDropdown({
           ref={menuRef}
           onKeyDown={handleTypeAhead}
         >
+          {searchable ? (
+            <input
+              className="select-dropdown-search"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search exercises or labels…"
+              aria-label="Search exercises"
+              autoFocus
+            />
+          ) : null}
           {selected && onClear && (
             <button
               className="select-dropdown-option muted"
@@ -151,7 +175,7 @@ export function SelectDropdown({
               Clear selection
             </button>
           )}
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <button
               key={item.id}
               className="select-dropdown-option"
@@ -165,6 +189,9 @@ export function SelectDropdown({
               {renderRight?.(item) ?? item.right}
             </button>
           ))}
+          {searchable && visibleItems.length === 0 ? (
+            <div className="select-dropdown-empty">No matching exercises</div>
+          ) : null}
           {addLabel && onAddNew && (
             <button
               className="select-dropdown-option add"

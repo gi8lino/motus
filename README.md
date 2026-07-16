@@ -110,14 +110,14 @@ UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
 
 ## Core exercises YAML
 
-Motus embeds and reconciles its default core exercises on every startup, including in the container image. No file mount is required. To replace the built-in catalog, pass `--core-exercises-file` (or `MOTUS_CORE_EXERCISES_FILE`) with a mounted YAML file. Every entry is an object with a name. Set `hasSides: true` for unilateral exercises; when omitted, it defaults to `false`:
+Motus embeds and reconciles its default core exercises on every startup, including in the container image. No file mount is required. To replace the built-in catalog, pass `--core-exercises-file` (or `MOTUS_CORE_EXERCISES_FILE`) with a mounted YAML file. Every entry has a concise name and optional searchable labels. Set `hasSides: true` for unilateral exercises; when omitted, it defaults to `false`. `previousNames` lets catalog upgrades rename existing entries and linked workout snapshots safely:
 
 ```yaml
-version: 1
+version: 2
 exercises:
-  - {name: Push-up}
-  - {name: Squat}
-  - {name: Side Plank, hasSides: true}
+  - { name: Push-up, labels: [bodyweight, push, chest] }
+  - { name: Swing, labels: [kettlebell, hinge], previousNames: [Kettlebell Swing] }
+  - { name: Side Plank, hasSides: true, labels: [bodyweight, core] }
 ```
 
 See `examples/core-exercises.yaml` for the embedded default and override format.

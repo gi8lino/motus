@@ -42,7 +42,7 @@ func TestEnsureSchemaPostgres(t *testing.T) {
 	var version int
 	require.NoError(t, store.pool.QueryRow(ctx, `SELECT version FROM schema_version WHERE id=1`).Scan(&version))
 	require.Equal(t, schemaVersionLatest, version)
-	for _, table := range []string{"users", "workouts", "exercises", "user_sessions"} {
+	for _, table := range []string{"users", "workouts", "exercises", "exercise_labels", "user_sessions"} {
 		var exists bool
 		require.NoError(t, store.pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists))
 		require.True(t, exists, table)

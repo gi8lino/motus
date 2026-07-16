@@ -61,6 +61,11 @@ export function ExercisesView({
                     ? UI_TEXT.exercises.core
                     : UI_TEXT.exercises.personal}
                 </span>
+                {ex.labels?.map((label) => (
+                  <span key={label} className="exercise-label">
+                    {label}
+                  </span>
+                ))}
                 <div className="muted small">
                   {ex.createdAt
                     ? new Date(ex.createdAt).toLocaleDateString()

@@ -35,7 +35,12 @@ export function ExerciseSelect({
       : "";
 
   const items = useMemo(
-    () => catalog.map((item) => ({ id: item.id, label: item.name })),
+    () =>
+      catalog.map((item) => ({
+        id: item.id,
+        label: item.name,
+        searchText: item.labels?.join(" ") ?? "",
+      })),
     [catalog],
   );
 
@@ -53,8 +58,17 @@ export function ExerciseSelect({
         const match = byId.get(item.id);
         if (!match) return null;
         return (
-          <span className={`exercise-tag ${match.isCore ? "core" : "user"}`}>
-            {match.isCore ? UI_TEXT.exercises.core : UI_TEXT.exercises.personal}
+          <span className="exercise-option-meta">
+            {match.labels?.slice(0, 3).map((label) => (
+              <span key={label} className="exercise-label">
+                {label}
+              </span>
+            ))}
+            <span className={`exercise-tag ${match.isCore ? "core" : "user"}`}>
+              {match.isCore
+                ? UI_TEXT.exercises.core
+                : UI_TEXT.exercises.personal}
+            </span>
           </span>
         );
       }}
@@ -71,6 +85,7 @@ export function ExerciseSelect({
       }
       addLabel="+ Add new exercise"
       onAddNew={onAddNew}
+      searchable
     />
   );
 }

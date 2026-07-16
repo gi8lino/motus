@@ -14,7 +14,7 @@ import (
 
 // exerciseStore is an interface for storing exercises.
 type exerciseStore interface {
-	UpsertCoreExercise(ctx context.Context, name string, hasSides bool) (*db.Exercise, bool, error)
+	UpsertCoreExercise(ctx context.Context, name string, hasSides bool, labels, previousNames []string) (*db.Exercise, bool, error)
 }
 
 // coreExercisesFile mirrors the YAML layout expected in the seed file.
@@ -24,8 +24,10 @@ type coreExercisesFile struct {
 }
 
 type coreExercise struct {
-	Name     string `yaml:"name"`
-	HasSides bool   `yaml:"hasSides"`
+	Name          string   `yaml:"name"`
+	HasSides      bool     `yaml:"hasSides"`
+	Labels        []string `yaml:"labels"`
+	PreviousNames []string `yaml:"previousNames"`
 }
 
 // SeedCoreExercises reconciles the embedded catalog, or a configured override file.
@@ -45,7 +47,7 @@ func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Lo
 	if err := yaml.Unmarshal(data, &exercises); err != nil {
 		return fmt.Errorf("decode core exercises catalog: %w", err)
 	}
-	if exercises.Version != 1 {
+	if exercises.Version != 2 {
 		return fmt.Errorf("core exercises catalog %q has unsupported version %d", source, exercises.Version)
 	}
 	if len(exercises.Exercises) == 0 {
@@ -53,7 +55,7 @@ func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Lo
 	}
 
 	for _, item := range exercises.Exercises {
-		_, created, err := store.UpsertCoreExercise(ctx, item.Name, item.HasSides)
+		_, created, err := store.UpsertCoreExercise(ctx, item.Name, item.HasSides, item.Labels, item.PreviousNames)
 		if err != nil {
 			return fmt.Errorf("reconcile core exercise %q: %w", item.Name, err)
 		}

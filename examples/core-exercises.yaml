@@ -1,87 +1,86 @@
-version: 1
+version: 2
 exercises:
-  - { name: 1 Pump Burpee }
-  - { name: 2 Pump Burpee }
-  - { name: Air Squat }
-  - { name: Arm Circles backwards }
-  - { name: Arms Circles forward }
-  - { name: Back Extensions }
-  - { name: Bear Crawl }
-  - { name: Bear Crawl Hold }
-  - { name: Beast Hold }
-  - { name: Beast Shoulder Taps }
-  - { name: Bicycle Crunch }
-  - { name: Bird Dog, hasSides: true }
-  - { name: Bird Dog Hold, hasSides: true }
-  - { name: Cross-Body Mountain Climbers }
-  - { name: Crunch }
-  - { name: Dead Bug }
-  - { name: Elbow Openers }
-  - { name: Flutter Kicks }
-  - { name: Glute Bridge }
-  - { name: High Plank }
-  - { name: Hip Circles }
-  - { name: Hip Hinges }
-  - { name: Hip Thrust }
-  - { name: Hollow Hold }
-  - { name: Hollow Rocks }
-  - { name: Inchworm }
-  - { name: Jumping Jack }
-  - { name: Single-Arm Kettlebell Clean, hasSides: true }
-  - { name: Kettlebell Deadlift }
-  - { name: Kettlebell Halos, hasSides: true }
-  - { name: Kettlebell Rows, hasSides: true }
-  - { name: Kettlebell Clean & Press, hasSides: true }
-  - { name: Kettlebell Figure Eight }
-  - { name: Kettlebell Goblet Squat }
-  - { name: Kettlebell Halo }
-  - { name: Single-Arm Kettlebell High Pull, hasSides: true }
-  - { name: Kettlebell Romanian Deadlift }
-  - { name: Single-Arm Kettlebell Row, hasSides: true }
-  - { name: Single-Arm Kettlebell Shoulder Press, hasSides: true }
-  - { name: Single-Arm Kettlebell Snatch, hasSides: true }
-  - { name: Kettlebell Swing }
-  - { name: Single-Arm Kettlebell Suitcase Carry, hasSides: true }
-  - { name: Kettlebell Thruster }
-  - { name: Single-Arm Kettlebell Turkish Get-Up, hasSides: true }
-  - { name: Knee Plank }
-  - { name: Knee Pulls }
-  - { name: Leg Raises }
-  - { name: Leg Swings, hasSides: true }
-  - { name: Leg Swings side-to-side, hasSides: true }
-  - { name: Low Plank }
-  - { name: Lunge }
-  - { name: Lying Windshield Wipers }
-  - { name: Mountain Climbers }
-  - { name: Navy Seals Burpee }
-  - { name: Pigeon Pulls, hasSides: true }
-  - { name: Plank }
-  - { name: Plank Knee to Elbow, hasSides: true }
-  - { name: Plank Shoulder Taps }
-  - { name: Plank Walkouts }
-  - { name: Plank with Arm Reach, hasSides: true }
-  - { name: Plank with Leg Lift, hasSides: true }
-  - { name: Push-up }
-  - { name: Quat Pulls }
-  - { name: Reverse Crunch }
-  - { name: Russian Twist }
-  - { name: Seated Knee Tucks }
-  - { name: Seated L-Sit Hold }
-  - { name: Side Bends }
-  - { name: Side Plank, hasSides: true }
-  - { name: Single-Leg Glute Bridge, hasSides: true }
-  - { name: Sit-up }
-  - { name: Slow Mountain Climbers }
-  - { name: Spiderman Plank }
-  - { name: Squat }
-  - { name: Standing Balance Reach, hasSides: true }
-  - { name: Standing Knee Raises }
-  - { name: Standing Oblique Crunch, hasSides: true }
-  - { name: Standing Torso Rotations }
-  - { name: Superman Hold }
-  - { name: Superman Swim }
-  - { name: Transition }
-  - { name: Tuck-Ups }
-  - { name: Upper Back Openers }
-  - { name: V-Ups }
-  - { name: Woodchoppers, hasSides: true }
+  - { name: 1 Pump Burpee, labels: [bodyweight, conditioning, burpee] }
+  - { name: 2 Pump Burpee, labels: [bodyweight, conditioning, burpee] }
+  - { name: Air Squat, labels: [bodyweight, squat, legs] }
+  - { name: Arm Circles backwards, labels: [mobility, warmup, shoulders] }
+  - { name: Arms Circles forward, labels: [mobility, warmup, shoulders] }
+  - { name: Back Extensions, labels: [bodyweight, posterior-chain, back] }
+  - { name: Bear Crawl, labels: [bodyweight, core, conditioning] }
+  - { name: Bear Crawl Hold, labels: [bodyweight, core, isometric] }
+  - { name: Beast Hold, labels: [bodyweight, core, isometric] }
+  - { name: Beast Shoulder Taps, labels: [bodyweight, core, shoulders] }
+  - { name: Bicycle Crunch, labels: [bodyweight, core, abs] }
+  - { name: Bird Dog, hasSides: true, labels: [bodyweight, core, stability] }
+  - { name: Bird Dog Hold, hasSides: true, labels: [bodyweight, core, isometric] }
+  - { name: Cross-Body Mountain Climbers, labels: [bodyweight, core, conditioning] }
+  - { name: Crunch, labels: [bodyweight, core, abs] }
+  - { name: Dead Bug, labels: [bodyweight, core, stability] }
+  - { name: Elbow Openers, labels: [mobility, warmup, upper-body] }
+  - { name: Flutter Kicks, labels: [bodyweight, core, abs] }
+  - { name: Glute Bridge, labels: [bodyweight, glutes, posterior-chain] }
+  - { name: High Plank, labels: [bodyweight, core, isometric] }
+  - { name: Hip Circles, labels: [mobility, warmup, hips] }
+  - { name: Hip Hinges, labels: [bodyweight, hinge, warmup] }
+  - { name: Hip Thrust, labels: [bodyweight, glutes, posterior-chain] }
+  - { name: Hollow Hold, labels: [bodyweight, core, isometric] }
+  - { name: Hollow Rocks, labels: [bodyweight, core, abs] }
+  - { name: Inchworm, labels: [bodyweight, mobility, warmup] }
+  - { name: Jumping Jack, labels: [bodyweight, conditioning, warmup] }
+  - { name: Clean & Press, hasSides: true, labels: [kettlebell, full-body, push], previousNames: [Kettlebell Clean & Press] }
+  - { name: Single-Arm Clean, hasSides: true, labels: [kettlebell, pull, full-body], previousNames: [Single-Arm Kettlebell Clean] }
+  - { name: Deadlift, labels: [kettlebell, hinge, posterior-chain], previousNames: [Kettlebell Deadlift] }
+  - { name: Figure Eight, labels: [kettlebell, core, coordination], previousNames: [Kettlebell Figure Eight] }
+  - { name: Goblet Squat, labels: [kettlebell, squat, legs], previousNames: [Kettlebell Goblet Squat] }
+  - { name: Halo, labels: [kettlebell, mobility, shoulders], previousNames: [Kettlebell Halo, Kettlebell Halos] }
+  - { name: Single-Arm High Pull, hasSides: true, labels: [kettlebell, pull, full-body], previousNames: [Single-Arm Kettlebell High Pull] }
+  - { name: Romanian Deadlift, labels: [kettlebell, hinge, posterior-chain], previousNames: [Kettlebell Romanian Deadlift] }
+  - { name: Bent-Over Row, labels: [kettlebell, pull, back], previousNames: [Kettlebell Rows] }
+  - { name: Single-Arm Row, hasSides: true, labels: [kettlebell, pull, back], previousNames: [Single-Arm Kettlebell Row] }
+  - { name: Single-Arm Shoulder Press, hasSides: true, labels: [kettlebell, push, shoulders], previousNames: [Single-Arm Kettlebell Shoulder Press] }
+  - { name: Single-Arm Snatch, hasSides: true, labels: [kettlebell, pull, conditioning], previousNames: [Single-Arm Kettlebell Snatch] }
+  - { name: Swing, labels: [kettlebell, hinge, conditioning], previousNames: [Kettlebell Swing] }
+  - { name: Single-Arm Suitcase Carry, hasSides: true, labels: [kettlebell, carry, core], previousNames: [Single-Arm Kettlebell Suitcase Carry] }
+  - { name: Thruster, labels: [kettlebell, squat, push], previousNames: [Kettlebell Thruster] }
+  - { name: Single-Arm Turkish Get-Up, hasSides: true, labels: [kettlebell, full-body, mobility], previousNames: [Single-Arm Kettlebell Turkish Get-Up] }
+  - { name: Knee Plank, labels: [bodyweight, core, isometric] }
+  - { name: Knee Pulls, labels: [mobility, warmup, legs] }
+  - { name: Leg Raises, labels: [bodyweight, core, abs] }
+  - { name: Leg Swings, hasSides: true, labels: [mobility, warmup, hips] }
+  - { name: Leg Swings side-to-side, hasSides: true, labels: [mobility, warmup, hips] }
+  - { name: Low Plank, labels: [bodyweight, core, isometric] }
+  - { name: Lunge, labels: [bodyweight, legs, unilateral] }
+  - { name: Lying Windshield Wipers, labels: [bodyweight, core, mobility] }
+  - { name: Mountain Climbers, labels: [bodyweight, core, conditioning] }
+  - { name: Navy Seals Burpee, labels: [bodyweight, conditioning, burpee] }
+  - { name: Pigeon Pulls, hasSides: true, labels: [mobility, warmup, hips] }
+  - { name: Plank, labels: [bodyweight, core, isometric] }
+  - { name: Plank Knee to Elbow, hasSides: true, labels: [bodyweight, core, abs] }
+  - { name: Plank Shoulder Taps, labels: [bodyweight, core, shoulders] }
+  - { name: Plank Walkouts, labels: [bodyweight, core, shoulders] }
+  - { name: Plank with Arm Reach, hasSides: true, labels: [bodyweight, core, stability] }
+  - { name: Plank with Leg Lift, hasSides: true, labels: [bodyweight, core, glutes] }
+  - { name: Push-up, labels: [bodyweight, push, chest] }
+  - { name: Quat Pulls, labels: [mobility, warmup, legs] }
+  - { name: Reverse Crunch, labels: [bodyweight, core, abs] }
+  - { name: Russian Twist, labels: [bodyweight, core, rotation] }
+  - { name: Seated Knee Tucks, labels: [bodyweight, core, abs] }
+  - { name: Seated L-Sit Hold, labels: [bodyweight, core, isometric] }
+  - { name: Side Bends, labels: [bodyweight, core, lateral] }
+  - { name: Side Plank, hasSides: true, labels: [bodyweight, core, isometric] }
+  - { name: Single-Leg Glute Bridge, hasSides: true, labels: [bodyweight, glutes, unilateral] }
+  - { name: Sit-up, labels: [bodyweight, core, abs] }
+  - { name: Slow Mountain Climbers, labels: [bodyweight, core, conditioning] }
+  - { name: Spiderman Plank, labels: [bodyweight, core, mobility] }
+  - { name: Squat, labels: [bodyweight, squat, legs] }
+  - { name: Standing Balance Reach, hasSides: true, labels: [bodyweight, balance, stability] }
+  - { name: Standing Knee Raises, labels: [bodyweight, core, balance] }
+  - { name: Standing Oblique Crunch, hasSides: true, labels: [bodyweight, core, lateral] }
+  - { name: Standing Torso Rotations, labels: [mobility, warmup, rotation] }
+  - { name: Superman Hold, labels: [bodyweight, posterior-chain, isometric] }
+  - { name: Superman Swim, labels: [bodyweight, posterior-chain, back] }
+  - { name: Transition, labels: [utility] }
+  - { name: Tuck-Ups, labels: [bodyweight, core, abs] }
+  - { name: Upper Back Openers, labels: [mobility, warmup, back] }
+  - { name: V-Ups, labels: [bodyweight, core, abs] }
+  - { name: Woodchoppers, hasSides: true, labels: [bodyweight, core, rotation] }

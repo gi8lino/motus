@@ -93,6 +93,7 @@ type Exercise struct {
 	OwnerUserID string    `json:"ownerUserId,omitempty"` // OwnerUserID is set for user-owned entries.
 	IsCore      bool      `json:"isCore"`                // IsCore marks built-in exercises.
 	HasSides    bool      `json:"hasSides"`              // HasSides marks unilateral exercises.
+	Labels      []string  `json:"labels"`                // Labels describe equipment and movement categories.
 	CreatedAt   time.Time `json:"createdAt"`             // CreatedAt records when the entry was created.
 }
 

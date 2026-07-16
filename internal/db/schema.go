@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const schemaVersionLatest = 5
+const schemaVersionLatest = 6
 
 type schemaMigration struct {
 	version int
@@ -45,6 +45,11 @@ var schemaMigrations = []schemaMigration{
 		version: 5,
 		name:    "constraints and indexes",
 		file:    "migrations/005_constraints_and_indexes.sql",
+	},
+	{
+		version: 6,
+		name:    "exercise labels",
+		file:    "migrations/006_exercise_labels.sql",
 	},
 }
 

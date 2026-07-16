@@ -167,6 +167,7 @@ export type CatalogExercise = {
   ownerUserId?: string;
   isCore?: boolean;
   hasSides?: boolean;
+  labels?: string[];
   createdAt?: string;
 };
 

@@ -125,7 +125,8 @@ func (s *Store) insertMissingCoreExercises(ctx context.Context, tx pgx.Tx, names
 func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {
 	// Return core exercises plus user-owned entries.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides, created_at
+		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides,
+			ARRAY(SELECT label FROM exercise_labels WHERE exercise_id=exercises.id ORDER BY label), created_at
 		FROM exercises
 		WHERE is_core = TRUE OR owner_user_id = $1 OR owner_user_id IS NULL OR owner_user_id = ''
 		ORDER BY is_core DESC, name ASC`, strings.TrimSpace(userID))
@@ -139,7 +140,7 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 	for rows.Next() {
 		var ex Exercise
 		var ownerID *string
-		if err := rows.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.CreatedAt); err != nil {
+		if err := rows.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.Labels, &ex.CreatedAt); err != nil {
 			return nil, err
 		}
 		if ownerID != nil {
@@ -154,12 +155,13 @@ func (s *Store) ListExercises(ctx context.Context, userID string) ([]Exercise, e
 func (s *Store) GetExercise(ctx context.Context, id string) (*Exercise, error) {
 	// Fetch a single exercise row by id.
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides, created_at
+		SELECT id, name, owner_user_id, (is_core OR owner_user_id IS NULL OR owner_user_id = '') AS is_core, has_sides,
+			ARRAY(SELECT label FROM exercise_labels WHERE exercise_id=exercises.id ORDER BY label), created_at
 		FROM exercises
 		WHERE id=$1`, strings.TrimSpace(id))
 	var ex Exercise
 	var ownerID *string
-	if err := row.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.CreatedAt); err != nil {
+	if err := row.Scan(&ex.ID, &ex.Name, &ownerID, &ex.IsCore, &ex.HasSides, &ex.Labels, &ex.CreatedAt); err != nil {
 		return nil, err
 	}
 	if ownerID != nil {
@@ -180,6 +182,7 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 		Name:        trimmed,
 		OwnerUserID: strings.TrimSpace(ownerUserID),
 		IsCore:      isCore,
+		Labels:      []string{},
 		CreatedAt:   time.Now().UTC(),
 	}
 	if ex.IsCore {
@@ -196,26 +199,105 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 }
 
 // UpsertCoreExercise reconciles a seeded core exercise with the catalog.
-func (s *Store) UpsertCoreExercise(ctx context.Context, name string, hasSides bool) (*Exercise, bool, error) {
-	id := utils.NewID()
-	var resultID string
-	var inserted bool
-	err := s.pool.QueryRow(ctx, `
-		INSERT INTO exercises(id, name, owner_user_id, is_core, has_sides, created_at)
-		VALUES ($1, $2, '', TRUE, $3, $4)
-		ON CONFLICT(name) DO UPDATE SET is_core=TRUE, owner_user_id='', has_sides=EXCLUDED.has_sides
-		RETURNING id, (xmax = 0)
-	`, id, strings.TrimSpace(name), hasSides, time.Now().UTC()).Scan(&resultID, &inserted)
+func (s *Store) UpsertCoreExercise(ctx context.Context, name string, hasSides bool, labels, previousNames []string) (*Exercise, bool, error) {
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, false, err
 	}
-	if !hasSides {
-		if _, err := s.pool.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, resultID); err != nil {
+	defer tx.Rollback(ctx) // nolint:errcheck
+
+	name = strings.TrimSpace(name)
+	aliases := append([]string{name}, previousNames...)
+	rows, err := tx.Query(ctx, `SELECT id, name FROM exercises WHERE LOWER(name)=ANY($1) ORDER BY CASE WHEN LOWER(name)=LOWER($2) THEN 0 ELSE 1 END`, normalizedNames(aliases), name)
+	if err != nil {
+		return nil, false, err
+	}
+	var resultID string
+	var duplicateIDs []string
+	for rows.Next() {
+		var id, existingName string
+		if err := rows.Scan(&id, &existingName); err != nil {
+			rows.Close()
+			return nil, false, err
+		}
+		if resultID == "" {
+			resultID = id
+		} else {
+			duplicateIDs = append(duplicateIDs, id)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+
+	inserted := resultID == ""
+	if inserted {
+		resultID = utils.NewID()
+		if _, err := tx.Exec(ctx, `INSERT INTO exercises(id,name,owner_user_id,is_core,has_sides,created_at) VALUES($1,$2,'',TRUE,$3,$4)`, resultID, name, hasSides, time.Now().UTC()); err != nil {
+			return nil, false, err
+		}
+	} else {
+		for _, duplicateID := range duplicateIDs {
+			if _, err := tx.Exec(ctx, `UPDATE workout_subset_exercises SET exercise_id=$1,name=$2 WHERE exercise_id=$3`, resultID, name, duplicateID); err != nil {
+				return nil, false, err
+			}
+			if _, err := tx.Exec(ctx, `DELETE FROM exercises WHERE id=$1`, duplicateID); err != nil {
+				return nil, false, err
+			}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE exercises SET name=$1,is_core=TRUE,owner_user_id='',has_sides=$2 WHERE id=$3`, name, hasSides, resultID); err != nil {
+			return nil, false, err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE workout_subset_exercises SET name=$1 WHERE exercise_id=$2`, name, resultID); err != nil {
 			return nil, false, err
 		}
 	}
+	if _, err := tx.Exec(ctx, `DELETE FROM exercise_labels WHERE exercise_id=$1`, resultID); err != nil {
+		return nil, false, err
+	}
+	for _, label := range normalizedLabels(labels) {
+		if _, err := tx.Exec(ctx, `INSERT INTO exercise_labels(exercise_id,label) VALUES($1,$2)`, resultID, label); err != nil {
+			return nil, false, err
+		}
+	}
+	if !hasSides {
+		if _, err := tx.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, resultID); err != nil {
+			return nil, false, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, false, err
+	}
 	exercise, err := s.GetExercise(ctx, resultID)
 	return exercise, inserted, err
+}
+
+func normalizedNames(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value = strings.ToLower(strings.TrimSpace(value)); value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+func normalizedLabels(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 // SetExerciseHasSides updates whether an exercise is performed per side.
