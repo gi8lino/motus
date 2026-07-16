@@ -347,12 +347,11 @@ export function WorkoutForm({
     );
   }, [catalogByName, catalog.length]);
 
-  const addStep = () =>
-    setSteps((prev) => {
+  const addStep = () => {
       const newStep: WorkoutStep = {
         id: makeStepId(),
         type: STEP_TYPE_SET,
-        name: `Step ${prev.length + 1}`,
+        name: `Step ${steps.length + 1}`,
         repeatCount: 1,
         repeatRestSeconds: 0,
         repeatRestAfterLast: repeatRestAfterLastDefault,
@@ -362,17 +361,14 @@ export function WorkoutForm({
         subsets: [createBlankSubset()],
       };
 
-      const next = [...prev, newStep];
-      setExpandedSteps((exp) => new Set(exp).add(next.length - 1));
+      dispatchSteps({ type: "addStep", step: newStep });
+      setExpandedSteps((exp) => new Set(exp).add(steps.length));
       setRepeatRestInputs((inputs) => [...inputs, ""]);
       markDirty();
-      return next;
-    });
+  };
 
   const updateStep = (idx: number, patch: Partial<WorkoutStep>) => {
-    setSteps((prev) =>
-      prev.map((step, i) => (i === idx ? { ...step, ...patch } : step)),
-    );
+    dispatchSteps({ type: "updateStep", index: idx, patch });
     markDirty();
   };
 
@@ -403,7 +399,7 @@ export function WorkoutForm({
   };
 
   const removeStep = (idx: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== idx));
+    dispatchSteps({ type: "removeStep", index: idx });
 
     setExpandedSteps((prev) => {
       const next = new Set(prev);
@@ -422,14 +418,7 @@ export function WorkoutForm({
   };
 
   const moveStep = (index: number, delta: number) => {
-    setSteps((prev) => {
-      const next = [...prev];
-      const target = index + delta;
-      if (target < 0 || target >= next.length) return prev;
-      const [item] = next.splice(index, 1);
-      next.splice(target, 0, item);
-      return next;
-    });
+    dispatchSteps({ type: "moveStep", index, delta });
 
     setRepeatRestInputs((prev) => {
       const next = [...prev];
@@ -457,21 +446,7 @@ export function WorkoutForm({
     from: number,
     to: number,
   ) => {
-    setSteps((prev) =>
-      prev.map((step, idx) => {
-        if (idx !== stepIdx) return step;
-
-        const subsets = [...(step.subsets || [])];
-        const subset = subsets[subsetIdx];
-        if (!subset) return step;
-
-        const updated = [...(subset.exercises || [])];
-        const [item] = updated.splice(from, 1);
-        updated.splice(to, 0, item);
-        subsets[subsetIdx] = { ...subset, exercises: updated };
-        return { ...step, subsets };
-      }),
-    );
+    dispatchSteps({ type: "moveExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, from, to });
     markDirty();
   };
 
@@ -481,35 +456,14 @@ export function WorkoutForm({
     exIdx: number,
     patch: Partial<Exercise>,
   ) => {
-    setSteps((prev) =>
-      prev.map((step, idx) => {
-        if (idx !== stepIdx) return step;
-
-        const subsets = [...(step.subsets || [])];
-        const subset = subsets[subsetIdx];
-        if (!subset) return step;
-
-        const updated = [...(subset.exercises || [])];
-        updated[exIdx] = { ...updated[exIdx], ...patch };
-        subsets[subsetIdx] = { ...subset, exercises: updated };
-        return { ...step, subsets };
-      }),
-    );
+    dispatchSteps({ type: "updateExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, exerciseIndex: exIdx, patch });
     markDirty();
   };
 
   const addExercise = (stepIdx: number, subsetIdx: number) => {
-    setSteps((prev) =>
-      prev.map((step, idx) => {
-        if (idx !== stepIdx) return step;
-
-        const subsets = [...(step.subsets || [])];
-        const subset = subsets[subsetIdx];
-        if (!subset) return step;
-
-        const exercises: Exercise[] = [
-          ...(subset.exercises || []),
-          {
+    dispatchSteps({
+      type: "addExercise", stepIndex: stepIdx, subsetIndex: subsetIdx,
+      exercise: {
             name: "",
             reps: "",
             weight: "",
@@ -517,13 +471,8 @@ export function WorkoutForm({
             exerciseId: "",
             type: "rep" as Exercise["type"],
             soundKey: "",
-          },
-        ];
-
-        subsets[subsetIdx] = { ...subset, exercises };
-        return { ...step, subsets };
-      }),
-    );
+      },
+    });
     markDirty();
   };
 
@@ -532,21 +481,7 @@ export function WorkoutForm({
     subsetIdx: number,
     exIdx: number,
   ) => {
-    setSteps((prev) =>
-      prev.map((step, idx) => {
-        if (idx !== stepIdx) return step;
-
-        const subsets = [...(step.subsets || [])];
-        const subset = subsets[subsetIdx];
-        if (!subset) return step;
-
-        const updated = [...(subset.exercises || [])];
-        updated.splice(exIdx, 1);
-
-        subsets[subsetIdx] = { ...subset, exercises: updated };
-        return { ...step, subsets };
-      }),
-    );
+    dispatchSteps({ type: "removeExercise", stepIndex: stepIdx, subsetIndex: subsetIdx, exerciseIndex: exIdx });
     markDirty();
   };
 
