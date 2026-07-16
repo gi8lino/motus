@@ -65,7 +65,8 @@ func (a *API) CreateExercise() http.HandlerFunc {
 // UpdateExercise renames an exercise or creates a personal copy.
 func (a *API) UpdateExercise() http.HandlerFunc {
 	type updateExerciseRequest struct {
-		Name string `json:"name"`
+		Name     string `json:"name"`
+		HasSides *bool  `json:"hasSides"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
@@ -89,6 +90,13 @@ func (a *API) UpdateExercise() http.HandlerFunc {
 			a.logRequestError(r, "update_exercise_failed", "update exercise failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
+		}
+		if req.HasSides != nil {
+			updated, err = a.Exercises.SetHasSides(r.Context(), userID, id, *req.HasSides)
+			if err != nil {
+				a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
+				return
+			}
 		}
 
 		a.businessLogger(r).Info("exercise updated",

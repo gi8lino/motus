@@ -354,6 +354,7 @@ export default function App() {
     addCoreExercise: handleAddCoreExercise,
     renameExercise: handleRenameExercise,
     deleteExerciseEntry: handleDeleteExercise,
+    toggleExerciseSides: handleToggleExerciseSides,
   } = useExerciseActions({
     isAdmin: Boolean(currentUser?.isAdmin),
     setExerciseCatalog,
@@ -727,6 +728,7 @@ export default function App() {
               onAddCoreExercise: handleAddCoreExercise,
               onRenameExercise: handleRenameExercise,
               onDeleteExercise: handleDeleteExercise,
+              onToggleSides: handleToggleExerciseSides,
             }}
               />
             )}

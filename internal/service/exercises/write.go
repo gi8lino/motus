@@ -81,6 +81,37 @@ func (s *Service) Update(ctx context.Context, userID, exerciseID, name string) (
 	return updated, nil
 }
 
+// SetHasSides updates whether an exercise supports left/right selection.
+func (s *Service) SetHasSides(ctx context.Context, userID, exerciseID string, hasSides bool) (*Exercise, error) {
+	uid, err := requireUserID(userID)
+	if err != nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
+	}
+	id, err := requireEntityID(exerciseID, "exercise id is required")
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.store.GetUser(ctx, uid)
+	if err != nil || user == nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "user not found", errorScope)
+	}
+	exercise, err := s.store.GetExercise(ctx, id)
+	if err != nil || exercise == nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "exercise not found", errorScope)
+	}
+	if exercise.IsCore && !user.IsAdmin {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "core exercises require admin permissions", errorScope)
+	}
+	if exercise.OwnerUserID != "" && exercise.OwnerUserID != uid && !user.IsAdmin {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "exercise belongs to another user", errorScope)
+	}
+	updated, err := s.store.SetExerciseHasSides(ctx, id, hasSides)
+	if err != nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
+	}
+	return updated, nil
+}
+
 // Delete removes an exercise from the catalog.
 func (s *Service) Delete(ctx context.Context, userID, exerciseID string) error {
 	uid, err := requireUserID(userID)

@@ -18,7 +18,15 @@ type fakeStore struct {
 	replaceExerciseFn   func(context.Context, string, string, string, string) error
 	renameExerciseFn    func(context.Context, string, string) (*Exercise, error)
 	deleteExerciseFn    func(context.Context, string) error
+	setHasSidesFn       func(context.Context, string, bool) (*Exercise, error)
 	backfillExercisesFn func(context.Context) error
+}
+
+func (f *fakeStore) SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*Exercise, error) {
+	if f.setHasSidesFn != nil {
+		return f.setHasSidesFn(ctx, id, hasSides)
+	}
+	return &Exercise{ID: id, HasSides: hasSides}, nil
 }
 
 func (f *fakeStore) ListExercises(ctx context.Context, userID string) ([]Exercise, error) {

@@ -114,6 +114,15 @@ export function useExerciseActions({
     [askConfirm, notify, setExerciseCatalog],
   );
 
+  const toggleExerciseSides = useCallback(async (ex: CatalogExercise) => {
+	try {
+		const updated = await updateExercise(ex.id, ex.name, !ex.hasSides);
+		setExerciseCatalog((prev) => prev.map((item) => item.id === ex.id ? updated : item));
+	} catch (err) {
+		await notify(toErrorMessage(err, MESSAGES.renameExerciseFailed));
+	}
+  }, [notify, setExerciseCatalog]);
+
   // createExerciseEntry creates a personal exercise entry.
   const createExerciseEntry = useCallback(
     (name: string) => createCatalogEntry(name, false),
@@ -125,6 +134,7 @@ export function useExerciseActions({
     addExercise,
     addCoreExercise,
     renameExercise,
-    deleteExerciseEntry,
+	deleteExerciseEntry,
+	toggleExerciseSides,
   };
 }

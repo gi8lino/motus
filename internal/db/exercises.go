@@ -195,6 +195,19 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 	return ex, nil
 }
 
+// SetExerciseHasSides updates whether an exercise is performed per side.
+func (s *Store) SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*Exercise, error) {
+	if _, err := s.pool.Exec(ctx, `UPDATE exercises SET has_sides=$1 WHERE id=$2`, hasSides, strings.TrimSpace(id)); err != nil {
+		return nil, err
+	}
+	if !hasSides {
+		if _, err := s.pool.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, strings.TrimSpace(id)); err != nil {
+			return nil, err
+		}
+	}
+	return s.GetExercise(ctx, id)
+}
+
 // RenameExercise updates the catalog name and linked workout exercise names.
 func (s *Store) RenameExercise(ctx context.Context, id, name string) (*Exercise, error) {
 	// Update exercise name and propagate to workout references.

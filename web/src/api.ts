@@ -202,10 +202,11 @@ export async function createExercise(
 export async function updateExercise(
   id: string,
   name: string,
+  hasSides?: boolean,
 ): Promise<CatalogExercise> {
   return request(`/api/exercises/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, hasSides }),
   });
 }
 

@@ -11,6 +11,7 @@ export type ExercisesViewActions = {
   onAddCoreExercise: () => void | Promise<void>;
   onRenameExercise: (exercise: CatalogExercise) => void | Promise<void>;
   onDeleteExercise: (exercise: CatalogExercise) => void | Promise<void>;
+  onToggleSides: (exercise: CatalogExercise) => void | Promise<void>;
 };
 
 // ExercisesView manages personal and core exercises.
@@ -27,6 +28,7 @@ export function ExercisesView({
     onAddCoreExercise,
     onRenameExercise,
     onDeleteExercise,
+    onToggleSides,
   } = actions;
   return (
     <section className="panel">
@@ -65,6 +67,11 @@ export function ExercisesView({
                 </div>
               </div>
               <div className="btn-group">
+                {(!ex.isCore || isAdmin) && (
+                  <button className="btn subtle" onClick={() => onToggleSides(ex)}>
+                    {ex.hasSides ? "Disable sides" : "Enable sides"}
+                  </button>
+                )}
                 {isAdmin && (
                   <>
                     <button

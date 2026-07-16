@@ -28,8 +28,10 @@ exercises:
   - Knee Plank
   - Knee Pulls
   - Leg Raises
-  - Leg Swings
-  - Leg Swings side-to-side
+  - name: Leg Swings
+    hasSides: true
+  - name: Leg Swings side-to-side
+    hasSides: true
   - Low Plank
   - Lunge
   - Lying Windshield Wipers
@@ -49,8 +51,10 @@ exercises:
   - Seated Knee Tucks
   - Seated L-Sit Hold
   - Side Bends
-  - Side Plank
-  - Single-Leg Glute Bridge
+  - name: Side Plank
+    hasSides: true
+  - name: Single-Leg Glute Bridge
+    hasSides: true
   - Sit-up
   - Slow Mountain Climbers
   - Spiderman Plank

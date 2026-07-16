@@ -9,6 +9,7 @@ type Store interface {
 	CreateExercise(ctx context.Context, name, userID string, isCore bool) (*Exercise, error)
 	GetExercise(ctx context.Context, id string) (*Exercise, error)
 	RenameExercise(ctx context.Context, id, name string) (*Exercise, error)
+	SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*Exercise, error)
 	DeleteExercise(ctx context.Context, id string) error
 	BackfillCoreExercises(ctx context.Context) error
 }

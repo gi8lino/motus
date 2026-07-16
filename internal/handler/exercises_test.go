@@ -28,6 +28,10 @@ type fakeExercisesStore struct {
 	backfillCoreExercisesFn  func(context.Context) error
 }
 
+func (f *fakeExercisesStore) SetExerciseHasSides(context.Context, string, bool) (*db.Exercise, error) {
+	return &db.Exercise{}, nil
+}
+
 func (f *fakeExercisesStore) GetUser(ctx context.Context, id string) (*db.User, error) {
 	if f.getUserFn == nil {
 		return nil, nil
