@@ -1,5 +1,6 @@
 import type { CatalogExercise } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
+import { EmptyState } from "../common/EmptyState";
 
 export type ExercisesViewData = {
   exercises: CatalogExercise[];
@@ -96,7 +97,12 @@ export function ExercisesView({
           </li>
         ))}
         {!exercises.length && (
-          <p className="muted">{UI_TEXT.pages.exercises.empty}</p>
+          <EmptyState
+            title={UI_TEXT.pages.exercises.empty}
+            description="Add exercises once, then reuse them in every workout."
+            actionLabel={UI_TEXT.pages.exercises.addExercise}
+            onAction={onAddExercise}
+          />
         )}
       </ul>
     </section>

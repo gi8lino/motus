@@ -1,5 +1,7 @@
 import type { Workout } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
+import { EmptyState } from "../common/EmptyState";
+import { LoadingState } from "../common/LoadingState";
 
 export type WorkoutsListProps = {
   workouts: Workout[];
@@ -54,10 +56,20 @@ export function WorkoutsList({
         </div>
       </div>
 
-      {loading ? <p className="muted small">Loading workouts…</p> : null}
+      {loading ? <LoadingState /> : null}
 
       {!loading && workouts.length === 0 ? (
-        <p className="muted small">No workouts yet.</p>
+        <EmptyState
+          title="Build your first workout"
+          description="Combine exercises, pauses, and repeats into a plan you can run anytime."
+          actionLabel="Create workout"
+          onAction={() => {
+            if (!currentUserId) return;
+            setSelectedWorkoutId(null);
+            onNew();
+            onOpenEditor();
+          }}
+        />
       ) : null}
 
       {workouts.length ? (

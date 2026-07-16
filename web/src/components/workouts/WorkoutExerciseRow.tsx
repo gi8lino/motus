@@ -173,19 +173,23 @@ export function WorkoutExerciseRow({
       </div>
 
       {hasSides && (
-        <div className="field compact">
-          <label>Side</label>
-          <select
-            value={ex.side === "right" ? "right" : "left"}
-            onChange={(e) =>
-              updateExercise(stepIdx, subsetIdx, exIdx, {
-                side: e.target.value as Exercise["side"],
-              })
-            }
-          >
-            <option value="left">Left</option>
-            <option value="right">Right</option>
-          </select>
+        <div className="field compact side-field">
+          <span className="field-label">Side</span>
+          <div className="side-picker" role="group" aria-label="Exercise side">
+            {(["left", "right"] as const).map((side) => (
+              <button
+                key={side}
+                type="button"
+                className="side-option"
+                aria-pressed={(ex.side === "right" ? "right" : "left") === side}
+                onClick={() =>
+                  updateExercise(stepIdx, subsetIdx, exIdx, { side })
+                }
+              >
+                {side === "left" ? "L" : "R"}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

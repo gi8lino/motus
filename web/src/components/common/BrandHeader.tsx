@@ -14,6 +14,8 @@ export function BrandHeader() {
         sx={{
           width: 42,
           height: 42,
+          objectFit: "cover",
+          objectPosition: "left",
           flexShrink: 0,
           filter: "drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18))",
         }}

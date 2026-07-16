@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Alert, Button, Stack, TextField } from "@mui/material";
 
 import { isValidEmail } from "../../utils/validation";
 import { UI_TEXT } from "../../utils/uiText";
@@ -14,7 +15,8 @@ export function UserForm({
   const trimmedEmail = email.trim();
   const emailInvalid = trimmedEmail !== "" && !isValidEmail(trimmedEmail);
   return (
-    <form
+    <Stack
+      component="form"
       onSubmit={(e) => {
         e.preventDefault();
         // Guard: require valid credentials before submit.
@@ -24,35 +26,32 @@ export function UserForm({
         setEmail("");
         setPassword("");
       }}
-      className="stack"
+      spacing={2}
     >
-      <div className="field">
-        <label>Email</label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className={emailInvalid ? "input-error" : undefined}
-          required
-        />
-        {emailInvalid && (
-          <div className="helper error">Enter a valid email address</div>
-        )}
-      </div>
-      <div className="field">
-        <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={UI_TEXT.auth.enterPassword}
-          required
-        />
-      </div>
-      <button className="btn primary" type="submit">
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@example.com"
+        error={emailInvalid}
+        helperText={emailInvalid ? "Enter a valid email address" : " "}
+        autoComplete="email"
+        required
+      />
+      <TextField
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder={UI_TEXT.auth.enterPassword}
+        autoComplete="new-password"
+        required
+      />
+      <Button variant="contained" size="large" type="submit">
         Create user
-      </button>
-    </form>
+      </Button>
+    </Stack>
   );
 }
 
@@ -71,7 +70,8 @@ export function LoginForm({
   const trimmedEmail = email.trim();
   const emailInvalid = trimmedEmail !== "" && !isValidEmail(trimmedEmail);
   return (
-    <form
+    <Stack
+      component="form"
       onSubmit={(e) => {
         e.preventDefault();
         // Guard: require valid credentials before submit.
@@ -79,45 +79,44 @@ export function LoginForm({
         if (!isValidEmail(email.trim())) return;
         onLogin(email.trim(), password.trim());
       }}
-      className="stack"
+      spacing={2}
     >
-      {error && <p className="muted small">{error}</p>}
-      <div className="field">
-        <label>Email</label>
-        <input
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            onClearError?.();
-          }}
-          placeholder="you@example.com"
-          className={emailInvalid ? "input-error" : undefined}
-          required
-        />
-        {emailInvalid && (
-          <div className="helper error">Enter a valid email address</div>
-        )}
-      </div>
-      <div className="field">
-        <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            onClearError?.();
-          }}
-          placeholder={UI_TEXT.auth.yourPassword}
-          required
-        />
-      </div>
-      <button
-        className="btn primary"
+      {error && <Alert severity="error">{error}</Alert>}
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          onClearError?.();
+        }}
+        placeholder="you@example.com"
+        error={emailInvalid}
+        helperText={emailInvalid ? "Enter a valid email address" : " "}
+        autoComplete="email"
+        autoFocus
+        required
+      />
+      <TextField
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          onClearError?.();
+        }}
+        placeholder={UI_TEXT.auth.yourPassword}
+        autoComplete="current-password"
+        required
+      />
+      <Button
+        variant="contained"
+        size="large"
         type="submit"
         disabled={!email.trim() || !password.trim()}
       >
         Log in
-      </button>
-    </form>
+      </Button>
+    </Stack>
   );
 }

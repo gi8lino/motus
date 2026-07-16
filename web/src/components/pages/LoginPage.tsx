@@ -1,5 +1,6 @@
 import { LoginForm, UserForm } from "./../auth/AuthForm";
 import { UI_TEXT } from "../../utils/uiText";
+import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 
 export type LoginViewData = {
   allowRegistration: boolean;
@@ -23,29 +24,53 @@ export function LoginView({
   const { allowRegistration, loginError } = data;
   const { onLogin, onCreateUser, onClearError } = actions;
   return (
-    <section className="grid two">
-      <div className="panel">
-        <h3>{UI_TEXT.pages.auth.loginTitle}</h3>
-        {/* Local login form */}
-        <LoginForm
-          onLogin={onLogin}
-          error={loginError}
-          onClearError={onClearError}
-        />
-      </div>
+    <Box
+      sx={{ maxWidth: 520, mx: "auto", width: "100%", py: { xs: 1, md: 5 } }}
+    >
+      <Card>
+        <CardContent
+          sx={{ p: { xs: 3, sm: 5 }, "&:last-child": { pb: { xs: 3, sm: 5 } } }}
+        >
+          <Stack spacing={1} sx={{ mb: 3.5 }}>
+            <Chip
+              label="Your training space"
+              color="primary"
+              variant="outlined"
+              sx={{ alignSelf: "flex-start" }}
+            />
+            <Typography variant="h3">
+              {UI_TEXT.pages.auth.loginTitle}
+            </Typography>
+            <Typography color="text.secondary">
+              Pick up your plan, timer, and training history in one place.
+            </Typography>
+          </Stack>
+          {/* Local login form */}
+          <LoginForm
+            onLogin={onLogin}
+            error={loginError}
+            onClearError={onClearError}
+          />
+        </CardContent>
+      </Card>
       {allowRegistration ? (
-        <div className="panel">
-          <h3>{UI_TEXT.pages.auth.createUserTitle}</h3>
-          <UserForm onCreate={onCreateUser} />
-        </div>
+        <Card sx={{ mt: 3 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+            <Typography variant="h5" sx={{ mb: 2 }}>
+              {UI_TEXT.pages.auth.createUserTitle}
+            </Typography>
+            <UserForm onCreate={onCreateUser} />
+          </CardContent>
+        </Card>
       ) : (
-        <div className="panel">
-          <h3>{UI_TEXT.pages.auth.registrationDisabledTitle}</h3>
-          <p className="muted small hint">
-            {UI_TEXT.pages.auth.registrationDisabledHint}
-          </p>
-        </div>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 2.5, textAlign: "center" }}
+        >
+          {UI_TEXT.pages.auth.registrationDisabledHint}
+        </Typography>
       )}
-    </section>
+    </Box>
   );
 }

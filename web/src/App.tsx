@@ -147,6 +147,10 @@ export default function App() {
     },
   );
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedThemeMode;
+  }, [resolvedThemeMode]);
+
   // train view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,

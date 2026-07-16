@@ -1,5 +1,7 @@
 import type { Template } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
+import { EmptyState } from "../common/EmptyState";
+import { LoadingState } from "../common/LoadingState";
 
 export type TemplatesViewData = {
   templates: Template[];
@@ -35,7 +37,7 @@ export function TemplatesView({
           </button>
         </div>
       </div>
-      {loading && <p>{UI_TEXT.pages.templates.loading}</p>}
+      {loading && <LoadingState />}
       {/* Template list */}
       <div className="list">
         {templates.map((tmpl) => (
@@ -60,7 +62,12 @@ export function TemplatesView({
           </div>
         ))}
         {!loading && !templates.length && (
-          <p className="muted">{UI_TEXT.pages.templates.empty}</p>
+          <EmptyState
+            title={UI_TEXT.pages.templates.empty}
+            description="Shared workout templates will appear here when they become available."
+            actionLabel={UI_TEXT.pages.templates.refresh}
+            onAction={onRefresh}
+          />
         )}
       </div>
     </section>

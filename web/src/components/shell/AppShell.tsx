@@ -63,7 +63,7 @@ export function AppShell({
 
   return (
     <>
-      <Box sx={{ minHeight: "100vh", pb: { xs: 12, md: 10 } }}>
+      <Box sx={{ minHeight: "calc(100vh - 34px)" }}>
         <AppBar
           position="sticky"
           color="transparent"
@@ -211,10 +211,6 @@ export function AppShell({
       <Box
         component="footer"
         sx={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
           borderTop: 1,
           borderColor: "divider",
           bgcolor: (theme) =>
@@ -232,7 +228,7 @@ export function AppShell({
           color="text.secondary"
           sx={{ display: "block", textAlign: "center" }}
         >
-          © 2025 Motus | Version: {appVersion}
+          © {new Date().getFullYear()} Motus · Version {appVersion}
         </Typography>
       </Box>
     </>
