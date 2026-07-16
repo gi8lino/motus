@@ -29,15 +29,6 @@ type coreExercise struct {
 	HasSides bool   `yaml:"hasSides"`
 }
 
-func (e *coreExercise) UnmarshalYAML(node *yaml.Node) error {
-	if node.Kind == yaml.ScalarNode {
-		e.Name = node.Value
-		return nil
-	}
-	type plain coreExercise
-	return node.Decode((*plain)(e))
-}
-
 // SeedCoreExercises loads core exercises from a YAML file and inserts them if they don't exist.
 func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Logger, filePath string) error {
 	if filePath == "" {

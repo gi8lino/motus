@@ -110,14 +110,13 @@ UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
 
 ## Core exercises YAML
 
-Use `--core-exercises-file` to seed a set of core exercises at startup. Entries may be names or objects with `hasSides` for unilateral exercises:
+Use `--core-exercises-file` to seed core exercises. Every entry is an object with a name. Set `hasSides: true` for unilateral exercises; when omitted, it defaults to `false`:
 
 ```yaml
 exercises:
-  - Push-up
-  - Squat
-  - name: Side Plank
-    hasSides: true
+  - {name: Push-up}
+  - {name: Squat}
+  - {name: Side Plank, hasSides: true}
 ```
 
 See `examples/core-exercises.yaml` for a full example.

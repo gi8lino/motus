@@ -1,102 +1,82 @@
 exercises:
-  - 1 Pump Burpee
-  - 2 Pump Burpee
-  - Air Squat
-  - Arm Circles backwards
-  - Arms Circles forward
-  - Back Extensions
-  - Bear Crawl
-  - Bear Crawl Hold
-  - Beast Hold
-  - Beast Shoulder Taps
-  - Bicycle Crunch
-  - name: Bird Dog
-    hasSides: true
-  - name: Bird Dog Hold
-    hasSides: true
-  - Cross-Body Mountain Climbers
-  - Crunch
-  - Dead Bug
-  - Elbow Openers
-  - Flutter Kicks
-  - Glute Bridge
-  - High Plank
-  - Hip Circles
-  - Hip Thrust
-  - Hollow Hold
-  - Hollow Rocks
-  - Inchworm
-  - Jumping Jack
-  - name: Single-Arm Kettlebell Clean
-    hasSides: true
-  - Kettlebell Deadlift
-  - Kettlebell Figure Eight
-  - Kettlebell Goblet Squat
-  - Kettlebell Halo
-  - name: Single-Arm Kettlebell High Pull
-    hasSides: true
-  - Kettlebell Romanian Deadlift
-  - name: Single-Arm Kettlebell Row
-    hasSides: true
-  - name: Single-Arm Kettlebell Shoulder Press
-    hasSides: true
-  - name: Single-Arm Kettlebell Snatch
-    hasSides: true
-  - Kettlebell Swing
-  - name: Single-Arm Kettlebell Suitcase Carry
-    hasSides: true
-  - Kettlebell Thruster
-  - name: Single-Arm Kettlebell Turkish Get-Up
-    hasSides: true
-  - Knee Plank
-  - Knee Pulls
-  - Leg Raises
-  - name: Leg Swings
-    hasSides: true
-  - name: Leg Swings side-to-side
-    hasSides: true
-  - Low Plank
-  - Lunge
-  - Lying Windshield Wipers
-  - Mountain Climbers
-  - Navy Seals Burpee
-  - name: Pigeon Pulls
-    hasSides: true
-  - Plank
-  - name: Plank Knee to Elbow
-    hasSides: true
-  - Plank Shoulder Taps
-  - Plank Walkouts
-  - name: Plank with Arm Reach
-    hasSides: true
-  - name: Plank with Leg Lift
-    hasSides: true
-  - Push-up
-  - Quat Pulls
-  - Reverse Crunch
-  - Russian Twist
-  - Seated Knee Tucks
-  - Seated L-Sit Hold
-  - Side Bends
-  - name: Side Plank
-    hasSides: true
-  - name: Single-Leg Glute Bridge
-    hasSides: true
-  - Sit-up
-  - Slow Mountain Climbers
-  - Spiderman Plank
-  - Squat
-  - name: Standing Balance Reach
-    hasSides: true
-  - Standing Knee Raises
-  - name: Standing Oblique Crunch
-    hasSides: true
-  - Standing Torso Rotations
-  - Superman Hold
-  - Superman Swim
-  - Transition
-  - Tuck-Ups
-  - Upper Back Openers
-  - V-Ups
-  - name: Woodchoppers
-    hasSides: true
+  - { name: 1 Pump Burpee }
+  - { name: 2 Pump Burpee }
+  - { name: Air Squat }
+  - { name: Arm Circles backwards }
+  - { name: Arms Circles forward }
+  - { name: Back Extensions }
+  - { name: Bear Crawl }
+  - { name: Bear Crawl Hold }
+  - { name: Beast Hold }
+  - { name: Beast Shoulder Taps }
+  - { name: Bicycle Crunch }
+  - { name: Bird Dog, hasSides: true }
+  - { name: Bird Dog Hold, hasSides: true }
+  - { name: Cross-Body Mountain Climbers }
+  - { name: Crunch }
+  - { name: Dead Bug }
+  - { name: Elbow Openers }
+  - { name: Flutter Kicks }
+  - { name: Glute Bridge }
+  - { name: High Plank }
+  - { name: Hip Circles }
+  - { name: Hip Thrust }
+  - { name: Hollow Hold }
+  - { name: Hollow Rocks }
+  - { name: Inchworm }
+  - { name: Jumping Jack }
+  - { name: Single-Arm Kettlebell Clean, hasSides: true }
+  - { name: Kettlebell Deadlift }
+  - { name: Kettlebell Figure Eight }
+  - { name: Kettlebell Goblet Squat }
+  - { name: Kettlebell Halo }
+  - { name: Single-Arm Kettlebell High Pull, hasSides: true }
+  - { name: Kettlebell Romanian Deadlift }
+  - { name: Single-Arm Kettlebell Row, hasSides: true }
+  - { name: Single-Arm Kettlebell Shoulder Press, hasSides: true }
+  - { name: Single-Arm Kettlebell Snatch, hasSides: true }
+  - { name: Kettlebell Swing }
+  - { name: Single-Arm Kettlebell Suitcase Carry, hasSides: true }
+  - { name: Kettlebell Thruster }
+  - { name: Single-Arm Kettlebell Turkish Get-Up, hasSides: true }
+  - { name: Knee Plank }
+  - { name: Knee Pulls }
+  - { name: Leg Raises }
+  - { name: Leg Swings, hasSides: true }
+  - { name: Leg Swings side-to-side, hasSides: true }
+  - { name: Low Plank }
+  - { name: Lunge }
+  - { name: Lying Windshield Wipers }
+  - { name: Mountain Climbers }
+  - { name: Navy Seals Burpee }
+  - { name: Pigeon Pulls, hasSides: true }
+  - { name: Plank }
+  - { name: Plank Knee to Elbow, hasSides: true }
+  - { name: Plank Shoulder Taps }
+  - { name: Plank Walkouts }
+  - { name: Plank with Arm Reach, hasSides: true }
+  - { name: Plank with Leg Lift, hasSides: true }
+  - { name: Push-up }
+  - { name: Quat Pulls }
+  - { name: Reverse Crunch }
+  - { name: Russian Twist }
+  - { name: Seated Knee Tucks }
+  - { name: Seated L-Sit Hold }
+  - { name: Side Bends }
+  - { name: Side Plank, hasSides: true }
+  - { name: Single-Leg Glute Bridge, hasSides: true }
+  - { name: Sit-up }
+  - { name: Slow Mountain Climbers }
+  - { name: Spiderman Plank }
+  - { name: Squat }
+  - { name: Standing Balance Reach, hasSides: true }
+  - { name: Standing Knee Raises }
+  - { name: Standing Oblique Crunch, hasSides: true }
+  - { name: Standing Torso Rotations }
+  - { name: Superman Hold }
+  - { name: Superman Swim }
+  - { name: Transition }
+  - { name: Tuck-Ups }
+  - { name: Upper Back Openers }
+  - { name: V-Ups }
+  - { name: Woodchoppers, hasSides: true }
