@@ -309,6 +309,24 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 	return &w, nil
 }
 
+// WorkoutWithStepsForUser retrieves a workout only when owned by the user.
+func (s *Store) WorkoutWithStepsForUser(ctx context.Context, workoutID, userID string) (*Workout, error) {
+	row := s.pool.QueryRow(ctx, `SELECT id, user_id, name, is_template, created_at FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
+	var w Workout
+	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrWorkoutNotFound
+		}
+		return nil, err
+	}
+	steps, err := s.WorkoutSteps(ctx, w.ID)
+	if err != nil {
+		return nil, err
+	}
+	w.Steps = steps
+	return &w, nil
+}
+
 // UpdateWorkout replaces the workout name and steps.
 func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error) {
 	// Replace workout name and step definitions in a transaction.
@@ -321,8 +339,8 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	tag, err := tx.Exec(ctx, `
 		UPDATE workouts
 		SET name=$1
-		WHERE id=$2
-	`, w.Name, w.ID)
+		WHERE id=$2 AND user_id=$3
+	`, w.Name, w.ID, w.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -423,6 +441,17 @@ func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
 		DELETE FROM workouts
 		WHERE id=$1
 	`, workoutID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrWorkoutNotFound
+	}
+	return nil
+}
+
+func (s *Store) DeleteWorkoutForUser(ctx context.Context, workoutID, userID string) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
 	if err != nil {
 		return err
 	}

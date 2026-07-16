@@ -62,13 +62,14 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*W
 }
 
 // Delete removes a workout by id.
-func (s *Service) Delete(ctx context.Context, id string) error {
+func (s *Service) Delete(ctx context.Context, id, userID string) error {
 	id = strings.TrimSpace(id)
-	if id == "" {
-		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workout id is required", errorScope)
+	userID = strings.TrimSpace(userID)
+	if id == "" || userID == "" {
+		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workout id and user id are required", errorScope)
 	}
 
-	if err := s.store.DeleteWorkout(ctx, id); err != nil {
+	if err := s.store.DeleteWorkoutForUser(ctx, id, userID); err != nil {
 		if errors.Is(err, db.ErrWorkoutNotFound) {
 			return errpkg.NewErrorWithScope(errpkg.ErrorNotFound, err.Error(), errorScope)
 		}

@@ -37,10 +37,16 @@ func (f *fakeStore) WorkoutWithSteps(ctx context.Context, id string) (*Workout, 
 	}
 	return f.getFn(ctx, id)
 }
+func (f *fakeStore) WorkoutWithStepsForUser(ctx context.Context, id, _ string) (*Workout, error) {
+	return f.WorkoutWithSteps(ctx, id)
+}
 
 func (f *fakeStore) DeleteWorkout(ctx context.Context, id string) error {
 	if f.deleteFn == nil {
 		return nil
 	}
 	return f.deleteFn(ctx, id)
+}
+func (f *fakeStore) DeleteWorkoutForUser(ctx context.Context, id, _ string) error {
+	return f.DeleteWorkout(ctx, id)
 }

@@ -86,7 +86,7 @@ func TestDelete(t *testing.T) {
 				return nil
 			},
 		})
-		if err := svc.Delete(context.Background(), "w1"); err != nil {
+		if err := svc.Delete(context.Background(), "w1", "u1"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if !called {

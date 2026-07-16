@@ -28,6 +28,18 @@ func (s *Service) Get(ctx context.Context, id string) (*Workout, error) {
 	return workout, nil
 }
 
+func (s *Service) GetForUser(ctx context.Context, id, userID string) (*Workout, error) {
+	id, userID = strings.TrimSpace(id), strings.TrimSpace(userID)
+	if id == "" || userID == "" {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "workout id and user id are required", errorScope)
+	}
+	workout, err := s.store.WorkoutWithStepsForUser(ctx, id, userID)
+	if err != nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorNotFound, "workout not found", errorScope)
+	}
+	return workout, nil
+}
+
 // Export returns a workout for sharing.
 func (s *Service) Export(ctx context.Context, id string) (*Workout, error) {
 	workout, err := s.Get(ctx, id)

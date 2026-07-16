@@ -53,6 +53,13 @@ func (f *fakeWorkoutStore) WorkoutWithSteps(ctx context.Context, id string) (*db
 	}
 	return f.workoutWithStepsFn(ctx, id)
 }
+func (f *fakeWorkoutStore) WorkoutWithStepsForUser(ctx context.Context, id, userID string) (*db.Workout, error) {
+	w, err := f.WorkoutWithSteps(ctx, id)
+	if err == nil && w != nil && w.UserID != "" && w.UserID != userID {
+		return nil, db.ErrWorkoutNotFound
+	}
+	return w, err
+}
 
 func (f *fakeWorkoutStore) CreateWorkout(ctx context.Context, workout *db.Workout) (*db.Workout, error) {
 	if f.createWorkoutFn == nil {
@@ -73,6 +80,19 @@ func (f *fakeWorkoutStore) DeleteWorkout(ctx context.Context, id string) error {
 		return nil
 	}
 	return f.deleteWorkoutFn(ctx, id)
+}
+
+func (f *fakeWorkoutStore) DeleteWorkoutForUser(ctx context.Context, id, userID string) error {
+	if f.workoutWithStepsFn != nil {
+		w, err := f.WorkoutWithSteps(ctx, id)
+		if err != nil {
+			return err
+		}
+		if w != nil && w.UserID != "" && w.UserID != userID {
+			return db.ErrWorkoutNotFound
+		}
+	}
+	return f.DeleteWorkout(ctx, id)
 }
 
 func (f *fakeWorkoutStore) WorkoutsByUser(ctx context.Context, id string) ([]db.Workout, error) {

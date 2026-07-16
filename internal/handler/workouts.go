@@ -214,7 +214,16 @@ func (a *API) DeleteWorkout() http.HandlerFunc {
 			return
 		}
 
-		if err := a.Workouts.Delete(r.Context(), id); err != nil {
+		userID := "test@example.com"
+		if a.AuthStore != nil {
+			var err error
+			userID, err = a.resolveUserID(r, "")
+			if err != nil {
+				a.respondJSON(w, http.StatusUnauthorized, apiError{Error: "authentication required"})
+				return
+			}
+		}
+		if err := a.Workouts.Delete(r.Context(), id, userID); err != nil {
 			a.logRequestError(r, "delete_workout_failed", "delete workout failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return

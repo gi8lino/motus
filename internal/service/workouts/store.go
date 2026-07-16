@@ -8,5 +8,7 @@ type Store interface {
 	UpdateWorkout(ctx context.Context, workout *Workout) (*Workout, error)
 	WorkoutsByUser(ctx context.Context, userID string) ([]Workout, error)
 	WorkoutWithSteps(ctx context.Context, id string) (*Workout, error)
+	WorkoutWithStepsForUser(ctx context.Context, id, userID string) (*Workout, error)
 	DeleteWorkout(ctx context.Context, id string) error
+	DeleteWorkoutForUser(ctx context.Context, id, userID string) error
 }

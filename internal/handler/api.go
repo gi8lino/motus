@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 
@@ -109,12 +108,9 @@ func (a *API) requireWorkoutOwner(r *http.Request, workoutID string) error {
 	if err != nil {
 		return err
 	}
-	workout, err := a.Workouts.Get(r.Context(), workoutID)
+	_, err = a.Workouts.GetForUser(r.Context(), workoutID, userID)
 	if err != nil {
 		return err
-	}
-	if workout.UserID != userID {
-		return errors.New("workout not found")
 	}
 	return nil
 }
