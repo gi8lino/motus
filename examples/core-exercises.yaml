@@ -10,8 +10,10 @@ exercises:
   - Beast Hold
   - Beast Shoulder Taps
   - Bicycle Crunch
-  - Bird Dog
-  - Bird Dog Hold
+  - name: Bird Dog
+    hasSides: true
+  - name: Bird Dog Hold
+    hasSides: true
   - Cross-Body Mountain Climbers
   - Crunch
   - Dead Bug
@@ -25,6 +27,27 @@ exercises:
   - Hollow Rocks
   - Inchworm
   - Jumping Jack
+  - name: Single-Arm Kettlebell Clean
+    hasSides: true
+  - Kettlebell Deadlift
+  - Kettlebell Figure Eight
+  - Kettlebell Goblet Squat
+  - Kettlebell Halo
+  - name: Single-Arm Kettlebell High Pull
+    hasSides: true
+  - Kettlebell Romanian Deadlift
+  - name: Single-Arm Kettlebell Row
+    hasSides: true
+  - name: Single-Arm Kettlebell Shoulder Press
+    hasSides: true
+  - name: Single-Arm Kettlebell Snatch
+    hasSides: true
+  - Kettlebell Swing
+  - name: Single-Arm Kettlebell Suitcase Carry
+    hasSides: true
+  - Kettlebell Thruster
+  - name: Single-Arm Kettlebell Turkish Get-Up
+    hasSides: true
   - Knee Plank
   - Knee Pulls
   - Leg Raises
@@ -37,13 +60,17 @@ exercises:
   - Lying Windshield Wipers
   - Mountain Climbers
   - Navy Seals Burpee
-  - Pigeon Pulls
+  - name: Pigeon Pulls
+    hasSides: true
   - Plank
-  - Plank Knee to Elbow
+  - name: Plank Knee to Elbow
+    hasSides: true
   - Plank Shoulder Taps
   - Plank Walkouts
-  - Plank with Arm Reach
-  - Plank with Leg Lift
+  - name: Plank with Arm Reach
+    hasSides: true
+  - name: Plank with Leg Lift
+    hasSides: true
   - Push-up
   - Quat Pulls
   - Reverse Crunch
@@ -59,9 +86,11 @@ exercises:
   - Slow Mountain Climbers
   - Spiderman Plank
   - Squat
-  - Standing Balance Reach
+  - name: Standing Balance Reach
+    hasSides: true
   - Standing Knee Raises
-  - Standing Oblique Crunch
+  - name: Standing Oblique Crunch
+    hasSides: true
   - Standing Torso Rotations
   - Superman Hold
   - Superman Swim
@@ -69,4 +98,5 @@ exercises:
   - Tuck-Ups
   - Upper Back Openers
   - V-Ups
-  - Woodchoppers
+  - name: Woodchoppers
+    hasSides: true
