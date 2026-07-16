@@ -30,6 +30,8 @@ exercises:
   - { name: Single-Arm Kettlebell Clean, hasSides: true }
   - { name: Kettlebell Deadlift }
   - { name: Kettlebell Halos, hasSides: true }
+  - { name: Kettlebell Rows, hasSides: true }
+  - { name: Kettlebell Clean & Press, hasSides: true }
   - { name: Kettlebell Figure Eight }
   - { name: Kettlebell Goblet Squat }
   - { name: Kettlebell Halo }
