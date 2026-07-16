@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -15,8 +14,7 @@ import (
 
 // exerciseStore is an interface for storing exercises.
 type exerciseStore interface {
-	CreateExercise(ctx context.Context, name, ownerUserID string, isCore bool) (*db.Exercise, error)
-	SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*db.Exercise, error)
+	UpsertCoreExercise(ctx context.Context, name string, hasSides bool) (*db.Exercise, bool, error)
 }
 
 // coreExercisesFile mirrors the YAML layout expected in the seed file.
@@ -51,23 +49,16 @@ func SeedCoreExercises(ctx context.Context, store exerciseStore, logger *slog.Lo
 	}
 
 	for _, item := range exercises.Exercises {
-		created, err := store.CreateExercise(ctx, item.Name, "", true)
+		_, created, err := store.UpsertCoreExercise(ctx, item.Name, item.HasSides)
 		if err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "duplicate") {
-				continue
-			}
-			return fmt.Errorf("create core exercise %q: %w", item.Name, err)
-		}
-		if item.HasSides {
-			if _, err := store.SetExerciseHasSides(ctx, created.ID, true); err != nil {
-				return fmt.Errorf("mark core exercise %q unilateral: %w", item.Name, err)
-			}
+			return fmt.Errorf("reconcile core exercise %q: %w", item.Name, err)
 		}
 		logger.Info(
-			"seeded core exercise",
-			"event", "bootstrap_exercise_seeded",
+			"reconciled core exercise",
+			"event", "bootstrap_exercise_reconciled",
 			"resource", "exercise",
 			"name", item.Name,
+			"created", created,
 		)
 	}
 

@@ -195,6 +195,29 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 	return ex, nil
 }
 
+// UpsertCoreExercise reconciles a seeded core exercise with the catalog.
+func (s *Store) UpsertCoreExercise(ctx context.Context, name string, hasSides bool) (*Exercise, bool, error) {
+	id := utils.NewID()
+	var resultID string
+	var inserted bool
+	err := s.pool.QueryRow(ctx, `
+		INSERT INTO exercises(id, name, owner_user_id, is_core, has_sides, created_at)
+		VALUES ($1, $2, '', TRUE, $3, $4)
+		ON CONFLICT(name) DO UPDATE SET is_core=TRUE, owner_user_id='', has_sides=EXCLUDED.has_sides
+		RETURNING id, (xmax = 0)
+	`, id, strings.TrimSpace(name), hasSides, time.Now().UTC()).Scan(&resultID, &inserted)
+	if err != nil {
+		return nil, false, err
+	}
+	if !hasSides {
+		if _, err := s.pool.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, resultID); err != nil {
+			return nil, false, err
+		}
+	}
+	exercise, err := s.GetExercise(ctx, resultID)
+	return exercise, inserted, err
+}
+
 // SetExerciseHasSides updates whether an exercise is performed per side.
 func (s *Store) SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*Exercise, error) {
 	tx, err := s.pool.Begin(ctx)
