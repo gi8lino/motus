@@ -1,3 +1,4 @@
+version: 1
 exercises:
   - { name: 1 Pump Burpee }
   - { name: 2 Pump Burpee }

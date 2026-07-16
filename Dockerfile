@@ -33,6 +33,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy the Go source and templates.
 COPY main.go main.go
 COPY internal/ internal
+COPY examples/ examples
 COPY --from=frontend /web/dist web/dist
 
 # Build the binary.
@@ -69,4 +70,3 @@ WORKDIR /work
 USER 65532:0
 
 ENTRYPOINT ["/motus"]
-

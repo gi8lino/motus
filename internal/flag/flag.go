@@ -25,7 +25,7 @@ type Options struct {
 	OverriddenValues  map[string]any    // Overridden values from environment
 	AdminEmail        string            // AdminEmail is the email address of the site admin
 	AdminPassword     string            // AdminPassword is the password for the site admin
-	CoreExercisesFile string            // Optional JSON file with core exercises to import
+	CoreExercisesFile string            // Optional YAML file overriding the embedded core catalog
 	SessionLifetime   time.Duration     // Lifetime of local authentication sessions
 }
 
@@ -74,7 +74,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 	tf.DurationVar(&opts.SessionLifetime, "session-lifetime", 30*24*time.Hour, "Local authentication session lifetime").Value()
 
-	tf.StringVar(&opts.CoreExercisesFile, "core-exercises-file", "", "Path to a YAML file describing core exercises to seed at startup").
+	tf.StringVar(&opts.CoreExercisesFile, "core-exercises-file", "", "Path to a YAML file overriding the embedded core exercise catalog").
 		Placeholder("FILE").
 		Value()
 

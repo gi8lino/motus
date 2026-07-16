@@ -87,17 +87,15 @@ func Run(
 		return fmt.Errorf("ensure admin user: %w", err)
 	}
 
-	// Load extra core exercises if the CLI flag was set.
-	if flags.CoreExercisesFile != "" {
-		if err := bootstrap.SeedCoreExercises(ctx, store, setupLogger, flags.CoreExercisesFile); err != nil {
-			setupLogger.Error(
-				"application failed",
-				"event", "app_failed",
-				"stage", "seed_core_exercises",
-				"error", err,
-			)
-			return fmt.Errorf("load core exercises: %w", err)
-		}
+	// Reconcile the built-in core catalog, or a configured override.
+	if err := bootstrap.SeedCoreExercises(ctx, store, setupLogger, flags.CoreExercisesFile); err != nil {
+		setupLogger.Error(
+			"application failed",
+			"event", "app_failed",
+			"stage", "seed_core_exercises",
+			"error", err,
+		)
+		return fmt.Errorf("load core exercises: %w", err)
 	}
 
 	// Build the API handler with runtime configuration.
