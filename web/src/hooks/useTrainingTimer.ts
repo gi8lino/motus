@@ -19,6 +19,7 @@ import {
 } from "./trainingTimer/state";
 import { clearPersistedTraining, loadPersistedTraining, persistTraining } from "./trainingTimer/storage";
 import type { NormalizedState } from "./trainingTimer/types";
+import { buildStepRunKey, isSameStepRun } from "./trainingTimer/runIdentity";
 
 // UseTrainingTimerArgs configures the train timer hook.
 type UseTrainingTimerArgs = {
@@ -319,7 +320,7 @@ export function useTrainingTimer({
       return;
     }
 
-    const runKey = `${state.trainingId}:${state.currentIndex}:${step.id || ""}:${state.runningSince || 0}:${estimatedSeconds}`;
+    const runKey = buildStepRunKey(state, step, estimatedSeconds);
 
     if (stepRunRef.current.key !== runKey) {
       const at = now();
@@ -350,12 +351,8 @@ export function useTrainingTimer({
       if (!currentStep) return;
 
       const stillSameRun =
-        current.trainingId === state.trainingId &&
-        current.currentIndex === state.currentIndex &&
-        (current.runningSince || 0) === (state.runningSince || 0) &&
-        (currentStep.id || "") === (step.id || "") &&
-        isAutoAdvanceStep(currentStep) &&
-        (currentStep.estimatedSeconds || 0) === estimatedSeconds;
+        isSameStepRun(current, state, currentStep, step, estimatedSeconds) &&
+        isAutoAdvanceStep(currentStep);
 
       if (!stillSameRun) return;
 
