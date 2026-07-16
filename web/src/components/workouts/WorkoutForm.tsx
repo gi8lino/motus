@@ -33,10 +33,11 @@ import {
   normalizeStepType,
 } from "../../utils/step";
 import { WorkoutSubsetEditor } from "./WorkoutSubsetEditor";
-import { MESSAGES, toErrorMessage } from "../../utils/messages";
+import { MESSAGES } from "../../utils/messages";
 import { workoutStepsReducer } from "./workoutDraftReducer";
 import { WorkoutRepeatToggle } from "./WorkoutRepeatToggle";
 import { UI_TEXT } from "../../utils/uiText";
+import { runWorkoutSubmit } from "../../utils/workoutSubmit";
 
 const DEFAULT_WORKOUT_NAME = UI_TEXT.workouts.defaultName;
 const KEY_COOLDOWN_MS = 500;
@@ -758,26 +759,28 @@ export function WorkoutForm({
       return;
     }
 
-    try {
-      setSubmitting(true);
-      setSaveError(null);
-      if (editingId && onUpdate) {
-        await onUpdate({ id: editingId, name: name.trim(), steps: cleanSteps });
-      } else {
-        await onSave({ name: name.trim(), steps: cleanSteps });
-      }
-      setDirty(false);
-      onDirtyChange?.(false);
-      onToast?.(
-        editingId
-          ? UI_TEXT.workouts.editMode.updatedToast
-          : UI_TEXT.workouts.editMode.createdToast,
-      );
-    } catch (err) {
-      setSaveError(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
-    } finally {
-      setSubmitting(false);
+    setSubmitting(true);
+    setSaveError(null);
+    const result = await runWorkoutSubmit(
+      () =>
+        editingId && onUpdate
+          ? onUpdate({ id: editingId, name: name.trim(), steps: cleanSteps })
+          : onSave({ name: name.trim(), steps: cleanSteps }),
+      () => {
+        setDirty(false);
+        onDirtyChange?.(false);
+        onToast?.(
+          editingId
+            ? UI_TEXT.workouts.editMode.updatedToast
+            : UI_TEXT.workouts.editMode.createdToast,
+        );
+      },
+      MESSAGES.saveWorkoutFailed,
+    );
+    if (!result.ok) {
+      setSaveError(result.error);
     }
+    setSubmitting(false);
   };
 
   // Optional: keyboard QoL (consistent cooldown)
