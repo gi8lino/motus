@@ -18,9 +18,6 @@ type AppConfig = {
   commit: string;
 };
 
-// setAuthHeaderEnabled toggles local header usage based on proxy auth.
-export const setAuthHeaderEnabled = (_enabled: boolean) => {};
-
 // request wraps fetch with JSON handling, error surfacing, and user header.
 async function requestResponse(path: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(withBasePath(path), {

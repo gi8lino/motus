@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getConfig, getCurrentUser, setAuthHeaderEnabled } from "../api";
+import { getConfig, getCurrentUser } from "../api";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import type { View } from "../types";
 
@@ -35,10 +35,6 @@ export function useAppConfig({
     getConfig()
       .then((cfg) => {
         setConfig(cfg);
-        setAuthHeaderEnabled(cfg.authHeaderEnabled);
-
-        if (!cfg.authHeaderEnabled) return;
-
         return getCurrentUser()
           .then((user) => {
             setCurrentUserId(user.id);
@@ -46,7 +42,8 @@ export function useAppConfig({
             if (viewRef.current === "login") setView("train");
           })
           .catch((err: Error) => {
-            setAuthError(toErrorMessage(err, MESSAGES.authFailed));
+            setCurrentUserId(null);
+            if (cfg.authHeaderEnabled) setAuthError(toErrorMessage(err, MESSAGES.authFailed));
           });
       })
       .catch((err: Error) => {

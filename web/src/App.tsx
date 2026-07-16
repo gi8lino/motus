@@ -35,7 +35,6 @@ import { useUserDefaults } from "./hooks/useUserDefaults";
 import { AppShell } from "./components/shell/AppShell";
 import DialogModal from "./components/common/DialogModal";
 
-import { isValidEmail } from "./utils/validation";
 import { PROMPTS, toErrorMessage } from "./utils/messages";
 import { UI_TEXT } from "./utils/uiText";
 import { buildAppTheme } from "./theme";
@@ -98,18 +97,6 @@ function resumeMessage(
   return `Resume ${name}?`;
 }
 
-// shouldResetStoredUserID checks whether a loader error means the local user id is invalid.
-function shouldResetStoredUserID(error: string | null): boolean {
-  const text = (error || "").toLowerCase();
-  if (!text) return false;
-  return (
-    text.includes("unauthorized") ||
-    text.includes("not found") ||
-    text.includes("auth header is required") ||
-    text.includes("userid is required")
-  );
-}
-
 function PageFallback() {
   return (
     <Card sx={{ maxWidth: 560, mx: "auto" }}>
@@ -137,11 +124,7 @@ function PageFallback() {
 export default function App() {
   const { view, setView } = useViewState("train");
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
-    const stored = localStorage.getItem("motus:userId");
-    if (stored && isValidEmail(stored)) return stored;
-    return null;
-  });
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -261,24 +244,6 @@ export default function App() {
     [resolvedThemeMode],
   );
 
-  // ---------- validate stored user id once local user info is known ----------
-  useEffect(() => {
-    if (authHeaderEnabled) return;
-    if (!currentUserId) return;
-    if (currentUser) return;
-    if (currentUserLoader.loading) return;
-    if (!shouldResetStoredUserID(currentUserLoader.error)) return;
-
-    localStorage.removeItem("motus:userId");
-    setCurrentUserId(null);
-  }, [
-    authHeaderEnabled,
-    currentUserId,
-    currentUser,
-    currentUserLoader.loading,
-    currentUserLoader.error,
-  ]);
-
   // ---------- clear login errors when leaving login view ----------
   useEffect(() => {
     if (view === "login") setLoginError(null);
@@ -323,14 +288,12 @@ export default function App() {
   // ---------- auth actions ----------
   const onLoginSuccess = (user: User) => {
     setCurrentUserId(user.id);
-    localStorage.setItem("motus:userId", user.id);
     setView("train");
   };
 
   const onRegisterSuccess = (user: User) => {
     users.setData?.((prev) => (prev ? [...prev, user] : [user]));
     setCurrentUserId(user.id);
-    if (!authHeaderEnabled) localStorage.setItem("motus:userId", user.id);
   };
 
   const { login: handleLogin, register: handleRegister } = useAuthActions({
@@ -456,7 +419,6 @@ export default function App() {
 
   // ---------- logout ----------
   const handleLogout = () => {
-    localStorage.removeItem("motus:userId");
     setCurrentUserId(null);
     setView("login");
     clearTraining();
