@@ -69,13 +69,7 @@ export function WorkoutsEditor({
     });
 
   return (
-    <Modal
-      open={open}
-      onClose={() => {
-        closeWorkoutModal();
-        onClose();
-      }}
-    >
+    <Modal open={open} onClose={closeWorkoutModal}>
       <WorkoutForm
         userId={currentUserId}
         sounds={formData.sounds}
@@ -91,10 +85,7 @@ export function WorkoutsEditor({
         }}
         editingWorkout={editingWorkout}
         onDirtyChange={setWorkoutDirty}
-        onClose={() => {
-          closeWorkoutModal();
-          onClose();
-        }}
+        onClose={closeWorkoutModal}
       />
     </Modal>
   );

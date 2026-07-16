@@ -128,6 +128,8 @@ export function WorkoutForm({
   );
   const [repeatRestInputs, setRepeatRestInputs] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const catalog = exerciseCatalog || [];
   const catalogByName = useMemo(
@@ -164,6 +166,7 @@ export function WorkoutForm({
 
   const markDirty = useCallback(() => {
     setDirty(true);
+    setSaveError(null);
     onDirtyChange?.(true);
   }, [onDirtyChange]);
 
@@ -245,6 +248,7 @@ export function WorkoutForm({
       setExpandedRepeats(new Set());
       setRepeatRestInputs([]);
       setDirty(false);
+      setSaveError(null);
       onDirtyChange?.(false);
       return;
     }
@@ -278,6 +282,7 @@ export function WorkoutForm({
             weight: ex.weight || "",
             duration: ex.duration || "",
             soundKey: ex.soundKey || "",
+            side: ex.side || "not_applicable",
           })),
         }));
 
@@ -319,6 +324,7 @@ export function WorkoutForm({
     );
 
     setDirty(false);
+    setSaveError(null);
     setExpandedRepeats(new Set());
     onDirtyChange?.(false);
   }, [
@@ -743,6 +749,8 @@ export function WorkoutForm({
     }
 
     try {
+      setSubmitting(true);
+      setSaveError(null);
       if (editingId && onUpdate) {
         await onUpdate({ id: editingId, name: name.trim(), steps: cleanSteps });
       } else {
@@ -756,7 +764,9 @@ export function WorkoutForm({
           : UI_TEXT.workouts.editMode.createdToast,
       );
     } catch (err) {
-      await notifyUser(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
+      setSaveError(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -787,10 +797,16 @@ export function WorkoutForm({
           </p>
         </div>
 
-        <button className="btn primary" type="submit" disabled={!dirty}>
-          {editingId
-            ? UI_TEXT.workouts.editMode.updateButton
-            : UI_TEXT.workouts.editMode.saveButton}
+        <button
+          className="btn primary"
+          type="submit"
+          disabled={!dirty || submitting}
+        >
+          {submitting
+            ? "Saving…"
+            : editingId
+              ? UI_TEXT.workouts.editMode.updateButton
+              : UI_TEXT.workouts.editMode.saveButton}
         </button>
 
         {onClose && (
@@ -804,6 +820,13 @@ export function WorkoutForm({
           </button>
         )}
       </div>
+
+      {saveError ? (
+        <div className="form-error" role="alert" aria-live="assertive">
+          <strong>Workout could not be saved</strong>
+          <span>{saveError}</span>
+        </div>
+      ) : null}
 
       <div className="field">
         <label>Workout name</label>

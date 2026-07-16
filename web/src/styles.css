@@ -310,6 +310,23 @@ main {
   color: #e76f51;
 }
 
+.form-error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #f87171 55%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  color: #fecaca;
+  font-size: 14px;
+}
+
+:root[data-theme="light"] .form-error {
+  color: #991b1b;
+}
+
 .input-error {
   border-color: #e76f51;
   animation: input-shake 0.2s ease-in-out;

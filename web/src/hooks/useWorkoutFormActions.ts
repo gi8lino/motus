@@ -44,8 +44,9 @@ export function useWorkoutFormActions({
   }) => {
     // Guard: require an authenticated user before saving.
     if (!currentUserId) {
-      await notify?.(UI_TEXT.errors.loginRequiredSave);
-      return;
+      const error = new Error(UI_TEXT.errors.loginRequiredSave);
+      await notify?.(error.message);
+      throw error;
     }
 
     try {
@@ -62,6 +63,7 @@ export function useWorkoutFormActions({
       setWorkoutDirty(false);
     } catch (err) {
       await notify?.(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
+      throw err;
     }
   };
 
@@ -73,8 +75,9 @@ export function useWorkoutFormActions({
   }) => {
     // Guard: require an authenticated user before updating.
     if (!currentUserId) {
-      await notify?.(UI_TEXT.errors.loginRequiredUpdate);
-      return;
+      const error = new Error(UI_TEXT.errors.loginRequiredUpdate);
+      await notify?.(error.message);
+      throw error;
     }
 
     try {
@@ -103,6 +106,7 @@ export function useWorkoutFormActions({
       setWorkoutDirty(false);
     } catch (err) {
       await notify?.(toErrorMessage(err, MESSAGES.updateWorkoutFailed));
+      throw err;
     }
   };
 
