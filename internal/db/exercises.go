@@ -197,13 +197,22 @@ func (s *Store) CreateExercise(ctx context.Context, name, ownerUserID string, is
 
 // SetExerciseHasSides updates whether an exercise is performed per side.
 func (s *Store) SetExerciseHasSides(ctx context.Context, id string, hasSides bool) (*Exercise, error) {
-	if _, err := s.pool.Exec(ctx, `UPDATE exercises SET has_sides=$1 WHERE id=$2`, hasSides, strings.TrimSpace(id)); err != nil {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) // nolint:errcheck
+	id = strings.TrimSpace(id)
+	if _, err := tx.Exec(ctx, `UPDATE exercises SET has_sides=$1 WHERE id=$2`, hasSides, id); err != nil {
 		return nil, err
 	}
 	if !hasSides {
-		if _, err := s.pool.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, strings.TrimSpace(id)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE workout_subset_exercises SET side='not_applicable' WHERE exercise_id=$1`, id); err != nil {
 			return nil, err
 		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return s.GetExercise(ctx, id)
 }
