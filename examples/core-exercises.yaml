@@ -20,6 +20,7 @@ exercises:
   - { name: Glute Bridge }
   - { name: High Plank }
   - { name: Hip Circles }
+  - { name: Hip Hinges }
   - { name: Hip Thrust }
   - { name: Hollow Hold }
   - { name: Hollow Rocks }
@@ -27,6 +28,7 @@ exercises:
   - { name: Jumping Jack }
   - { name: Single-Arm Kettlebell Clean, hasSides: true }
   - { name: Kettlebell Deadlift }
+  - { name: Kettlebell Halos, hasSides: true }
   - { name: Kettlebell Figure Eight }
   - { name: Kettlebell Goblet Squat }
   - { name: Kettlebell Halo }
