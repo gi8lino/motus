@@ -19,7 +19,7 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 
-	names, err := s.collectDistinctExerciseNames(tx)
+	names, err := s.collectDistinctExerciseNames(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -50,8 +50,8 @@ func (s *Store) BackfillCoreExercises(ctx context.Context) error {
 }
 
 // collectDistinctExerciseNames returns a list of trimmed, unique exercise names from subsets.
-func (s *Store) collectDistinctExerciseNames(tx pgx.Tx) ([]string, error) {
-	rows, err := tx.Query(context.Background(), `
+func (s *Store) collectDistinctExerciseNames(ctx context.Context, tx pgx.Tx) ([]string, error) {
+	rows, err := tx.Query(ctx, `
 		SELECT DISTINCT name FROM workout_subset_exercises WHERE name <> ''`)
 	if err != nil {
 		return nil, err
