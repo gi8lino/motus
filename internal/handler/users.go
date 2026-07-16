@@ -1,6 +1,10 @@
 package handler
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/gi8lino/motus/internal/auth"
+)
 
 // GetUsers lists all users.
 func (a *API) GetUsers() http.HandlerFunc {
@@ -36,6 +40,12 @@ func (a *API) CreateUser() http.HandlerFunc {
 			a.logRequestError(r, "create_user_failed", "create user failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
+		}
+		if a.AuthHeader == "" && a.AuthStore != nil {
+			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID); err != nil {
+				a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "create session failed"})
+				return
+			}
 		}
 
 		a.businessLogger(r).Info("user created",
@@ -99,6 +109,12 @@ func (a *API) Login() http.HandlerFunc {
 			a.logRequestError(r, "login_user_failed", "login user failed", err)
 			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
 			return
+		}
+		if a.AuthStore != nil {
+			if err := auth.StartSession(r.Context(), w, r, a.AuthStore, user.ID); err != nil {
+				a.respondJSON(w, http.StatusInternalServerError, apiError{Error: "create session failed"})
+				return
+			}
 		}
 
 		a.businessLogger(r).Info("user login",

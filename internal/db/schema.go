@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const schemaVersionLatest = 2
+const schemaVersionLatest = 4
 
 type schemaMigration struct {
 	version    int
@@ -135,6 +135,20 @@ var schemaMigrations = []schemaMigration{
 			  END LOOP;
 			END $$`,
 			`UPDATE workout_subset_exercises wse SET name = e.name FROM exercises e WHERE wse.exercise_id = e.id AND e.has_sides = TRUE`,
+		},
+	},
+	{
+		version: 4,
+		name:    "local auth sessions",
+		statements: []string{
+			`CREATE TABLE IF NOT EXISTS user_sessions (
+				token TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				expires_at TIMESTAMPTZ NOT NULL,
+				created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+			)`,
+			`CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx ON user_sessions(user_id)`,
+			`CREATE INDEX IF NOT EXISTS user_sessions_expires_at_idx ON user_sessions(expires_at)`,
 		},
 	},
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +18,15 @@ import (
 type fakeStore struct {
 	getUserFn    func(context.Context, string) (*db.User, error)
 	createUserFn func(context.Context, string, string, string) (*db.User, error)
+	getSessionFn func(context.Context, string, time.Time) (*db.User, error)
+}
+
+func (f *fakeStore) CreateSession(context.Context, string, string, time.Time) error { return nil }
+func (f *fakeStore) GetSessionUser(context.Context, string, time.Time) (*db.User, error) {
+	if f.getSessionFn != nil {
+		return f.getSessionFn(context.Background(), "token", time.Now())
+	}
+	return nil, pgx.ErrNoRows
 }
 
 func (f *fakeStore) GetUser(ctx context.Context, email string) (*db.User, error) {
@@ -47,23 +57,26 @@ func TestResolveUserID(t *testing.T) {
 		assert.Equal(t, "user@example.com", id)
 	})
 
-	t.Run("Uses fallback when no auth header", func(t *testing.T) {
+	t.Run("Uses local session when no proxy auth header", func(t *testing.T) {
 		t.Parallel()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		id, err := ResolveUserID(req, &fakeStore{}, "", false, "User@Example.com")
+		req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "token"})
+		store := &fakeStore{getSessionFn: func(context.Context, string, time.Time) (*db.User, error) {
+			return &db.User{ID: "user@example.com"}, nil
+		}}
+		id, err := ResolveUserID(req, store, "", false, "ignored@example.com")
 		require.NoError(t, err)
 		assert.Equal(t, "user@example.com", id)
 	})
 
-	t.Run("Uses local header when fallback missing", func(t *testing.T) {
+	t.Run("Rejects legacy local header", func(t *testing.T) {
 		t.Parallel()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set(localAuthHeader, "User@Example.com")
-		id, err := ResolveUserID(req, &fakeStore{}, "", false, "")
-		require.NoError(t, err)
-		assert.Equal(t, "user@example.com", id)
+		_, err := ResolveUserID(req, &fakeStore{}, "", false, "")
+		require.Error(t, err)
 	})
 
 	t.Run("Requires auth header when configured", func(t *testing.T) {

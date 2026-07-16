@@ -18,20 +18,15 @@ type AppConfig = {
   commit: string;
 };
 
-let useLocalUserHeader = true;
-
 // setAuthHeaderEnabled toggles local header usage based on proxy auth.
-export const setAuthHeaderEnabled = (enabled: boolean) => {
-  useLocalUserHeader = !enabled;
-};
+export const setAuthHeaderEnabled = (_enabled: boolean) => {};
 
 // request wraps fetch with JSON handling, error surfacing, and user header.
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const userId = localStorage.getItem("motus:userId") || "";
   const res = await fetch(withBasePath(path), {
+	credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
-      ...(useLocalUserHeader && userId ? { "X-User-ID": userId } : {}),
       ...(init?.headers || {}),
     },
     ...init,

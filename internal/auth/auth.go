@@ -2,9 +2,12 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -15,12 +18,36 @@ import (
 // localAuthHeader is the fallback header for local auth.
 const localAuthHeader = "X-User-ID"
 
+const SessionCookieName = "motus_session"
+const sessionLifetime = 30 * 24 * time.Hour
+
 // Store defines the persistence methods needed by auth helpers.
 type Store interface {
 	// GetUser returns a user by id for auth lookups.
 	GetUser(ctx context.Context, email string) (*db.User, error)
 	// CreateUser inserts a new user for auto-provisioning.
 	CreateUser(ctx context.Context, email, avatarURL, passwordHash string) (*db.User, error)
+	CreateSession(ctx context.Context, token, userID string, expiresAt time.Time) error
+	GetSessionUser(ctx context.Context, token string, now time.Time) (*db.User, error)
+}
+
+// StartSession creates a local-auth session and writes its opaque token cookie.
+func StartSession(ctx context.Context, w http.ResponseWriter, r *http.Request, store Store, userID string) error {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return err
+	}
+	token := base64.RawURLEncoding.EncodeToString(raw)
+	expires := time.Now().UTC().Add(sessionLifetime)
+	if err := store.CreateSession(ctx, token, userID, expires); err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: SessionCookieName, Value: token, Path: "/", Expires: expires,
+		HttpOnly: true, Secure: r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+	})
+	return nil
 }
 
 // ResolveUserID selects the user id from auth header or request payload.
@@ -45,28 +72,24 @@ func ResolveUserID(r *http.Request, store Store, authHeader string, autoCreateUs
 		}
 		return email, nil
 	}
-
-	if fallback != "" {
-		// Accept a fallback id when provided by handlers.
-		email, err := utils.NormalizeEmail(fallback)
-		if err != nil {
-			return "", err
-		}
-		return email, nil
+	// Handler unit tests may omit the auth store; production always supplies one.
+	if store == nil && fallback != "" {
+		return utils.NormalizeEmail(fallback)
+	}
+	if store == nil {
+		return utils.NormalizeEmail(r.Header.Get(localAuthHeader))
 	}
 
-	// Require the local auth header when no proxy header is configured.
-	id := strings.TrimSpace(r.Header.Get(localAuthHeader))
-	if id == "" {
-		return "", errors.New("userId is required")
+	// Local authentication uses an opaque, HTTP-only session cookie.
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		return "", errors.New("authentication required")
 	}
-
-	email, err := utils.NormalizeEmail(id)
-	if err != nil {
-		return "", err
+	user, err := store.GetSessionUser(r.Context(), cookie.Value, time.Now().UTC())
+	if err != nil || user == nil {
+		return "", errors.New("invalid or expired session")
 	}
-
-	return email, nil
+	return user.ID, nil
 }
 
 // ensureUser creates a user if it does not already exist.
