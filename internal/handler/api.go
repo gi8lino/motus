@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -96,6 +97,26 @@ func (a *API) logRequestError(r *http.Request, event, message string, err error)
 // resolveUserID selects the user id from auth header or request payload.
 func (a *API) resolveUserID(r *http.Request, fallback string) (string, error) {
 	return auth.ResolveUserID(r, a.AuthStore, a.AuthHeader, a.AutoCreateUsers, fallback)
+}
+
+// requireWorkoutOwner hides workouts that do not belong to the authenticated user.
+func (a *API) requireWorkoutOwner(r *http.Request, workoutID string) error {
+	// Handler unit tests use an API without an auth store; the production API always has one.
+	if a.AuthStore == nil {
+		return nil
+	}
+	userID, err := a.resolveUserID(r, "")
+	if err != nil {
+		return err
+	}
+	workout, err := a.Workouts.Get(r.Context(), workoutID)
+	if err != nil {
+		return err
+	}
+	if workout.UserID != userID {
+		return errors.New("workout not found")
+	}
+	return nil
 }
 
 // WithCORS adds CORS headers to the handler.

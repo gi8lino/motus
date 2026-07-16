@@ -72,6 +72,10 @@ func (a *API) CreateWorkout() http.HandlerFunc {
 func (a *API) GetWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+		if err := a.requireWorkoutOwner(r, id); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		workout, err := a.Workouts.Get(r.Context(), id)
 		if err != nil {
@@ -88,6 +92,10 @@ func (a *API) GetWorkout() http.HandlerFunc {
 func (a *API) ExportWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+		if err := a.requireWorkoutOwner(r, id); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		workout, err := a.Workouts.Export(r.Context(), id)
 		if err != nil {
@@ -149,6 +157,10 @@ func (a *API) ImportWorkout() http.HandlerFunc {
 func (a *API) UpdateWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+		if err := a.requireWorkoutOwner(r, id); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		req, err := decode[workouts.WorkoutRequest](r)
 		if err != nil {
@@ -157,7 +169,7 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 			return
 		}
 
-		if a.AuthHeader != "" {
+		if a.AuthStore != nil {
 			resolvedUserID, err := a.resolveUserID(r, "")
 			if err != nil {
 				a.logRequestError(r, "resolve_user_id_failed", "resolve user id failed", err)
@@ -197,6 +209,10 @@ func (a *API) UpdateWorkout() http.HandlerFunc {
 func (a *API) DeleteWorkout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
+		if err := a.requireWorkoutOwner(r, id); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		if err := a.Workouts.Delete(r.Context(), id); err != nil {
 			a.logRequestError(r, "delete_workout_failed", "delete workout failed", err)

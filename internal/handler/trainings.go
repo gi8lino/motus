@@ -23,6 +23,10 @@ func (a *API) CreateTraining() http.HandlerFunc {
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+		if err := a.requireWorkoutOwner(r, req.WorkoutID); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		state, err := a.Trainings.CreateState(r.Context(), req.WorkoutID)
 		if err != nil {
@@ -108,6 +112,10 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 			return
 		}
 		req.UserID = resolvedUserID
+		if err := a.requireWorkoutOwner(r, req.WorkoutID); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		log, err := a.Trainings.RecordTraining(r.Context(), trainings.CompleteRequest{
 			TrainingID:  req.TrainingID,

@@ -29,6 +29,10 @@ func (a *API) CreateTemplate() http.HandlerFunc {
 			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
+		if err := a.requireWorkoutOwner(r, req.WorkoutID); err != nil {
+			a.respondJSON(w, http.StatusNotFound, apiError{Error: "workout not found"})
+			return
+		}
 
 		template, err := a.Templates.Create(r.Context(), req.WorkoutID, req.Name)
 		if err != nil {
