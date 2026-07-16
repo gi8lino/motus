@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -82,6 +84,17 @@ func TestRespondJSON(t *testing.T) {
 		require.NoError(t, json.NewDecoder(rec.Body).Decode(&payload))
 		assert.Equal(t, "ok", payload["status"])
 	})
+}
+
+func TestRespondJSONSanitizesInternalErrors(t *testing.T) {
+	rec := httptest.NewRecorder()
+	api := &API{Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	api.respondJSON(rec, http.StatusInternalServerError, apiError{Error: "password_hash column failed"})
+	var payload apiError
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&payload))
+	assert.Equal(t, "internal_error", payload.Code)
+	assert.Equal(t, "Internal server error", payload.Message)
+	assert.NotContains(t, payload.Error, "password_hash")
 }
 
 func TestDecodeRejectsUnknownAndTrailingJSON(t *testing.T) {

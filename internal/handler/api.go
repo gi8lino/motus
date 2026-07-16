@@ -35,7 +35,9 @@ type API struct {
 
 // apiError is a generic error response.
 type apiError struct {
-	Error string `json:"error"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Error   string `json:"error,omitempty"`
 }
 
 // statusResponse is the response body for the status endpoint.
@@ -70,12 +72,38 @@ func NewAPI(
 
 // respondJSON writes a JSON response.
 func (a *API) respondJSON(w http.ResponseWriter, status int, v any) {
+	if payload, ok := v.(apiError); ok {
+		payload.Code = errorCodeForStatus(status)
+		payload.Message = payload.Error
+		if status >= http.StatusInternalServerError {
+			payload.Message = "Internal server error"
+		}
+		payload.Error = payload.Message
+		v = payload
+	}
 	if err := encode(w, status, v); err != nil {
 		logging.WithRequestIDLogger(a.Logger, nil).Error(
 			"encode response failed",
 			"event", "encode_response_failed",
 			"err", err,
 		)
+	}
+}
+
+func errorCodeForStatus(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return "invalid_request"
+	case http.StatusUnauthorized:
+		return "authentication_required"
+	case http.StatusForbidden:
+		return "forbidden"
+	case http.StatusNotFound:
+		return "not_found"
+	case http.StatusConflict:
+		return "conflict"
+	default:
+		return "internal_error"
 	}
 }
 

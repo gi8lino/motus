@@ -32,7 +32,7 @@ async function requestResponse(path: string, init?: RequestInit): Promise<Respon
     let message = res.statusText;
     try {
       const body = await res.json();
-      message = body.error || message;
+      message = body.message || body.error || message;
     } catch {
       // ignore
     }
