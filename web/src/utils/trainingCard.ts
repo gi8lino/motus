@@ -10,11 +10,6 @@ export function formatExerciseMetric(exercise: Exercise | undefined) {
   return exercise.duration || exercise.weight || "";
 }
 
-export function formatRoundLabel(step: TrainingStepState | null) {
-  const total = step?.loopTotal ?? 0;
-  return total > 1 ? `Round ${step?.loopIndex || 1}/${total}` : "";
-}
-
 export function formatRoundValue(step: TrainingStepState | null) {
   const total = step?.loopTotal ?? 0;
   return total > 1 ? `${step?.loopIndex || 1}/${total}` : "";
@@ -22,15 +17,4 @@ export function formatRoundValue(step: TrainingStepState | null) {
 
 export function formatStepValue(current: number, total: number) {
   return total ? `${current}/${total}` : "";
-}
-
-export function getAdaptiveTitleSize(
-  text: string,
-  options: { short: string; medium: string; long: string; xlong: string },
-) {
-  const length = text.trim().length;
-  if (length > 28) return options.xlong;
-  if (length > 22) return options.long;
-  if (length > 16) return options.medium;
-  return options.short;
 }

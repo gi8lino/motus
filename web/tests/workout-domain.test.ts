@@ -3,9 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   formatExerciseMetric,
-  formatRoundLabel,
+  formatRoundValue,
   formatStepValue,
-  getAdaptiveTitleSize,
 } from "../src/utils/trainingCard.ts";
 import { workoutStepsReducer } from "../src/components/workouts/workoutDraftReducer.ts";
 
@@ -23,14 +22,14 @@ test("workout steps reducer supports replacement and functional updates", () => 
   assert.equal(appended.length, 2);
 });
 
-test("training card helpers cover metric, counters, rounds, and title sizing", () => {
+test("training card helpers cover metric, counters, and rounds", () => {
   assert.equal(
     formatExerciseMetric({ name: "Row", reps: "8", weight: "20kg" }),
     "8 reps · 20kg",
   );
   assert.equal(formatStepValue(2, 5), "2/5");
   assert.equal(
-    formatRoundLabel({
+    formatRoundValue({
       name: "Round",
       type: "set",
       elapsedMillis: 0,
@@ -40,15 +39,6 @@ test("training card helpers cover metric, counters, rounds, and title sizing", (
       loopIndex: 2,
       loopTotal: 3,
     }),
-    "Round 2/3",
-  );
-  assert.equal(
-    getAdaptiveTitleSize("A very long exercise title indeed", {
-      short: "s",
-      medium: "m",
-      long: "l",
-      xlong: "xl",
-    }),
-    "xl",
+    "2/3",
   );
 });
