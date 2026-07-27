@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 
 	"github.com/gi8lino/motus/internal/bootstrap"
 	"github.com/gi8lino/motus/internal/db"
@@ -20,7 +20,7 @@ import (
 // Run is the entry point for the application lifecycle.
 func Run(
 	ctx context.Context,
-	assets embed.FS,
+	assets fs.FS,
 	version, commit string,
 	args []string,
 	stdOut, stdErr io.Writer,

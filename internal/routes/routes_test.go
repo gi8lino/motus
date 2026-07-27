@@ -20,7 +20,7 @@ func TestNewRouter(t *testing.T) {
 
 	// In-memory file system with a minimal SPA template.
 	webFS := fstest.MapFS{
-		"web/dist/index.html": &fstest.MapFile{Data: []byte(`<!doctype html><base href="{{ .BaseHref }}"><meta name="routePrefix" content="{{ .RoutePrefix }}">`)},
+		"index.html": &fstest.MapFile{Data: []byte(`<!doctype html><base href="{{ .BaseHref }}"><meta name="routePrefix" content="{{ .RoutePrefix }}">`)},
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	api := &handler.API{

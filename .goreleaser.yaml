@@ -8,7 +8,7 @@ before:
 
 builds:
   - id: motus
-    main: ./main.go
+    main: ./cmd
     binary: motus
     env: [CGO_ENABLED=0]
     goos: [linux]

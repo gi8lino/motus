@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -22,11 +21,7 @@ func NewRouter(
 ) (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	spaContent, err := fs.Sub(spaFS, "web/dist")
-	if err != nil {
-		return nil, fmt.Errorf("spa filesystem: %w", err)
-	}
-	spaFiles := http.FileServer(http.FS(spaContent))
+	spaFiles := http.FileServer(http.FS(spaFS))
 	mux.Handle("GET /assets/", spaFiles)
 	mux.Handle("GET /fonts/", spaFiles)
 	mux.Handle("GET /sounds/", spaFiles)
@@ -96,7 +91,7 @@ func NewRouter(
 	mux.Handle("/api/", http.StripPrefix("/api", protectedAPI))
 
 	// SPA
-	mux.Handle("/", handler.SPA(spaContent, routePrefix))
+	mux.Handle("/", handler.SPA(spaFS, routePrefix))
 
 	var h http.Handler = mux
 	h = handler.WithCORS(api.Origin, h)

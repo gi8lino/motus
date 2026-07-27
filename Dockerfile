@@ -31,9 +31,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   go mod download
 
 # Copy the Go source and templates.
-COPY main.go main.go
+COPY cmd/ cmd
 COPY internal/ internal
 COPY examples/ examples
+COPY web/web.go web/web.go
 COPY --from=frontend /web/dist web/dist
 
 # Build the binary.
@@ -46,7 +47,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   -ldflags="$LDFLAGS" \
   -a \
   -o motus \
-  .
+  ./cmd
 
 # Create writable runtime directories owned by the root group.
 # The setgid bit keeps new files/directories in group 0, which supports

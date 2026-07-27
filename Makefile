@@ -51,7 +51,7 @@ download: ## Download go packages
 
 .PHONY:run
 run: ## Run go fmt against code.
-	go run main.go
+	go run ./cmd
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
