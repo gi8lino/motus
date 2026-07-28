@@ -22,6 +22,7 @@ type WorkoutExerciseRowProps = {
   subsetIdx: number;
   exIdx: number;
   ex: Exercise;
+  repOnly?: boolean;
 
   catalog: CatalogExercise[];
   sounds: SoundOption[];
@@ -61,6 +62,7 @@ export function WorkoutExerciseRow({
   subsetIdx,
   exIdx,
   ex,
+  repOnly = false,
   catalog,
   sounds,
   trainingKey,
@@ -204,9 +206,16 @@ export function WorkoutExerciseRow({
           }
         >
           <option value={EXERCISE_TYPE_REP}>{UI_TEXT.labels.reps}</option>
-          <option value={EXERCISE_TYPE_STOPWATCH}>Stopwatch</option>
-          <option value={EXERCISE_TYPE_COUNTDOWN}>Countdown</option>
+          <option value={EXERCISE_TYPE_STOPWATCH} disabled={repOnly}>
+            Stopwatch
+          </option>
+          <option value={EXERCISE_TYPE_COUNTDOWN} disabled={repOnly}>
+            Countdown
+          </option>
         </select>
+        {repOnly ? (
+          <div className="helper">Supersets support rep exercises only.</div>
+        ) : null}
       </div>
 
       <div className="field compact exercise-amount-field">
@@ -247,26 +256,30 @@ export function WorkoutExerciseRow({
 
       <div className="field action compact sound exercise-sound-field">
         <label>{UI_TEXT.labels.sound}</label>
-        <button
-          className={[
-            "btn",
-            "subtle",
-            "tiny",
-            "sound-popover-toggle",
-            "exercise-sound-button",
-            soundKey ? "is-override" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          type="button"
-          title={`${UI_TEXT.labels.sound}: ${soundSummary}`}
-          data-label={soundSummary}
-          onClick={() => setSoundOpen(!soundOpen)}
-        >
-          <SoundIcon />
-        </button>
+        {repOnly ? (
+          <span className="helper">Uses superset sound</span>
+        ) : (
+          <button
+            className={[
+              "btn",
+              "subtle",
+              "tiny",
+              "sound-popover-toggle",
+              "exercise-sound-button",
+              soundKey ? "is-override" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            type="button"
+            title={`${UI_TEXT.labels.sound}: ${soundSummary}`}
+            data-label={soundSummary}
+            onClick={() => setSoundOpen(!soundOpen)}
+          >
+            <SoundIcon />
+          </button>
+        )}
 
-        {soundOpen && (
+        {!repOnly && soundOpen && (
           <div ref={soundPopoverRef} className="sound-popover">
             <div className="sound-popover-title">Exercise sound</div>
             <button

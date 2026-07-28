@@ -726,7 +726,7 @@ export function WorkoutForm({
                       exType === EXERCISE_TYPE_REP ? ex.reps?.trim() || "" : "",
                     weight: ex.weight?.trim() || "",
                     duration: isDur ? ex.duration?.trim() || "" : "",
-                    soundKey: ex.soundKey?.trim() || "",
+                    soundKey: subset.superset ? "" : ex.soundKey?.trim() || "",
                     side: ex.side || "not_applicable",
                   };
                 })

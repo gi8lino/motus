@@ -25,6 +25,20 @@ test("workout draft validation reports actionable local errors", () => {
     ]),
     null,
   );
+  assert.equal(
+    validateWorkoutDraft("Plan", [
+      {
+        type: "set",
+        subsets: [
+          {
+            superset: true,
+            exercises: [{ type: "rep" }, { type: "countdown" }],
+          },
+        ],
+      },
+    ]),
+    "Step 1, subset 1: supersets support rep exercises only.",
+  );
 });
 
 test("failed workout submit retains the backend error and skips success cleanup", async () => {

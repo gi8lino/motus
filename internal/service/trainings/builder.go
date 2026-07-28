@@ -52,7 +52,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Tr
 				subsetID := sub.ID
 				subsetBase := fmt.Sprintf("%s-sub-%d", idBase, subsetIdx+1)
 				subsetLabel := strings.TrimSpace(sub.Name)
-				if sub.Superset {
+				if sub.Superset && allRepExercises(sub.Exercises) {
 					stepState := TrainingStepState{
 						ID:                     subsetBase,
 						Name:                   sub.Name,

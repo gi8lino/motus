@@ -57,6 +57,20 @@ func TestDeriveExerciseDuration(t *testing.T) {
 	})
 }
 
+func TestAllRepExercises(t *testing.T) {
+	t.Parallel()
+
+	assert.True(t, allRepExercises([]SubsetExercise{
+		{Type: utils.ExerciseTypeRep},
+		{Type: utils.ExerciseTypeRep},
+	}))
+	assert.False(t, allRepExercises([]SubsetExercise{
+		{Type: utils.ExerciseTypeRep},
+		{Type: utils.ExerciseTypeCountdown},
+	}))
+	assert.False(t, allRepExercises(nil))
+}
+
 func TestParseDurationSeconds(t *testing.T) {
 	t.Parallel()
 

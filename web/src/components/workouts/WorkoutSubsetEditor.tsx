@@ -9,6 +9,7 @@ import { TrashIcon } from "../icons/TrashIcon";
 import { isGoDuration } from "../../utils/time";
 import { WorkoutExerciseRow } from "./WorkoutExerciseRow";
 import { UI_TEXT } from "../../utils/uiText";
+import { EXERCISE_TYPE_REP, normalizeExerciseType } from "../../utils/exercise";
 
 type MutableRef<T> = { current: T };
 type DragExercise = { stepIdx: number; subsetIdx: number; idx: number };
@@ -98,6 +99,10 @@ export function WorkoutSubsetEditor({
     targetDurationValue !== "" && !isGoDuration(targetDurationValue);
 
   const isSuperset = Boolean(subset.superset);
+  const hasTimedExercises = subsetExercises.some(
+    (exercise) => normalizeExerciseType(exercise.type) !== EXERCISE_TYPE_REP,
+  );
+  const supersetUnavailable = !isSuperset && hasTimedExercises;
 
   return (
     <div
@@ -119,6 +124,7 @@ export function WorkoutSubsetEditor({
               <input
                 type="checkbox"
                 checked={isSuperset}
+                disabled={supersetUnavailable}
                 onChange={(event) =>
                   updateSubset(stepIdx, subsetIdx, {
                     superset: event.target.checked,
@@ -192,6 +198,7 @@ export function WorkoutSubsetEditor({
             <input
               type="checkbox"
               checked={isSuperset}
+              disabled={supersetUnavailable}
               onChange={(event) =>
                 updateSubset(stepIdx, subsetIdx, {
                   superset: event.target.checked,
@@ -204,6 +211,13 @@ export function WorkoutSubsetEditor({
         </div>
       )}
 
+      {hasTimedExercises ? (
+        <div className="helper">
+          Timed exercises run as sequential steps. Supersets support rep
+          exercises only.
+        </div>
+      ) : null}
+
       {subsetExercises.length ? (
         subsetExercises.map((exercise, exIdx) => (
           <WorkoutExerciseRow
@@ -213,6 +227,7 @@ export function WorkoutSubsetEditor({
             subsetIdx={subsetIdx}
             exIdx={exIdx}
             ex={exercise}
+            repOnly={isSuperset}
             catalog={catalog}
             sounds={sounds}
             dragExerciseRef={dragExerciseRef}

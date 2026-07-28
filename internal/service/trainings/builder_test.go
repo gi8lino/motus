@@ -3,9 +3,8 @@ package trainings
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/gi8lino/motus/internal/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewStateFromWorkout(t *testing.T) {
@@ -51,4 +50,39 @@ func TestNewStateFromWorkout(t *testing.T) {
 		assert.True(t, state.Steps[1].Superset)
 		assert.Equal(t, "Pull", state.Steps[2].Exercises[0].Name)
 	})
+
+	t.Run("Timed exercises marked as a superset become sequential steps", func(t *testing.T) {
+		t.Parallel()
+
+		workout := &Workout{
+			ID:     "w1",
+			UserID: "u1",
+			Name:   "Workout",
+			Steps: []WorkoutStep{
+				{
+					ID:   "s1",
+					Type: utils.StepTypeSet.String(),
+					Name: "Timed sequence",
+					Subsets: []WorkoutSubset{
+						{
+							Name:     "Work",
+							Superset: true,
+							Exercises: []SubsetExercise{
+								{Name: "One", Type: utils.ExerciseTypeCountdown, Duration: "20s"},
+								{Name: "Two", Type: utils.ExerciseTypeCountdown, Duration: "30s"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		state := NewStateFromWorkout(workout, func(string) string { return "" })
+		assert.Len(t, state.Steps, 2)
+		assert.False(t, state.Steps[0].Superset)
+		assert.False(t, state.Steps[1].Superset)
+		assert.True(t, state.Steps[0].AutoAdvance)
+		assert.True(t, state.Steps[1].AutoAdvance)
+	})
+
 }

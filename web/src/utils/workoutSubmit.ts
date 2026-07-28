@@ -4,7 +4,10 @@ export function validateWorkoutDraft(
   name: string,
   steps: Array<{
     type: string;
-    subsets?: Array<{ exercises?: unknown[] }>;
+    subsets?: Array<{
+      superset?: boolean;
+      exercises?: Array<{ type?: string }>;
+    }>;
   }>,
 ): string | null {
   if (!name.trim()) return "Enter a workout name.";
@@ -20,6 +23,16 @@ export function validateWorkoutDraft(
     );
     if (emptySubset >= 0) {
       return `Step ${stepIndex + 1}, subset ${emptySubset + 1} needs at least one exercise.`;
+    }
+    const timedSuperset = step.subsets.findIndex(
+      (subset) =>
+        subset.superset &&
+        subset.exercises?.some(
+          (exercise) => (exercise.type || "rep") !== "rep",
+        ),
+    );
+    if (timedSuperset >= 0) {
+      return `Step ${stepIndex + 1}, subset ${timedSuperset + 1}: supersets support rep exercises only.`;
     }
   }
   return null;

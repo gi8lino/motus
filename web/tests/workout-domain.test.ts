@@ -27,6 +27,22 @@ test("training card helpers cover metric, counters, and rounds", () => {
     formatExerciseMetric({ name: "Row", reps: "8", weight: "20kg" }),
     "8 reps · 20kg",
   );
+  assert.equal(
+    formatExerciseMetric({
+      name: "Single-arm row",
+      reps: "8",
+      side: "left",
+    }),
+    "8 reps · Left side",
+  );
+  assert.equal(
+    formatExerciseMetric({
+      name: "Single-arm row",
+      duration: "20s",
+      side: "right",
+    }),
+    "20s · Right side",
+  );
   assert.equal(formatStepValue(2, 5), "2/5");
   assert.equal(
     formatRoundValue({

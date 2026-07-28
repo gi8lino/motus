@@ -22,10 +22,11 @@ export function resolveSoundPlan(
   sounds: SoundOption[],
 ): ResolvedSoundPlan {
   const subsetSoundKey = currentStep.soundKey || "";
-  const exerciseSoundKey =
-    currentStep.exercises?.length === 1
-      ? currentStep.exercises[0]?.soundKey || ""
-      : "";
+  const hasExerciseTarget =
+    !currentStep.superset && currentStep.exercises?.length === 1;
+  const exerciseSoundKey = hasExerciseTarget
+    ? currentStep.exercises?.[0]?.soundKey || ""
+    : "";
 
   const subsetSoundOption = subsetSoundKey
     ? sounds.find((sound) => sound.key === subsetSoundKey)
@@ -39,10 +40,11 @@ export function resolveSoundPlan(
     ? sounds.find((sound) => sound.key === exerciseSoundKey)
     : undefined;
 
-  const exerciseSoundUrl =
-    exerciseSoundKey && exerciseSoundOption
+  const exerciseSoundUrl = hasExerciseTarget
+    ? exerciseSoundKey && exerciseSoundOption
       ? resolveMediaUrl(exerciseSoundOption.file || "")
-      : subsetSoundUrl;
+      : subsetSoundUrl
+    : "";
 
   const subsetLeadSeconds = subsetSoundOption?.leadSeconds ?? 0;
   const exerciseLeadSeconds = exerciseSoundKey
@@ -50,11 +52,12 @@ export function resolveSoundPlan(
     : subsetLeadSeconds;
 
   const subsetTargetSeconds = currentStep.subsetEstimatedSeconds ?? 0;
-  const exerciseTargetSeconds =
-    currentStep.estimatedSeconds ||
-    parseDurationSeconds(currentStep.duration) ||
-    parseDurationSeconds(currentStep.exercises?.[0]?.duration) ||
-    0;
+  const exerciseTargetSeconds = hasExerciseTarget
+    ? currentStep.estimatedSeconds ||
+      parseDurationSeconds(currentStep.duration) ||
+      parseDurationSeconds(currentStep.exercises?.[0]?.duration) ||
+      0
+    : 0;
 
   return {
     subsetSoundUrl,

@@ -159,6 +159,17 @@ func normalizeSubset(stepName string, index int, input SubsetInput, validSoundKe
 	if err != nil {
 		return db.WorkoutSubset{}, err
 	}
+	if input.Superset {
+		for index, exercise := range exercises {
+			if exercise.Type != utils.ExerciseTypeRep {
+				return db.WorkoutSubset{}, fmt.Errorf(
+					"superset %s supports rep exercises only; use a regular subset for timed exercises",
+					label,
+				)
+			}
+			exercises[index].SoundKey = ""
+		}
+	}
 	return db.WorkoutSubset{
 		Name:             name,
 		EstimatedSeconds: seconds,

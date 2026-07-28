@@ -48,6 +48,19 @@ func deriveExerciseDuration(ex SubsetExercise, subset WorkoutSubset) (seconds in
 	return 0, false
 }
 
+// allRepExercises reports whether a subset is valid as a manual superset.
+func allRepExercises(exercises []SubsetExercise) bool {
+	if len(exercises) == 0 {
+		return false
+	}
+	for _, exercise := range exercises {
+		if utils.NormalizeExerciseType(exercise.Type) != utils.ExerciseTypeRep {
+			return false
+		}
+	}
+	return true
+}
+
 // parseDurationSeconds parses a duration string into seconds.
 func parseDurationSeconds(value string) int {
 	if trimmed := strings.TrimSpace(value); trimmed != "" {

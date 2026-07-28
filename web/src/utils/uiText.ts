@@ -97,7 +97,8 @@ export const UI_TEXT = {
     removeStep: "Remove step",
     removeSubset: "Remove subset",
     removeExercise: "Remove exercise",
-    supersetTooltip: "Superset: Next moves to the next subset.",
+    supersetTooltip:
+      "Superset: rep exercises only, with one optional timer and sound for the whole block.",
     autoAdvancePause: "Auto-advance ends the pause automatically.",
     defaultPauseAutoAdvance: "Auto-advance pauses by default",
     repeatRestAfterLast: "Repeat the rest step after the final round",

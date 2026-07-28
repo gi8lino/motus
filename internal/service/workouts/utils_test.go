@@ -150,4 +150,42 @@ func TestNormalizeSubsets(t *testing.T) {
 		}}, validSound)
 		assert.NoError(t, err)
 	})
+
+	t.Run("Superset rejects timed exercises", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := normalizeSubsets("Set", []SubsetInput{{
+			Name:     "Circuit",
+			Superset: true,
+			Exercises: []ExerciseInput{
+				{Name: "Pull-ups", Type: utils.ExerciseTypeRep, Reps: "10"},
+				{Name: "Mountain climbers", Type: utils.ExerciseTypeStopwatch, Duration: "20s"},
+			},
+		}}, validSound)
+
+		require.EqualError(
+			t,
+			err,
+			"superset Circuit supports rep exercises only; use a regular subset for timed exercises",
+		)
+	})
+
+	t.Run("Superset uses only its block sound", func(t *testing.T) {
+		t.Parallel()
+
+		subsets, err := normalizeSubsets("Set", []SubsetInput{{
+			Name:     "Circuit",
+			SoundKey: "ok",
+			Superset: true,
+			Exercises: []ExerciseInput{
+				{Name: "Pull-ups", Type: utils.ExerciseTypeRep, Reps: "10", SoundKey: "ok"},
+			},
+		}}, validSound)
+
+		require.NoError(t, err)
+		require.Len(t, subsets, 1)
+		require.Len(t, subsets[0].Exercises, 1)
+		assert.Equal(t, "ok", subsets[0].SoundKey)
+		assert.Empty(t, subsets[0].Exercises[0].SoundKey)
+	})
 }

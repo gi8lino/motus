@@ -63,6 +63,16 @@ function getExerciseName(exercise: Exercise | undefined, fallback: string) {
   return exercise?.name?.trim() || fallback;
 }
 
+function getExerciseNameWithSide(exercise: Exercise) {
+  const side =
+    exercise.side === "left"
+      ? "Left"
+      : exercise.side === "right"
+        ? "Right"
+        : "";
+  return side ? `${exercise.name} (${side})` : exercise.name;
+}
+
 function ExerciseMetric({ exercise }: { exercise: Exercise }) {
   const metric = formatExerciseMetric(exercise);
   if (!metric) return null;
@@ -141,17 +151,18 @@ function NextStepCard({
   const exercises = getExercises(step);
   const primary = exercises[0];
   const title = step
-    ? step.superset
+    ? step.superset && exercises.length > 1
       ? getStepName(step)
       : getExerciseName(primary, getStepName(step))
     : "Training complete";
-  const detail = step?.superset
-    ? exercises.map((exercise) => exercise.name).join(" • ")
-    : primary
-      ? formatExerciseMetric(primary)
-      : step?.estimatedSeconds
-        ? formatCountdownMillis(step.estimatedSeconds * 1000)
-        : "";
+  const detail =
+    step?.superset && exercises.length > 1
+      ? exercises.map(getExerciseNameWithSide).join(" • ")
+      : primary
+        ? formatExerciseMetric(primary)
+        : step?.estimatedSeconds
+          ? formatCountdownMillis(step.estimatedSeconds * 1000)
+          : "";
 
   return (
     <Card
@@ -190,7 +201,7 @@ function NextStepCard({
             {detail}
           </Typography>
         ) : null}
-        {step && !step.superset && step.estimatedSeconds ? (
+        {step && step.estimatedSeconds ? (
           <Chip
             size="small"
             variant="outlined"
@@ -309,11 +320,13 @@ export function TrainingCard({
   const mode = getTrainingMode(currentStep);
   const isSuperset = mode === "superset";
   const isRecovery = mode === "recovery";
-  const isTimed = mode === "timed" || isRecovery;
+  const exercises = getExercises(currentStep);
+  const primaryExercise = exercises[0];
   const isCountdown =
     Boolean(currentStep?.autoAdvance) ||
     Boolean(currentStep?.pauseOptions?.autoAdvance);
   const targetMillis = (currentStep?.estimatedSeconds || 0) * 1000;
+  const hasTimerTarget = targetMillis > 0;
   const remainingMillis =
     isCountdown && targetMillis > 0
       ? getCountdownDisplayMillis(targetMillis, elapsed)
@@ -322,17 +335,14 @@ export function TrainingCard({
     isCountdown && targetMillis > 0
       ? formatCountdownMillis(remainingMillis, { showHours })
       : formatElapsedMillis(elapsed, { showHours });
-  const progress =
-    isTimed && targetMillis > 0
-      ? Math.min(100, Math.max(0, (elapsed / targetMillis) * 100))
-      : 0;
+  const progress = hasTimerTarget
+    ? Math.min(100, Math.max(0, (elapsed / targetMillis) * 100))
+    : 0;
   const isTransitioning =
     Boolean(running) &&
     isCountdown &&
     remainingMillis > 0 &&
     remainingMillis <= 5000;
-  const exercises = getExercises(currentStep);
-  const primaryExercise = exercises[0];
   const upcomingStep = useMemo(() => getUpcomingStep(training), [training]);
 
   const totalSteps = training?.steps.length || 0;
@@ -349,10 +359,10 @@ export function TrainingCard({
   const startLabel = running ? "Pause" : hasStarted ? "Continue" : "Start";
   const advanceLabel = isLastStep
     ? "Finish training"
-    : isSuperset
-      ? "Finish superset"
-      : isCountdown
-        ? "Skip"
+    : isCountdown
+      ? "Skip"
+      : isSuperset
+        ? "Finish superset"
         : "Next";
   const finishAction = isLastStep || isSuperset;
 
@@ -478,37 +488,19 @@ export function TrainingCard({
                   color="text.secondary"
                   sx={{ mt: 1.25 }}
                 >
-                  {isSuperset
-                    ? "Elapsed · no time limit"
-                    : isCountdown
-                      ? `${formatCountdownMillis(targetMillis, {
+                  {isCountdown
+                    ? `${formatCountdownMillis(targetMillis, {
+                        showHours,
+                      })} · advances automatically`
+                    : hasTimerTarget
+                      ? `Target ${formatCountdownMillis(targetMillis, {
                           showHours,
-                        })} · advances automatically`
-                      : targetMillis > 0
-                        ? `Target ${formatCountdownMillis(targetMillis, {
-                            showHours,
-                          })}`
+                        })} · continues after cue`
+                      : isSuperset
+                        ? "Elapsed · no time limit"
                         : "Elapsed"}
                 </Typography>
               </Box>
-
-              {isTimed && targetMillis > 0 ? (
-                <LinearProgress
-                  variant="determinate"
-                  value={progress}
-                  color={isRecovery ? "warning" : "primary"}
-                  sx={{
-                    height: 10,
-                    borderRadius: 999,
-                    bgcolor: alpha(
-                      isRecovery
-                        ? theme.palette.warning.main
-                        : theme.palette.primary.main,
-                      0.14,
-                    ),
-                  }}
-                />
-              ) : null}
 
               {!currentStep ? (
                 <Typography
@@ -571,6 +563,24 @@ export function TrainingCard({
                   ) : null}
                 </Box>
               )}
+
+              {hasTimerTarget ? (
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  color={isRecovery ? "warning" : "primary"}
+                  sx={{
+                    height: 10,
+                    borderRadius: 999,
+                    bgcolor: alpha(
+                      isRecovery
+                        ? theme.palette.warning.main
+                        : theme.palette.primary.main,
+                      0.14,
+                    ),
+                  }}
+                />
+              ) : null}
             </Stack>
           </CardContent>
         </Card>
