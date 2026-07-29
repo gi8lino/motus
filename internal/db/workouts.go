@@ -30,7 +30,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	w.CreatedAt = time.Now().UTC()
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO workouts(id, user_id, name, tags, favorite, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, COALESCE($4::text[], '{}'::text[]), $5, $6)
 	`, w.ID, w.UserID, w.Name, w.Tags, w.Favorite, w.CreatedAt); err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE workouts
-		SET name=$1, tags=$2, favorite=$3
+		SET name=$1, tags=COALESCE($2::text[], '{}'::text[]), favorite=$3
 		WHERE id=$4 AND user_id=$5
 	`, w.Name, w.Tags, w.Favorite, w.ID, w.UserID)
 	if err != nil {
