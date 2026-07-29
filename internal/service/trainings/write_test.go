@@ -30,6 +30,9 @@ func TestBuildTrainingLog(t *testing.T) {
 				Name:          "Step 1",
 				Type:          string(utils.StepTypeSet),
 				ElapsedMillis: 1200,
+				Exercises: []Exercise{{
+					Name: "Swing", Reps: "10", ActualReps: "12", ActualWeight: "24kg",
+				}},
 			}},
 		})
 		require.NoError(t, err)
@@ -38,6 +41,8 @@ func TestBuildTrainingLog(t *testing.T) {
 		require.Len(t, steps, 1)
 		assert.Equal(t, "sess", steps[0].TrainingID)
 		assert.Equal(t, 0, steps[0].StepOrder)
+		require.Len(t, steps[0].Exercises, 1)
+		assert.Equal(t, "12", steps[0].Exercises[0].ActualReps)
 	})
 }
 

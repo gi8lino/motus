@@ -72,13 +72,15 @@ type TrainingStepState struct {
 
 // Exercise represents a configured exercise inside a training step.
 type Exercise struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Reps     string `json:"reps"`
-	Weight   string `json:"weight"`
-	Duration string `json:"duration"`
-	SoundKey string `json:"soundKey,omitempty"`
-	Side     string `json:"side"`
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	Reps         string `json:"reps"`
+	Weight       string `json:"weight"`
+	Duration     string `json:"duration"`
+	SoundKey     string `json:"soundKey,omitempty"`
+	Side         string `json:"side"`
+	ActualReps   string `json:"actualReps,omitempty"`
+	ActualWeight string `json:"actualWeight,omitempty"`
 }
 
 // TrainingHistoryItem is the API payload for a completed training.

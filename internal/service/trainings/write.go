@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 	"github.com/gi8lino/motus/internal/utils"
 )
@@ -38,6 +39,13 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 		}
 		// Create a stable step log id per order position.
 		stepID := fmt.Sprintf("%s-%d", req.TrainingID, idx)
+		exercises := make([]db.ExercisePerformance, 0, len(st.Exercises))
+		for _, exercise := range st.Exercises {
+			exercises = append(exercises, db.ExercisePerformance{
+				Name: exercise.Name, Reps: exercise.Reps, Weight: exercise.Weight,
+				ActualReps: exercise.ActualReps, ActualWeight: exercise.ActualWeight,
+			})
+		}
 		stepLogs = append(stepLogs, TrainingStepLog{
 			ID:               stepID,
 			TrainingID:       req.TrainingID,
@@ -46,6 +54,7 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 			Name:             strings.TrimSpace(st.Name),
 			EstimatedSeconds: st.EstimatedSeconds,
 			ElapsedMillis:    st.ElapsedMillis,
+			Exercises:        exercises,
 		})
 	}
 

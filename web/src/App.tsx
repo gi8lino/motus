@@ -428,6 +428,7 @@ export default function App() {
     nextStep,
     finishAndLog,
     markSoundPlayed,
+    updateExercisePerformance,
     clear: clearTraining,
   } = useTrainingTimer({ currentUserId });
 
@@ -671,6 +672,7 @@ export default function App() {
                   });
                   history.reload();
                 },
+                onUpdateExercisePerformance: updateExercisePerformance,
               }}
             />
           )}

@@ -13,6 +13,8 @@ export type Exercise = {
   duration?: string;
   soundKey?: string;
   side?: "left" | "right" | "not_applicable";
+  actualReps?: string;
+  actualWeight?: string;
 };
 
 // PauseOptions configures pause step behavior.
@@ -91,6 +93,7 @@ export type User = {
 // TrainingStepState captures a live training step.
 export type TrainingStepState = WorkoutStep & {
   elapsedMillis: number;
+  exercises?: Exercise[];
   completed: boolean;
   current: boolean;
   running: boolean;
@@ -114,6 +117,7 @@ export type TrainingStepLog = {
   name: string;
   estimatedSeconds: number;
   elapsedMillis: number;
+  exercises?: Exercise[];
 };
 
 // TrainingState tracks the active workout training.

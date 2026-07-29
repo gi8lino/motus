@@ -240,6 +240,7 @@ export function useTrainingTimer({
             type: step.type,
             estimatedSeconds: step.estimatedSeconds,
             elapsedMillis: step.elapsedMillis,
+            exercises: step.exercises,
           })),
         });
 
@@ -446,6 +447,10 @@ export function useTrainingTimer({
           userId: training.userId || currentUserId || "",
           startedAt: training.startedAt,
           completedAt: training.completedAt,
+          steps: training.steps.map((step) => ({
+            ...step,
+            exercises: step.exercises,
+          })),
         });
 
         setTraining((prev) =>
@@ -465,6 +470,25 @@ export function useTrainingTimer({
     return training.steps[training.currentIndex] || null;
   }, [training]);
 
+  const updateExercisePerformance = useCallback(
+    (
+      exerciseIndex: number,
+      patch: { actualReps?: string; actualWeight?: string },
+    ) => {
+      setTraining((previous) => {
+        if (!previous) return previous;
+        const next = structuredCloneSafe(previous);
+        const exercise =
+          next.steps[next.currentIndex]?.exercises?.[exerciseIndex];
+        if (!exercise) return previous;
+        Object.assign(exercise, patch);
+        persistTraining(next);
+        return next;
+      });
+    },
+    [],
+  );
+
   const displayedElapsed = useMemo(() => {
     if (!training || !currentStep) return 0;
     if (!training.running) return currentStep.elapsedMillis || 0;
@@ -482,6 +506,7 @@ export function useTrainingTimer({
     nextStep,
     finishAndLog,
     markSoundPlayed,
+    updateExercisePerformance,
     clear: () => {
       setTraining(null);
       setRestoredTrainingId(null);

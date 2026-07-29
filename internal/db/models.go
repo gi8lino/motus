@@ -72,17 +72,19 @@ type WorkoutSubset struct {
 }
 
 type SubsetExercise struct {
-	ID         string `json:"id"`         // ID is the unique exercise row identifier.
-	SubsetID   string `json:"subsetId"`   // SubsetID links to the parent subset.
-	Order      int    `json:"order"`      // Order is the exercise sequence within the subset.
-	ExerciseID string `json:"exerciseId"` // ExerciseID links to the catalog entry.
-	Name       string `json:"name"`       // Name is the exercise label.
-	Type       string `json:"type"`       // Type is rep, stopwatch, or countdown.
-	Reps       string `json:"reps"`       // Reps is the repetition text.
-	Weight     string `json:"weight"`     // Weight is optional load text.
-	Duration   string `json:"duration"`   // Duration is a stopwatch/countdown value.
-	SoundKey   string `json:"soundKey"`   // SoundKey overrides the subset sound.
-	Side       string `json:"side"`       // Side is left, right, or not_applicable.
+	ID           string `json:"id"`         // ID is the unique exercise row identifier.
+	SubsetID     string `json:"subsetId"`   // SubsetID links to the parent subset.
+	Order        int    `json:"order"`      // Order is the exercise sequence within the subset.
+	ExerciseID   string `json:"exerciseId"` // ExerciseID links to the catalog entry.
+	Name         string `json:"name"`       // Name is the exercise label.
+	Type         string `json:"type"`       // Type is rep, stopwatch, or countdown.
+	Reps         string `json:"reps"`       // Reps is the repetition text.
+	Weight       string `json:"weight"`     // Weight is optional load text.
+	Duration     string `json:"duration"`   // Duration is a stopwatch/countdown value.
+	SoundKey     string `json:"soundKey"`   // SoundKey overrides the subset sound.
+	Side         string `json:"side"`       // Side is left, right, or not_applicable.
+	ActualReps   string `json:"actualReps,omitempty"`
+	ActualWeight string `json:"actualWeight,omitempty"`
 }
 
 // Exercise represents a reusable exercise catalog entry.
@@ -110,11 +112,21 @@ type TrainingLog struct {
 
 // TrainingStepLog captures actual timing for a completed step.
 type TrainingStepLog struct {
-	ID               string `json:"id"`               // ID is the unique log row identifier.
-	TrainingID       string `json:"trainingId"`       // TrainingID links to the training.
-	StepOrder        int    `json:"stepOrder"`        // StepOrder preserves training ordering.
-	Type             string `json:"type"`             // Type is the step kind.
-	Name             string `json:"name"`             // Name is the step label.
-	EstimatedSeconds int    `json:"estimatedSeconds"` // EstimatedSeconds is the target duration.
-	ElapsedMillis    int64  `json:"elapsedMillis"`    // ElapsedMillis is the observed duration.
+	ID               string                `json:"id"`                  // ID is the unique log row identifier.
+	TrainingID       string                `json:"trainingId"`          // TrainingID links to the training.
+	StepOrder        int                   `json:"stepOrder"`           // StepOrder preserves training ordering.
+	Type             string                `json:"type"`                // Type is the step kind.
+	Name             string                `json:"name"`                // Name is the step label.
+	EstimatedSeconds int                   `json:"estimatedSeconds"`    // EstimatedSeconds is the target duration.
+	ElapsedMillis    int64                 `json:"elapsedMillis"`       // ElapsedMillis is the observed duration.
+	Exercises        []ExercisePerformance `json:"exercises,omitempty"` // Exercises captures actual performance.
+}
+
+// ExercisePerformance captures planned and actual values from a training.
+type ExercisePerformance struct {
+	Name         string `json:"name"`
+	Reps         string `json:"reps,omitempty"`
+	Weight       string `json:"weight,omitempty"`
+	ActualReps   string `json:"actualReps,omitempty"`
+	ActualWeight string `json:"actualWeight,omitempty"`
 }

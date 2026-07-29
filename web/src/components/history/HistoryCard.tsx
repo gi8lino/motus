@@ -68,6 +68,26 @@ export function HistoryList({
                     })()
                   : ""}
               </div>
+              {item.perceivedEffort ? (
+                <div className="muted small">
+                  Effort {item.perceivedEffort}/10
+                  {item.notes ? ` • ${item.notes}` : ""}
+                </div>
+              ) : null}
+              {item.steps
+                ?.flatMap((step) => step.exercises || [])
+                .slice(0, 3)
+                .map((exercise, index) => (
+                  <div
+                    className="muted small"
+                    key={`${exercise.name}-${index}`}
+                  >
+                    {exercise.name}:{" "}
+                    {exercise.actualReps || exercise.reps || "—"} reps
+                    {(exercise.actualWeight || exercise.weight) &&
+                      ` • ${exercise.actualWeight || exercise.weight}`}
+                  </div>
+                ))}
             </div>
           </div>
         </li>

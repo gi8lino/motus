@@ -65,6 +65,10 @@ export type TrainingViewActions = {
     notes: string,
     perceivedEffort?: number,
   ) => Promise<void>;
+  onUpdateExercisePerformance: (
+    exerciseIndex: number,
+    patch: { actualReps?: string; actualWeight?: string },
+  ) => void;
 };
 
 export function TrainingView({
@@ -98,6 +102,7 @@ export function TrainingView({
     onCopySummary,
     onToast,
     onSaveFeedback,
+    onUpdateExercisePerformance,
   } = actions;
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
@@ -395,6 +400,7 @@ export function TrainingView({
               onStopAudio={stopActiveAudio}
               runButtonRef={runButtonRef}
               nextButtonRef={nextActionButtonRef}
+              onUpdateExercisePerformance={onUpdateExercisePerformance}
             />
           </Stack>
         </CardContent>

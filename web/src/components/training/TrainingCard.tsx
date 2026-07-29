@@ -11,6 +11,7 @@ import {
   Chip,
   LinearProgress,
   Stack,
+  TextField,
   Typography,
   useMediaQuery,
   useTheme,
@@ -374,6 +375,7 @@ export function TrainingCard({
   onStopAudio,
   runButtonRef,
   nextButtonRef,
+  onUpdateExercisePerformance,
 }: {
   training: TrainingState | null;
   currentStep: TrainingStepState | null;
@@ -387,6 +389,10 @@ export function TrainingCard({
   onStopAudio?: () => void;
   runButtonRef?: RefObject<HTMLButtonElement>;
   nextButtonRef?: RefObject<HTMLButtonElement>;
+  onUpdateExercisePerformance?: (
+    exerciseIndex: number,
+    patch: { actualReps?: string; actualWeight?: string },
+  ) => void;
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -648,6 +654,37 @@ export function TrainingCard({
                 ) : null}
               </Stack>
             )}
+
+            {currentStep && !isRecovery && exercises.length > 0 ? (
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  size="small"
+                  label="Actual reps"
+                  value={
+                    primaryExercise?.actualReps ?? primaryExercise?.reps ?? ""
+                  }
+                  onChange={(event) =>
+                    onUpdateExercisePerformance?.(0, {
+                      actualReps: event.target.value,
+                    })
+                  }
+                />
+                <TextField
+                  size="small"
+                  label="Actual weight"
+                  value={
+                    primaryExercise?.actualWeight ??
+                    primaryExercise?.weight ??
+                    ""
+                  }
+                  onChange={(event) =>
+                    onUpdateExercisePerformance?.(0, {
+                      actualWeight: event.target.value,
+                    })
+                  }
+                />
+              </Stack>
+            ) : null}
 
             <NextStepPreview step={upcomingStep} emphasized={isTransitioning} />
 

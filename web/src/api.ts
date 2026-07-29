@@ -273,6 +273,13 @@ export async function logTrainingCompletion(payload: {
     type: string;
     estimatedSeconds?: number;
     elapsedMillis?: number;
+    exercises?: Array<{
+      name: string;
+      reps?: string;
+      weight?: string;
+      actualReps?: string;
+      actualWeight?: string;
+    }>;
   }>;
 }) {
   return requestJSON("/api/trainings/complete", {

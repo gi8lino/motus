@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -40,6 +41,10 @@ func (s *Store) RecordTraining(ctx context.Context, log TrainingLog, steps []Tra
 		batch := &pgx.Batch{}
 		// Queue each step timing insert in the batch.
 		for _, st := range steps {
+			exercises, err := json.Marshal(st.Exercises)
+			if err != nil {
+				return err
+			}
 			batch.Queue(
 				`
 					INSERT INTO training_steps(
@@ -49,12 +54,13 @@ func (s *Store) RecordTraining(ctx context.Context, log TrainingLog, steps []Tra
 						step_type,
 						name,
 						estimated_seconds,
-						elapsed_millis
+						elapsed_millis,
+						exercises
 					)
-					VALUES ($1, $2, $3, $4, $5, $6, $7)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 					ON CONFLICT (id) DO NOTHING
 				`,
-				st.ID, log.ID, st.StepOrder, st.Type, st.Name, st.EstimatedSeconds, st.ElapsedMillis,
+				st.ID, log.ID, st.StepOrder, st.Type, st.Name, st.EstimatedSeconds, st.ElapsedMillis, exercises,
 			)
 		}
 		if err := tx.SendBatch(ctx, batch).Close(); err != nil {
@@ -111,7 +117,7 @@ func (s *Store) UpdateTrainingFeedback(ctx context.Context, trainingID, userID, 
 func (s *Store) TrainingStepTimings(ctx context.Context, trainingID string) ([]TrainingStepLog, error) {
 	// Load stored step durations for a training.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, training_id, step_order, step_type, name, estimated_seconds, elapsed_millis
+		SELECT id, training_id, step_order, step_type, name, estimated_seconds, elapsed_millis, exercises
 		FROM training_steps
 		WHERE training_id=$1
 		ORDER BY step_order ASC`, trainingID)
@@ -123,7 +129,11 @@ func (s *Store) TrainingStepTimings(ctx context.Context, trainingID string) ([]T
 	// Collect each step timing row.
 	for rows.Next() {
 		var st TrainingStepLog
-		if err := rows.Scan(&st.ID, &st.TrainingID, &st.StepOrder, &st.Type, &st.Name, &st.EstimatedSeconds, &st.ElapsedMillis); err != nil {
+		var exercises []byte
+		if err := rows.Scan(&st.ID, &st.TrainingID, &st.StepOrder, &st.Type, &st.Name, &st.EstimatedSeconds, &st.ElapsedMillis, &exercises); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(exercises, &st.Exercises); err != nil {
 			return nil, err
 		}
 		steps = append(steps, st)
