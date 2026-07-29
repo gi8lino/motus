@@ -40,12 +40,13 @@ export function useTrainingActions({
   askConfirm,
   notify,
 }: UseTrainingActionsArgs): {
-  startTraining: () => Promise<void>;
+  startTraining: (workoutId?: string) => Promise<void>;
   finishTraining: () => Promise<string | null>;
 } {
   // startTraining prepares a new training (or resumes if available).
-  const startTraining = async () => {
-    if (!selectedWorkoutId) {
+  const startTraining = async (workoutId?: string) => {
+    const targetWorkoutId = workoutId || selectedWorkoutId;
+    if (!targetWorkoutId) {
       await notify(PROMPTS.selectWorkoutFirst);
       return;
     }
@@ -64,7 +65,7 @@ export function useTrainingActions({
       }
     }
 
-    const state = await startTrainingApi(selectedWorkoutId);
+    const state = await startTrainingApi(targetWorkoutId);
     startFromState(state);
   };
   // finishTraining finalizes a training and returns the AI summary text.

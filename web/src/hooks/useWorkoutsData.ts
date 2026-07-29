@@ -40,7 +40,7 @@ export function useWorkoutsData({
     canLoadUser && (wants("train") || wants("workouts") || wants("profile"));
   const needsExercises =
     canLoadUser && (wants("workouts") || wants("exercises"));
-  const needsHistory = canLoadUser && wants("history");
+  const needsHistory = canLoadUser && (wants("history") || wants("train"));
 
   const currentUserLoader = useDataLoader<User | null>(
     () => (canLoadUser ? getCurrentUser() : Promise.resolve(null)),

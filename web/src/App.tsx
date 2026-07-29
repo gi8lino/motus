@@ -645,6 +645,7 @@ export default function App() {
                 sounds: sounds.data || [],
                 pauseOnTabHidden,
                 showHours,
+                history: history.data || [],
               }}
               actions={{
                 onSelectWorkout: setSelectedWorkoutId,

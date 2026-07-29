@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import {
   Box,
   Button,
@@ -17,6 +19,7 @@ import {
 import type {
   TrainingState,
   TrainingStepState,
+  TrainingHistoryItem,
   SoundOption,
   Workout,
 } from "../../types";
@@ -24,6 +27,7 @@ import { formatElapsedMillis } from "../../utils/format";
 import { PROMPTS } from "../../utils/messages";
 import { UI_TEXT } from "../../utils/uiText";
 import { getTrainingHeaderStatus } from "../../utils/training";
+import { selectQuickWorkouts } from "../../utils/trainingHome";
 import { TrainingCard } from "../training/TrainingCard";
 import { TrainingFinishModal } from "../training/FinishTrainingModal";
 import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
@@ -43,11 +47,12 @@ export type TrainingViewData = {
   sounds: SoundOption[];
   pauseOnTabHidden: boolean;
   showHours: boolean;
+  history: TrainingHistoryItem[];
 };
 
 export type TrainingViewActions = {
   onSelectWorkout: (id: string) => void;
-  onStartTraining: () => void | Promise<void>;
+  onStartTraining: (workoutId?: string) => void | Promise<void>;
   markSoundPlayed: () => void;
   onStartStep: () => void;
   onPause: () => void;
@@ -75,6 +80,7 @@ export function TrainingView({
     workoutName,
     sounds,
     pauseOnTabHidden,
+    history,
   } = data;
   const {
     onSelectWorkout,
@@ -88,6 +94,15 @@ export function TrainingView({
     onToast,
   } = actions;
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("motus:favorite-workouts") || "[]",
+      );
+    } catch {
+      return [];
+    }
+  });
   const autoFinishRef = useRef<string | null>(null);
 
   const trainingRef = useRef<TrainingState | null>(training);
@@ -177,6 +192,19 @@ export function TrainingView({
     () => workouts.find((workout) => workout.id === selectedWorkoutId) ?? null,
     [selectedWorkoutId, workouts],
   );
+  const quickWorkouts = useMemo(
+    () => selectQuickWorkouts(workouts, history, favoriteIds),
+    [favoriteIds, history, workouts],
+  );
+  const toggleFavorite = (workoutId: string) => {
+    setFavoriteIds((current) => {
+      const next = current.includes(workoutId)
+        ? current.filter((id) => id !== workoutId)
+        : [...current, workoutId];
+      localStorage.setItem("motus:favorite-workouts", JSON.stringify(next));
+      return next;
+    });
+  };
 
   return (
     <>
@@ -268,7 +296,7 @@ export function TrainingView({
                   variant="contained"
                   size="medium"
                   startIcon={<PlayCircleFilledRoundedIcon />}
-                  onClick={onStartTraining}
+                  onClick={() => void onStartTraining()}
                   disabled={startDisabled}
                   title={startTitle}
                   sx={{
@@ -282,6 +310,51 @@ export function TrainingView({
                 </Button>
               </Stack>
             </Stack>
+
+            {!training && quickWorkouts.length > 0 ? (
+              <Stack spacing={1}>
+                <Typography variant="overline" color="text.secondary">
+                  Quick start
+                </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: "wrap" }}
+                >
+                  {quickWorkouts.map((workout) => {
+                    const favorite = favoriteIds.includes(workout.id);
+                    return (
+                      <Button
+                        key={workout.id}
+                        variant="outlined"
+                        onClick={() => {
+                          onSelectWorkout(workout.id);
+                          void onStartTraining(workout.id);
+                        }}
+                        endIcon={
+                          favorite ? (
+                            <StarRoundedIcon fontSize="small" />
+                          ) : (
+                            <StarBorderRoundedIcon fontSize="small" />
+                          )
+                        }
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          toggleFavorite(workout.id);
+                        }}
+                      >
+                        {workout.name}
+                      </Button>
+                    );
+                  })}
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  Tap to start. Long-press or right-click a workout to favorite
+                  it.
+                </Typography>
+              </Stack>
+            ) : null}
 
             {selectedWorkout && !training ? (
               <Box
