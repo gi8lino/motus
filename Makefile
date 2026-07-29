@@ -61,9 +61,14 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
-.PHONY: test
-test: fmt vet ## Run unit tests.
+.PHONY: test test-backend test-frontend
+test: test-backend test-frontend ## Run backend and frontend unit tests.
+
+test-backend: vet ## Run backend unit tests.
 	go test -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
+
+test-frontend: ## Run frontend unit tests.
+	npm --prefix web test
 
 .PHONY: cover
 cover: ## Display test coverage
