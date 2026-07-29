@@ -81,6 +81,7 @@ func NewRouter(
 	apiMux.Handle("POST /trainings", api.CreateTraining())
 	apiMux.Handle("GET /users/{id}/trainings/history", api.ListTrainingHistory())
 	apiMux.Handle("POST /trainings/complete", api.CompleteTraining())
+	apiMux.Handle("PUT /trainings/{id}/feedback", api.UpdateTrainingFeedback())
 
 	// Mount API under /api
 	protectedAPI := middleware.Chain(apiMux, middleware.Authenticate(api.AuthStore, api.AuthHeader, api.AutoCreateUsers))

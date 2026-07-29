@@ -8,4 +8,5 @@ type Store interface {
 	WorkoutWithSteps(ctx context.Context, id string) (*Workout, error)
 	RecordTraining(ctx context.Context, log TrainingLog, steps []TrainingStepLog) error
 	TrainingHistory(ctx context.Context, userID string, limit int) ([]TrainingLog, error)
+	UpdateTrainingFeedback(ctx context.Context, trainingID, userID, notes string, effort *int) error
 }

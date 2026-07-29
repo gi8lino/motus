@@ -9,6 +9,10 @@ type fakeStore struct {
 	historyFn     func(context.Context, string, int) ([]TrainingLog, error)
 }
 
+func (f *fakeStore) UpdateTrainingFeedback(context.Context, string, string, string, *int) error {
+	return nil
+}
+
 func (f *fakeStore) TrainingStepTimings(ctx context.Context, trainingID string) ([]TrainingStepLog, error) {
 	if f.stepTimingsFn == nil {
 		return nil, nil

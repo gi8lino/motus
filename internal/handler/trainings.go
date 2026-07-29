@@ -143,3 +143,29 @@ func (a *API) CompleteTraining() http.HandlerFunc {
 		a.respondJSON(w, http.StatusCreated, log)
 	}
 }
+
+// UpdateTrainingFeedback stores notes and perceived effort for a completed training.
+func (a *API) UpdateTrainingFeedback() http.HandlerFunc {
+	type request struct {
+		UserID          string `json:"userId"`
+		Notes           string `json:"notes"`
+		PerceivedEffort *int   `json:"perceivedEffort"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := decode[request](r)
+		if err != nil {
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+			return
+		}
+		userID, err := a.resolveUserID(r, req.UserID)
+		if err != nil {
+			a.respondJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+			return
+		}
+		if err := a.Trainings.UpdateFeedback(r.Context(), r.PathValue("id"), userID, req.Notes, req.PerceivedEffort); err != nil {
+			a.respondJSON(w, serviceStatus(err), apiError{Error: err.Error()})
+			return
+		}
+		a.respondJSON(w, http.StatusNoContent, nil)
+	}
+}

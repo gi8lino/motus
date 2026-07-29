@@ -98,12 +98,14 @@ type Exercise struct {
 
 // TrainingLog represents a completed workout training.
 type TrainingLog struct {
-	ID          string    `json:"id"`          // ID is the unique training identifier.
-	WorkoutID   string    `json:"workoutId"`   // WorkoutID links to the workout.
-	WorkoutName string    `json:"workoutName"` // WorkoutName is the display name at completion time.
-	UserID      string    `json:"userId"`      // UserID owns the training.
-	StartedAt   time.Time `json:"startedAt"`   // StartedAt is when the training began.
-	CompletedAt time.Time `json:"completedAt"` // CompletedAt is when the training finished.
+	ID              string    `json:"id"`                        // ID is the unique training identifier.
+	WorkoutID       string    `json:"workoutId"`                 // WorkoutID links to the workout.
+	WorkoutName     string    `json:"workoutName"`               // WorkoutName is the display name at completion time.
+	UserID          string    `json:"userId"`                    // UserID owns the training.
+	StartedAt       time.Time `json:"startedAt"`                 // StartedAt is when the training began.
+	CompletedAt     time.Time `json:"completedAt"`               // CompletedAt is when the training finished.
+	Notes           string    `json:"notes"`                     // Notes captures the athlete's reflection.
+	PerceivedEffort *int      `json:"perceivedEffort,omitempty"` // PerceivedEffort is a 1-10 RPE score.
 }
 
 // TrainingStepLog captures actual timing for a completed step.

@@ -60,6 +60,11 @@ export type TrainingViewActions = {
   onFinishTraining: () => Promise<string | null>;
   onCopySummary: () => void;
   onToast: (message: string) => void;
+  onSaveFeedback: (
+    trainingId: string,
+    notes: string,
+    perceivedEffort?: number,
+  ) => Promise<void>;
 };
 
 export function TrainingView({
@@ -92,6 +97,7 @@ export function TrainingView({
     onFinishTraining,
     onCopySummary,
     onToast,
+    onSaveFeedback,
   } = actions;
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
@@ -398,6 +404,11 @@ export function TrainingView({
         summary={finishSummary}
         onClose={() => setFinishSummary(null)}
         onCopySummary={onCopySummary}
+        onSaveFeedback={(notes, effort) =>
+          training
+            ? onSaveFeedback(training.trainingId, notes, effort)
+            : Promise.resolve()
+        }
       />
       <TrainingOverrunModal
         show={Boolean(overrunModal?.show)}

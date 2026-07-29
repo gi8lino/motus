@@ -24,6 +24,10 @@ type fakeTrainingStore struct {
 	recordTrainingFn      func(context.Context, db.TrainingLog, []db.TrainingStepLog) error
 }
 
+func (f *fakeTrainingStore) UpdateTrainingFeedback(context.Context, string, string, string, *int) error {
+	return nil
+}
+
 func (f *fakeTrainingStore) WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error) {
 	if f.workoutWithStepsFn == nil {
 		return nil, nil

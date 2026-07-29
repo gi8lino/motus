@@ -69,7 +69,7 @@ func (s *Store) TrainingHistory(ctx context.Context, userID string, limit int) (
 	// Load recent training logs for a user.
 	limit = max(limit, 25)
 	rows, err := s.pool.Query(ctx, `
-		SELECT ws.id, ws.workout_id, COALESCE(w.name, ''), ws.user_id, ws.started_at, ws.completed_at
+		SELECT ws.id, ws.workout_id, COALESCE(w.name, ''), ws.user_id, ws.started_at, ws.completed_at, ws.notes, ws.perceived_effort
 		FROM workout_trainings ws
 		LEFT JOIN workouts w ON ws.workout_id = w.id
 		WHERE ws.user_id=$1
@@ -83,12 +83,28 @@ func (s *Store) TrainingHistory(ctx context.Context, userID string, limit int) (
 	// Collect each training log row.
 	for rows.Next() {
 		var entry TrainingLog
-		if err := rows.Scan(&entry.ID, &entry.WorkoutID, &entry.WorkoutName, &entry.UserID, &entry.StartedAt, &entry.CompletedAt); err != nil {
+		if err := rows.Scan(&entry.ID, &entry.WorkoutID, &entry.WorkoutName, &entry.UserID, &entry.StartedAt, &entry.CompletedAt, &entry.Notes, &entry.PerceivedEffort); err != nil {
 			return nil, err
 		}
 		history = append(history, entry)
 	}
 	return history, rows.Err()
+}
+
+// UpdateTrainingFeedback stores the athlete's post-training reflection.
+func (s *Store) UpdateTrainingFeedback(ctx context.Context, trainingID, userID, notes string, effort *int) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE workout_trainings
+		SET notes=$1, perceived_effort=$2
+		WHERE id=$3 AND user_id=$4
+	`, notes, effort, trainingID, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("training not found")
+	}
+	return nil
 }
 
 // TrainingStepTimings returns stored step durations for a training.

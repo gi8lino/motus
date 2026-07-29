@@ -85,14 +85,16 @@ func BuildTrainingHistoryItems(history []TrainingLog, stepMap map[string][]Train
 		started := h.StartedAt
 		completed := h.CompletedAt
 		items = append(items, TrainingHistoryItem{
-			ID:          h.ID,
-			TrainingID:  h.ID,
-			WorkoutID:   h.WorkoutID,
-			WorkoutName: h.WorkoutName,
-			UserID:      h.UserID,
-			StartedAt:   &started,
-			CompletedAt: &completed,
-			Steps:       stepMap[h.ID],
+			ID:              h.ID,
+			TrainingID:      h.ID,
+			WorkoutID:       h.WorkoutID,
+			WorkoutName:     h.WorkoutName,
+			UserID:          h.UserID,
+			StartedAt:       &started,
+			CompletedAt:     &completed,
+			Steps:           stepMap[h.ID],
+			Notes:           h.Notes,
+			PerceivedEffort: h.PerceivedEffort,
 		})
 	}
 	return items

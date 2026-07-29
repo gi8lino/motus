@@ -290,6 +290,16 @@ export async function listTrainingHistory(
   );
 }
 
+export async function updateTrainingFeedback(
+  trainingId: string,
+  payload: { userId: string; notes: string; perceivedEffort?: number },
+): Promise<void> {
+  return requestVoid(
+    `/api/trainings/${encodeURIComponent(trainingId)}/feedback`,
+    { method: "PUT", body: JSON.stringify(payload) },
+  );
+}
+
 // getTrainingSteps fetches stored per-step timings for a training.
 export async function getTrainingSteps(
   trainingId: string,

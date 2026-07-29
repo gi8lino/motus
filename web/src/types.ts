@@ -145,6 +145,8 @@ export type TrainingHistoryItem = {
   startedAt?: string;
   completedAt?: string;
   steps?: TrainingStepLog[];
+  notes?: string;
+  perceivedEffort?: number;
 };
 
 // SoundOption describes an available sound effect.

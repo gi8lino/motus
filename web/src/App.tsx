@@ -16,7 +16,12 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { getWorkout, logoutUser, updateUserName } from "./api";
+import {
+  getWorkout,
+  logoutUser,
+  updateTrainingFeedback,
+  updateUserName,
+} from "./api";
 
 import type { ThemeMode, User, View } from "./types";
 
@@ -657,6 +662,15 @@ export default function App() {
                 onFinishTraining: handleFinishTraining,
                 onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
                 onToast: showToast,
+                onSaveFeedback: async (trainingId, notes, perceivedEffort) => {
+                  if (!currentUserId) return;
+                  await updateTrainingFeedback(trainingId, {
+                    userId: currentUserId,
+                    notes,
+                    perceivedEffort,
+                  });
+                  history.reload();
+                },
               }}
             />
           )}

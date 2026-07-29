@@ -83,14 +83,16 @@ type Exercise struct {
 
 // TrainingHistoryItem is the API payload for a completed training.
 type TrainingHistoryItem struct {
-	ID          string            `json:"id"`                    // ID is the history item identifier.
-	TrainingID  string            `json:"trainingId"`            // TrainingID links to the completed training.
-	WorkoutID   string            `json:"workoutId"`             // WorkoutID references the workout definition.
-	WorkoutName string            `json:"workoutName"`           // WorkoutName is the display name at completion time.
-	UserID      string            `json:"userId"`                // UserID owns the training.
-	StartedAt   *time.Time        `json:"startedAt,omitempty"`   // StartedAt is when the training began.
-	CompletedAt *time.Time        `json:"completedAt,omitempty"` // CompletedAt is when the training finished.
-	Steps       []TrainingStepLog `json:"steps,omitempty"`       // Steps contains logged timings when available.
+	ID              string            `json:"id"`                    // ID is the history item identifier.
+	TrainingID      string            `json:"trainingId"`            // TrainingID links to the completed training.
+	WorkoutID       string            `json:"workoutId"`             // WorkoutID references the workout definition.
+	WorkoutName     string            `json:"workoutName"`           // WorkoutName is the display name at completion time.
+	UserID          string            `json:"userId"`                // UserID owns the training.
+	StartedAt       *time.Time        `json:"startedAt,omitempty"`   // StartedAt is when the training began.
+	CompletedAt     *time.Time        `json:"completedAt,omitempty"` // CompletedAt is when the training finished.
+	Steps           []TrainingStepLog `json:"steps,omitempty"`       // Steps contains logged timings when available.
+	Notes           string            `json:"notes,omitempty"`
+	PerceivedEffort *int              `json:"perceivedEffort,omitempty"`
 }
 
 // CompleteRequest captures the payload for logging a finished training.
