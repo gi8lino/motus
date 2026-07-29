@@ -23,7 +23,7 @@ func (s *Service) Create(ctx context.Context, req WorkoutRequest) (*Workout, err
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
-	workout := &Workout{UserID: req.UserID, Name: req.Name, Steps: steps}
+	workout := &Workout{UserID: req.UserID, Name: req.Name, Steps: steps, Tags: req.Tags, Favorite: req.Favorite}
 	created, err := s.store.CreateWorkout(ctx, workout)
 	if err != nil {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
@@ -49,7 +49,7 @@ func (s *Service) Update(ctx context.Context, id string, req WorkoutRequest) (*W
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
-	workout := &Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps}
+	workout := &Workout{ID: id, UserID: req.UserID, Name: req.Name, Steps: steps, Tags: req.Tags, Favorite: req.Favorite}
 	updated, err := s.store.UpdateWorkout(ctx, workout)
 	if err != nil {
 		if errors.Is(err, db.ErrWorkoutNotFound) {

@@ -20,6 +20,8 @@ export type WorkoutsListProps = {
 
   onDuplicate: (workoutId: string) => void;
   onDelete: (workoutId: string) => void;
+  onFavorite: (workout: Workout) => void;
+  onTags: (workout: Workout) => void;
 };
 
 export function WorkoutsList({
@@ -32,7 +34,29 @@ export function WorkoutsList({
   onOpenEditor,
   onDuplicate,
   onDelete,
+  onFavorite,
+  onTags,
 }: WorkoutsListProps) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"favorite" | "name" | "newest">("favorite");
+  const visibleWorkouts = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return workouts
+      .filter(
+        (workout) =>
+          !normalized ||
+          workout.name.toLowerCase().includes(normalized) ||
+          workout.tags?.some((tag) => tag.toLowerCase().includes(normalized)),
+      )
+      .sort((a, b) => {
+        if (sort === "name") return a.name.localeCompare(b.name);
+        if (sort === "newest")
+          return String(b.createdAt || "").localeCompare(
+            String(a.createdAt || ""),
+          );
+        return Number(Boolean(b.favorite)) - Number(Boolean(a.favorite));
+      });
+  }, [query, sort, workouts]);
   return (
     <section className="panel">
       <div className="panel-header">
@@ -58,6 +82,26 @@ export function WorkoutsList({
 
       {loading ? <LoadingState /> : null}
 
+      <div className="list-row">
+        <input
+          aria-label="Search workouts"
+          placeholder="Search workouts or tags"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <select
+          aria-label="Sort workouts"
+          value={sort}
+          onChange={(event) =>
+            setSort(event.target.value as "favorite" | "name" | "newest")
+          }
+        >
+          <option value="favorite">Favorites first</option>
+          <option value="newest">Newest</option>
+          <option value="name">Name</option>
+        </select>
+      </div>
+
       {!loading && workouts.length === 0 ? (
         <EmptyState
           title="Build your first workout"
@@ -74,14 +118,32 @@ export function WorkoutsList({
 
       {workouts.length ? (
         <ul className="list">
-          {workouts.map((workout) => (
+          {visibleWorkouts.map((workout) => (
             <li key={workout.id} className="list-item list-row">
               <div>
                 <strong>{workout.name}</strong>
                 <div className="muted small">{workout.steps.length} steps</div>
+                {workout.tags?.length ? (
+                  <div className="muted small">{workout.tags.join(" • ")}</div>
+                ) : null}
               </div>
 
               <div className="btn-group">
+                <button
+                  className="btn subtle"
+                  type="button"
+                  onClick={() => onFavorite(workout)}
+                  aria-label={`${workout.favorite ? "Unfavorite" : "Favorite"} ${workout.name}`}
+                >
+                  {workout.favorite ? "★" : "☆"}
+                </button>
+                <button
+                  className="btn subtle"
+                  type="button"
+                  onClick={() => onTags(workout)}
+                >
+                  Tags
+                </button>
                 <button
                   className="btn subtle"
                   type="button"
@@ -117,3 +179,4 @@ export function WorkoutsList({
     </section>
   );
 }
+import { useMemo, useState } from "react";

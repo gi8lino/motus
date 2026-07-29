@@ -71,17 +71,22 @@ export function WorkoutsView(props: WorkoutsViewProps) {
   }, []);
 
   // Keep using existing action logic for "new/edit" selection behavior
-  const { newWorkout, editWorkoutFromList, removeWorkout, duplicateWorkout } =
-    useWorkoutActions({
-      workouts,
-      selectedWorkoutId,
-      setEditingWorkout,
-      setSelectedWorkoutId,
-      setWorkouts: props.setWorkouts,
-      askConfirm: props.services.askConfirm,
-      notify: props.services.notifyUser,
-      currentUserId: props.currentUserId,
-    });
+  const {
+    newWorkout,
+    editWorkoutFromList,
+    removeWorkout,
+    duplicateWorkout,
+    updateOrganization,
+  } = useWorkoutActions({
+    workouts,
+    selectedWorkoutId,
+    setEditingWorkout,
+    setSelectedWorkoutId,
+    setWorkouts: props.setWorkouts,
+    askConfirm: props.services.askConfirm,
+    notify: props.services.notifyUser,
+    currentUserId: props.currentUserId,
+  });
 
   return (
     <>
@@ -95,6 +100,22 @@ export function WorkoutsView(props: WorkoutsViewProps) {
         onOpenEditor={() => setEditorOpen(true)}
         onDuplicate={(id) => duplicateWorkout(id)}
         onDelete={(id) => removeWorkout(id)}
+        onFavorite={(workout) =>
+          updateOrganization(workout.id, { favorite: !workout.favorite })
+        }
+        onTags={async (workout) => {
+          const value = await props.services.askPrompt(
+            "Tags (comma separated)",
+            workout.tags?.join(", ") || "",
+          );
+          if (value === null) return;
+          await updateOrganization(workout.id, {
+            tags: value
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+          });
+        }}
       />
 
       {editorOpen ? (

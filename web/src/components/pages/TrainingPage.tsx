@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import {
   Box,
   Button,
@@ -106,15 +104,6 @@ export function TrainingView({
     onUpdateExercisePerformance,
   } = actions;
   const [finishSummary, setFinishSummary] = useState<string | null>(null);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem("motus:favorite-workouts") || "[]",
-      );
-    } catch {
-      return [];
-    }
-  });
   const [vibrationEnabled, setVibrationEnabled] = useState(
     () => localStorage.getItem("motus:vibration") === "true",
   );
@@ -209,18 +198,9 @@ export function TrainingView({
     [selectedWorkoutId, workouts],
   );
   const quickWorkouts = useMemo(
-    () => selectQuickWorkouts(workouts, history, favoriteIds),
-    [favoriteIds, history, workouts],
+    () => selectQuickWorkouts(workouts, history),
+    [history, workouts],
   );
-  const toggleFavorite = (workoutId: string) => {
-    setFavoriteIds((current) => {
-      const next = current.includes(workoutId)
-        ? current.filter((id) => id !== workoutId)
-        : [...current, workoutId];
-      localStorage.setItem("motus:favorite-workouts", JSON.stringify(next));
-      return next;
-    });
-  };
 
   return (
     <>
@@ -356,7 +336,6 @@ export function TrainingView({
                   sx={{ flexWrap: "wrap" }}
                 >
                   {quickWorkouts.map((workout) => {
-                    const favorite = favoriteIds.includes(workout.id);
                     return (
                       <Button
                         key={workout.id}
@@ -365,26 +344,15 @@ export function TrainingView({
                           onSelectWorkout(workout.id);
                           void onStartTraining(workout.id);
                         }}
-                        endIcon={
-                          favorite ? (
-                            <StarRoundedIcon fontSize="small" />
-                          ) : (
-                            <StarBorderRoundedIcon fontSize="small" />
-                          )
-                        }
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          toggleFavorite(workout.id);
-                        }}
                       >
+                        {workout.favorite ? "★ " : ""}
                         {workout.name}
                       </Button>
                     );
                   })}
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  Tap to start. Long-press or right-click a workout to favorite
-                  it.
+                  Favorites appear first, followed by recent workouts.
                 </Typography>
               </Stack>
             ) : null}

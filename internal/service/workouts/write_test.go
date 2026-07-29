@@ -15,12 +15,15 @@ func TestCreate(t *testing.T) {
 		t.Parallel()
 		called := false
 		svc := New(&fakeStore{
-			createFn: func(context.Context, *Workout) (*Workout, error) {
+			createFn: func(_ context.Context, workout *Workout) (*Workout, error) {
 				called = true
+				if !workout.Favorite || len(workout.Tags) != 1 {
+					t.Fatalf("organization metadata was not mapped")
+				}
 				return &Workout{ID: "w1"}, nil
 			},
 		})
-		workout, err := svc.Create(context.Background(), WorkoutRequest{UserID: "u1", Name: "Workout", Steps: []StepInput{{Type: "set", Name: "A", Subsets: []SubsetInput{{Exercises: []ExerciseInput{{Name: "X"}}}}}}})
+		workout, err := svc.Create(context.Background(), WorkoutRequest{UserID: "u1", Name: "Workout", Tags: []string{"strength"}, Favorite: true, Steps: []StepInput{{Type: "set", Name: "A", Subsets: []SubsetInput{{Exercises: []ExerciseInput{{Name: "X"}}}}}}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

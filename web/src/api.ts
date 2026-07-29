@@ -160,6 +160,8 @@ export async function createWorkout(payload: {
   userId: string;
   name: string;
   steps: WorkoutStep[];
+  tags?: string[];
+  favorite?: boolean;
 }): Promise<Workout> {
   return requestJSON(
     `/api/users/${encodeURIComponent(payload.userId)}/workouts`,
@@ -168,6 +170,8 @@ export async function createWorkout(payload: {
       body: JSON.stringify({
         name: payload.name,
         steps: workoutWriteSteps(payload.steps),
+        tags: payload.tags || [],
+        favorite: Boolean(payload.favorite),
       }),
     },
   );
@@ -176,7 +180,13 @@ export async function createWorkout(payload: {
 // updateWorkout updates an existing workout.
 export async function updateWorkout(
   workoutId: string,
-  payload: { userId: string; name: string; steps: WorkoutStep[] },
+  payload: {
+    userId: string;
+    name: string;
+    steps: WorkoutStep[];
+    tags?: string[];
+    favorite?: boolean;
+  },
 ): Promise<Workout> {
   return requestJSON(`/api/workouts/${workoutId}`, {
     method: "PUT",
@@ -184,6 +194,8 @@ export async function updateWorkout(
       userId: payload.userId,
       name: payload.name,
       steps: workoutWriteSteps(payload.steps),
+      tags: payload.tags || [],
+      favorite: Boolean(payload.favorite),
     }),
   });
 }

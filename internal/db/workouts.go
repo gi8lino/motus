@@ -29,9 +29,9 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	w.ID = utils.NewID()
 	w.CreatedAt = time.Now().UTC()
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO workouts(id, user_id, name, created_at)
-		VALUES ($1, $2, $3, $4)
-	`, w.ID, w.UserID, w.Name, w.CreatedAt); err != nil {
+		INSERT INTO workouts(id, user_id, name, tags, favorite, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, w.ID, w.UserID, w.Name, w.Tags, w.Favorite, w.CreatedAt); err != nil {
 		return nil, err
 	}
 
@@ -98,7 +98,7 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout) (*Workout, error)
 func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, error) {
 	// Load workouts and their steps for the given user.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, user_id, name, created_at
+		SELECT id, user_id, name, tags, favorite, created_at
 		FROM workouts
 		WHERE user_id=$1
 		ORDER BY created_at DESC
@@ -112,7 +112,7 @@ func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, e
 	// Collect workouts and hydrate each with steps.
 	for rows.Next() {
 		var w Workout
-		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
+		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.Tags, &w.Favorite, &w.CreatedAt); err != nil {
 			return nil, err
 		}
 		steps, err := s.WorkoutSteps(ctx, w.ID)
@@ -289,12 +289,12 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workout, error) {
 	// Fetch the workout row and hydrate its steps.
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, name, created_at
+		SELECT id, user_id, name, tags, favorite, created_at
 		FROM workouts
 		WHERE id=$1
 	`, workoutID)
 	var w Workout
-	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
+	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.Tags, &w.Favorite, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrWorkoutNotFound
 		}
@@ -310,9 +310,9 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 
 // WorkoutWithStepsForUser retrieves a workout only when owned by the user.
 func (s *Store) WorkoutWithStepsForUser(ctx context.Context, workoutID, userID string) (*Workout, error) {
-	row := s.pool.QueryRow(ctx, `SELECT id, user_id, name, created_at FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
+	row := s.pool.QueryRow(ctx, `SELECT id, user_id, name, tags, favorite, created_at FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
 	var w Workout
-	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
+	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.Tags, &w.Favorite, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrWorkoutNotFound
 		}
@@ -337,9 +337,9 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE workouts
-		SET name=$1
-		WHERE id=$2 AND user_id=$3
-	`, w.Name, w.ID, w.UserID)
+		SET name=$1, tags=$2, favorite=$3
+		WHERE id=$4 AND user_id=$5
+	`, w.Name, w.Tags, w.Favorite, w.ID, w.UserID)
 	if err != nil {
 		return nil, err
 	}

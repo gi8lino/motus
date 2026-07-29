@@ -70,6 +70,8 @@ export type Workout = {
   name: string;
   createdAt?: string;
   steps: WorkoutStep[];
+  tags?: string[];
+  favorite?: boolean;
 };
 
 // View represents the active app section.

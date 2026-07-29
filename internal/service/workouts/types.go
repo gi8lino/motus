@@ -23,9 +23,11 @@ const errorScope = "workouts"
 
 // WorkoutRequest describes the payload for building a workout definition.
 type WorkoutRequest struct {
-	UserID string      `json:"userId"`
-	Name   string      `json:"name"`
-	Steps  []StepInput `json:"steps"`
+	UserID   string      `json:"userId"`
+	Name     string      `json:"name"`
+	Steps    []StepInput `json:"steps"`
+	Tags     []string    `json:"tags"`
+	Favorite bool        `json:"favorite"`
 }
 
 // StepInput describes a workout step definition in the domain model.

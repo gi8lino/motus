@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { createWorkout } from "../api";
+import { createWorkout, updateWorkout } from "../api";
 import type { AskConfirmOptions, Workout } from "../types";
 import { MESSAGES, PROMPTS, toErrorMessage } from "../utils/messages";
 import { duplicateWorkoutDraft } from "../components/workouts/workoutDraftReducer";
@@ -125,10 +125,34 @@ export function useWorkoutActions({
     [currentUserId, notify, setWorkouts, workouts],
   );
 
+  const updateOrganization = useCallback(
+    async (workoutId: string, patch: Pick<Workout, "favorite" | "tags">) => {
+      const workout = workouts.find((item) => item.id === workoutId);
+      if (!workout || !currentUserId) return;
+      try {
+        const updated = await updateWorkout(workoutId, {
+          ...workout,
+          ...patch,
+          userId: currentUserId,
+        });
+        setWorkouts(
+          (current) =>
+            current?.map((item) =>
+              item.id === workoutId ? updated : item,
+            ) ?? [updated],
+        );
+      } catch (err) {
+        await notify(toErrorMessage(err, MESSAGES.updateWorkoutFailed));
+      }
+    },
+    [currentUserId, notify, setWorkouts, workouts],
+  );
+
   return {
     newWorkout,
     editWorkoutFromList,
     removeWorkout,
     duplicateWorkout,
+    updateOrganization,
   };
 }

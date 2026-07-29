@@ -18,6 +18,8 @@ type Workout struct {
 	Name      string        `json:"name"`      // Name is the workout title.
 	CreatedAt time.Time     `json:"createdAt"` // CreatedAt records when the workout was created.
 	Steps     []WorkoutStep `json:"steps"`     // Steps defines the workout flow.
+	Tags      []string      `json:"tags"`      // Tags organize workouts.
+	Favorite  bool          `json:"favorite"`  // Favorite marks quick-access workouts.
 }
 
 // PauseOptions captures optional behaviour for pause steps.
