@@ -411,28 +411,6 @@ func (s *Store) UpdateWorkout(ctx context.Context, w *Workout) (*Workout, error)
 	return w, nil
 }
 
-// cloneSteps copies workout steps for template/workout reuse.
-func cloneSteps(src []WorkoutStep) []WorkoutStep {
-	result := make([]WorkoutStep, len(src))
-	for i := range src {
-		result[i] = src[i]
-		result[i].ID = ""
-		result[i].Subsets = make([]WorkoutSubset, len(src[i].Subsets))
-		for j := range src[i].Subsets {
-			result[i].Subsets[j] = src[i].Subsets[j]
-			result[i].Subsets[j].ID = ""
-			result[i].Subsets[j].StepID = ""
-			result[i].Subsets[j].Exercises = make([]SubsetExercise, len(src[i].Subsets[j].Exercises))
-			for k := range src[i].Subsets[j].Exercises {
-				result[i].Subsets[j].Exercises[k] = src[i].Subsets[j].Exercises[k]
-				result[i].Subsets[j].Exercises[k].ID = ""
-				result[i].Subsets[j].Exercises[k].SubsetID = ""
-			}
-		}
-	}
-	return result
-}
-
 // DeleteWorkout removes a workout and cascades its steps.
 func (s *Store) DeleteWorkout(ctx context.Context, workoutID string) error {
 	// Delete the workout and rely on cascading deletes for related rows.
