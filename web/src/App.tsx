@@ -23,7 +23,7 @@ import {
   updateUserName,
 } from "./api";
 
-import type { ThemeMode, User, View } from "./types";
+import type { User, View } from "./types";
 
 import { useTrainingTimer } from "./hooks/useTrainingTimer";
 import { useDialog } from "./hooks/useDialog";
@@ -37,7 +37,8 @@ import DialogModal from "./components/common/DialogModal";
 
 import { PROMPTS, toErrorMessage } from "./utils/messages";
 import { UI_TEXT } from "./utils/uiText";
-import { buildAppTheme } from "./theme";
+import { useThemeController } from "./hooks/useThemeController";
+import { useViewPreloader } from "./hooks/useViewPreloader";
 
 import { useAuthActions } from "./hooks/useAuthActions";
 import { useAdminActions } from "./hooks/useAdminActions";
@@ -142,33 +143,8 @@ export default function App() {
   const { view, setView } = useViewState("training");
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [prefetchedViews, setPrefetchedViews] = useState<ReadonlySet<View>>(
-    () => new Set(),
-  );
-
   const [loginError, setLoginError] = useState<string | null>(null);
-
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    const stored = localStorage.getItem("motus:theme");
-    if (stored === "dark" || stored === "light" || stored === "auto")
-      return stored;
-    return "auto";
-  });
-  const [resolvedThemeMode, setResolvedThemeMode] = useState<"dark" | "light">(
-    () => {
-      if (
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      ) {
-        return "dark";
-      }
-      return "light";
-    },
-  );
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = resolvedThemeMode;
-  }, [resolvedThemeMode]);
+  const { theme, themeMode, setThemeMode } = useThemeController();
 
   // training view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
@@ -203,6 +179,15 @@ export default function App() {
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
   const appVersion = config?.version || "dev";
   const {
+    prefetchedViews,
+    preloadView: handleViewPreload,
+    setPrefetchedViews,
+  } = useViewPreloader({
+    preload: preloadView,
+    authenticated: Boolean(currentUserId || authHeaderEnabled),
+    currentUser: null,
+  });
+  const {
     users,
     sounds,
     workouts,
@@ -219,15 +204,6 @@ export default function App() {
   });
   const exerciseCatalog = exercises.data || [];
 
-  const handleViewPreload = useCallback((nextView: View) => {
-    preloadView(nextView);
-    setPrefetchedViews((current) => {
-      if (current.has(nextView)) return current;
-      const next = new Set(current);
-      next.add(nextView);
-      return next;
-    });
-  }, []);
   const {
     defaultStepSoundKey,
     defaultPauseDuration,
@@ -249,39 +225,6 @@ export default function App() {
     if (!selectedWorkoutId) return "";
     return activeWorkouts.find((w) => w.id === selectedWorkoutId)?.name || "";
   }, [selectedWorkoutId, activeWorkouts]);
-
-  // ---------- theme ----------
-  useEffect(() => {
-    const root = document.documentElement;
-
-    const applyTheme = () => {
-      if (themeMode === "auto") {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        const nextMode = prefersDark ? "dark" : "light";
-        root.dataset.theme = nextMode;
-        setResolvedThemeMode(nextMode);
-        return;
-      }
-      root.dataset.theme = themeMode;
-      setResolvedThemeMode(themeMode);
-    };
-
-    localStorage.setItem("motus:theme", themeMode);
-    applyTheme();
-
-    if (themeMode !== "auto") return;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyTheme();
-    media.addEventListener("change", handler);
-    return () => media.removeEventListener("change", handler);
-  }, [themeMode]);
-
-  const theme = useMemo(
-    () => buildAppTheme(resolvedThemeMode),
-    [resolvedThemeMode],
-  );
 
   // ---------- clear login errors when leaving login view ----------
   useEffect(() => {
@@ -305,34 +248,6 @@ export default function App() {
     currentUserLoader.loading,
     view,
     setView,
-  ]);
-
-  // Warm route chunks after authentication so navigation does not wait on a
-  // network round-trip. Pointer/focus preloading below remains the fast path.
-  useEffect(() => {
-    if (!currentUserId && !authHeaderEnabled) return;
-    const preload = () => {
-      (
-        [
-          "workouts",
-          "exercises",
-          "history",
-          "profile",
-          ...(currentUser?.isAdmin ? (["admin"] as const) : []),
-        ] as View[]
-      ).forEach(preloadView);
-    };
-    if ("requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(preload, { timeout: 1500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = globalThis.setTimeout(preload, 250);
-    return () => globalThis.clearTimeout(id);
-  }, [
-    authHeaderEnabled,
-    currentUser?.isAdmin,
-    currentUserId,
-    handleViewPreload,
   ]);
 
   // ---------- toast ----------
