@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { View } from "../types";
 
 const VIEW_PARAM = "view";
@@ -51,7 +57,11 @@ function writeViewToURL(view: View) {
  */
 export function useViewState(defaultView: View) {
   const initial = useMemo(() => readViewFromURL(defaultView), [defaultView]);
-  const [view, setView] = useState<View>(initial);
+  const [view, setViewState] = useState<View>(initial);
+
+  const setView = useCallback((nextView: View) => {
+    startTransition(() => setViewState(nextView));
+  }, []);
 
   useEffect(() => {
     writeViewToURL(view);

@@ -1,10 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogExercise } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
 import { EmptyState } from "../common/EmptyState";
+import { LoadingState } from "../common/LoadingState";
 
 export type ExercisesViewData = {
   exercises: CatalogExercise[];
   isAdmin: boolean;
+  loading: boolean;
 };
 
 export type ExercisesViewActions = {
@@ -23,7 +26,17 @@ export function ExercisesView({
   data: ExercisesViewData;
   actions: ExercisesViewActions;
 }) {
-  const { exercises, isAdmin } = data;
+  const { exercises, isAdmin, loading } = data;
+  const pageSize = 24;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  const visibleExercises = useMemo(
+    () => exercises.slice(0, visibleCount),
+    [exercises, visibleCount],
+  );
+
+  useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [exercises.length]);
   const {
     onAddExercise,
     onAddCoreExercise,
@@ -49,9 +62,10 @@ export function ExercisesView({
           )}
         </div>
       </div>
+      {loading ? <LoadingState rows={6} /> : null}
       {/* Exercise list */}
       <ul className="list">
-        {exercises.map((ex) => (
+        {visibleExercises.map((ex) => (
           <li key={ex.id} className="list-item">
             <div className="list-row">
               <div>
@@ -101,7 +115,7 @@ export function ExercisesView({
             </div>
           </li>
         ))}
-        {!exercises.length && (
+        {!loading && !exercises.length && (
           <EmptyState
             title={UI_TEXT.pages.exercises.empty}
             description="Add exercises once, then reuse them in every workout."
@@ -110,6 +124,21 @@ export function ExercisesView({
           />
         )}
       </ul>
+      {visibleCount < exercises.length ? (
+        <div className="actions">
+          <button
+            className="btn subtle"
+            type="button"
+            onClick={() =>
+              setVisibleCount((current) =>
+                Math.min(current + pageSize, exercises.length),
+              )
+            }
+          >
+            Show more ({exercises.length - visibleCount} remaining)
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

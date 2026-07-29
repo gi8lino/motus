@@ -16,15 +16,9 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import {
-  applyTemplate,
-  getWorkout,
-  listExercises,
-  logoutUser,
-  updateUserName,
-} from "./api";
+import { applyTemplate, getWorkout, logoutUser, updateUserName } from "./api";
 
-import type { CatalogExercise, ThemeMode, User } from "./types";
+import type { ThemeMode, User, View } from "./types";
 
 import { useTrainingTimer } from "./hooks/useTrainingTimer";
 import { useDialog } from "./hooks/useDialog";
@@ -48,43 +42,67 @@ import { useTrainingActions } from "./hooks/useTrainingActions";
 
 import "./styles.css";
 
+const loadLoginView = () => import("./components/pages/LoginPage");
+const loadAdminView = () => import("./components/pages/AdminPage");
+const loadWorkoutsView = () => import("./components/pages/WorkoutsPage");
+const loadTrainingView = () => import("./components/pages/TrainingPage");
+const loadTemplatesView = () => import("./components/pages/TemplatesPage");
+const loadHistoryView = () => import("./components/pages/HistoryPage");
+const loadProfileView = () => import("./components/pages/ProfilePage");
+const loadExercisesView = () => import("./components/pages/ExercisesPage");
+
+const viewLoaders: Partial<Record<View, () => Promise<unknown>>> = {
+  login: loadLoginView,
+  admin: loadAdminView,
+  workouts: loadWorkoutsView,
+  train: loadTrainingView,
+  templates: loadTemplatesView,
+  history: loadHistoryView,
+  profile: loadProfileView,
+  exercises: loadExercisesView,
+};
+
+const preloadView = (view: View) => {
+  void viewLoaders[view]?.();
+};
+
 const LoginView = lazy(() =>
-  import("./components/pages/LoginPage").then((module) => ({
+  loadLoginView().then((module) => ({
     default: module.LoginView,
   })),
 );
 const AdminView = lazy(() =>
-  import("./components/pages/AdminPage").then((module) => ({
+  loadAdminView().then((module) => ({
     default: module.AdminView,
   })),
 );
 const WorkoutsView = lazy(() =>
-  import("./components/pages/WorkoutsPage").then((module) => ({
+  loadWorkoutsView().then((module) => ({
     default: module.WorkoutsView,
   })),
 );
 const TrainingView = lazy(() =>
-  import("./components/pages/TrainingPage").then((module) => ({
+  loadTrainingView().then((module) => ({
     default: module.TrainingView,
   })),
 );
 const TemplatesView = lazy(() =>
-  import("./components/pages/TemplatesPage").then((module) => ({
+  loadTemplatesView().then((module) => ({
     default: module.TemplatesView,
   })),
 );
 const HistoryView = lazy(() =>
-  import("./components/pages/HistoryPage").then((module) => ({
+  loadHistoryView().then((module) => ({
     default: module.HistoryView,
   })),
 );
 const ProfileView = lazy(() =>
-  import("./components/pages/ProfilePage").then((module) => ({
+  loadProfileView().then((module) => ({
     default: module.ProfileView,
   })),
 );
 const ExercisesView = lazy(() =>
-  import("./components/pages/ExercisesPage").then((module) => ({
+  loadExercisesView().then((module) => ({
     default: module.ExercisesView,
   })),
 );
@@ -126,6 +144,9 @@ export default function App() {
   const { view, setView } = useViewState("train");
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [prefetchedViews, setPrefetchedViews] = useState<ReadonlySet<View>>(
+    () => new Set(),
+  );
 
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -157,7 +178,6 @@ export default function App() {
   );
 
   // misc
-  const [exerciseCatalog, setExerciseCatalog] = useState<CatalogExercise[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [profileTab, setProfileTab] = useState<
     "settings" | "password" | "transfer"
@@ -188,12 +208,29 @@ export default function App() {
     users,
     sounds,
     workouts,
+    exercises,
     history,
     templates,
     activeWorkouts,
     currentUser,
     currentUserLoader,
-  } = useWorkoutsData({ currentUserId, authHeaderEnabled });
+  } = useWorkoutsData({
+    currentUserId,
+    authHeaderEnabled,
+    view,
+    prefetchedViews,
+  });
+  const exerciseCatalog = exercises.data || [];
+
+  const handleViewPreload = useCallback((nextView: View) => {
+    preloadView(nextView);
+    setPrefetchedViews((current) => {
+      if (current.has(nextView)) return current;
+      const next = new Set(current);
+      next.add(nextView);
+      return next;
+    });
+  }, []);
   const {
     defaultStepSoundKey,
     defaultPauseDuration,
@@ -273,16 +310,37 @@ export default function App() {
     setView,
   ]);
 
-  // ---------- keep exercise catalog in sync ----------
+  // Warm route chunks after authentication so navigation does not wait on a
+  // network round-trip. Pointer/focus preloading below remains the fast path.
   useEffect(() => {
-    if (!authHeaderEnabled && !currentUserId) {
-      setExerciseCatalog([]);
-      return;
+    if (!currentUserId && !authHeaderEnabled) return;
+    const preload = () => {
+      (
+        [
+          "workouts",
+          "templates",
+          "exercises",
+          "history",
+          "profile",
+          ...(currentUser?.isAdmin ? (["admin"] as const) : []),
+        ] as View[]
+      ).forEach(preloadView);
+      // Templates are tiny and a primary navigation destination. Warm their
+      // authenticated data after the initial training screen is idle.
+      handleViewPreload("templates");
+    };
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
     }
-    listExercises()
-      .then((items) => setExerciseCatalog(items || []))
-      .catch(() => {});
-  }, [authHeaderEnabled, currentUserId]);
+    const id = globalThis.setTimeout(preload, 250);
+    return () => globalThis.clearTimeout(id);
+  }, [
+    authHeaderEnabled,
+    currentUser?.isAdmin,
+    currentUserId,
+    handleViewPreload,
+  ]);
 
   // ---------- toast ----------
   const showToast = useCallback((message: string) => {
@@ -325,7 +383,10 @@ export default function App() {
     toggleExerciseSides: handleToggleExerciseSides,
   } = useExerciseActions({
     isAdmin: Boolean(currentUser?.isAdmin),
-    setExerciseCatalog,
+    setExerciseCatalog: (update) =>
+      exercises.setData((previous) =>
+        typeof update === "function" ? update(previous || []) : update,
+      ),
     askPrompt,
     askConfirm,
     notify,
@@ -430,6 +491,7 @@ export default function App() {
       // Clear local state even if the session already expired.
     }
     setCurrentUserId(null);
+    setPrefetchedViews(new Set());
     setView("login");
     clearTraining();
   };
@@ -437,6 +499,7 @@ export default function App() {
   useEffect(() => {
     const handleUnauthorized = () => {
       setCurrentUserId(null);
+      setPrefetchedViews(new Set());
       clearTraining();
       setView("login");
     };
@@ -509,6 +572,7 @@ export default function App() {
       <AppShell
         view={view}
         onViewChange={setView}
+        onViewPreload={handleViewPreload}
         currentUser={currentUser}
         authHeaderEnabled={authHeaderEnabled}
         onLogout={
@@ -706,6 +770,7 @@ export default function App() {
             <ExercisesView
               data={{
                 exercises: exerciseCatalog,
+                loading: exercises.loading,
                 isAdmin: Boolean(currentUser?.isAdmin),
               }}
               actions={{

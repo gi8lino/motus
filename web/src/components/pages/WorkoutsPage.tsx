@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 
 import type {
   AskConfirmOptions,
@@ -9,8 +9,14 @@ import type {
 import type { WorkoutFormDefaults } from "../workouts/WorkoutForm";
 
 import { WorkoutsList } from "../workouts/WorkoutList";
-import { WorkoutsEditor } from "../workouts/WorkoutEditor";
 import { useWorkoutActions } from "../../hooks/useWorkoutActions";
+
+const loadWorkoutsEditor = () => import("../workouts/WorkoutEditor");
+const WorkoutsEditor = lazy(() =>
+  loadWorkoutsEditor().then((module) => ({
+    default: module.WorkoutsEditor,
+  })),
+);
 
 export type WorkoutsServices = {
   onCreateExercise: (name: string) => Promise<CatalogExercise>;
@@ -55,6 +61,16 @@ export function WorkoutsView(props: WorkoutsViewProps) {
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
 
+  useEffect(() => {
+    const preload = () => void loadWorkoutsEditor();
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 1200 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(preload, 200);
+    return () => globalThis.clearTimeout(id);
+  }, []);
+
   // Keep using existing action logic for "new/edit" selection behavior
   const { newWorkout, editWorkoutFromList, removeWorkout, shareWorkout } =
     useWorkoutActions({
@@ -83,24 +99,36 @@ export function WorkoutsView(props: WorkoutsViewProps) {
         onDelete={(id) => removeWorkout(id)}
       />
 
-      <WorkoutsEditor
-        open={editorOpen}
-        onClose={() => setEditorOpen(false)}
-        editingWorkout={editingWorkout}
-        setEditingWorkout={setEditingWorkout}
-        currentUserId={props.currentUserId}
-        setWorkouts={props.setWorkouts}
-        setSelectedWorkoutId={setSelectedWorkoutId}
-        formData={props.formData}
-        defaults={props.defaults}
-        services={{
-          onCreateExercise: props.services.onCreateExercise,
-          promptUser: props.services.promptUser,
-          notifyUser: props.services.notifyUser,
-          askConfirm: props.services.askConfirm,
-          onToast: props.services.onToast,
-        }}
-      />
+      {editorOpen ? (
+        <Suspense
+          fallback={
+            <div className="modal-overlay" role="status">
+              <div className="modal">
+                <p className="muted">Opening workout editor…</p>
+              </div>
+            </div>
+          }
+        >
+          <WorkoutsEditor
+            open
+            onClose={() => setEditorOpen(false)}
+            editingWorkout={editingWorkout}
+            setEditingWorkout={setEditingWorkout}
+            currentUserId={props.currentUserId}
+            setWorkouts={props.setWorkouts}
+            setSelectedWorkoutId={setSelectedWorkoutId}
+            formData={props.formData}
+            defaults={props.defaults}
+            services={{
+              onCreateExercise: props.services.onCreateExercise,
+              promptUser: props.services.promptUser,
+              notifyUser: props.services.notifyUser,
+              askConfirm: props.services.askConfirm,
+              onToast: props.services.onToast,
+            }}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

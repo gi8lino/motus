@@ -16,6 +16,7 @@ type NavTabsProps = {
   view: View;
   views: View[];
   onSelect: (next: View) => void;
+  onPreload: (next: View) => void;
 };
 
 const LABELS: Record<View, string> = {
@@ -29,7 +30,7 @@ const LABELS: Record<View, string> = {
   admin: UI_TEXT.nav.admin,
 };
 
-export function NavTabs({ view, views, onSelect }: NavTabsProps) {
+export function NavTabs({ view, views, onSelect, onPreload }: NavTabsProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -57,6 +58,8 @@ export function NavTabs({ view, views, onSelect }: NavTabsProps) {
             <MenuItem
               key={nextView}
               selected={view === nextView}
+              onFocus={() => onPreload(nextView)}
+              onMouseEnter={() => onPreload(nextView)}
               onClick={() => {
                 onSelect(nextView);
                 setAnchorEl(null);
@@ -97,7 +100,13 @@ export function NavTabs({ view, views, onSelect }: NavTabsProps) {
       }}
     >
       {views.map((nextView) => (
-        <Tab key={nextView} value={nextView} label={LABELS[nextView]} />
+        <Tab
+          key={nextView}
+          value={nextView}
+          label={LABELS[nextView]}
+          onFocus={() => onPreload(nextView)}
+          onMouseEnter={() => onPreload(nextView)}
+        />
       ))}
     </Tabs>
   );

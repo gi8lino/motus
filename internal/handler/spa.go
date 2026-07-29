@@ -56,6 +56,7 @@ func SPA(spaFS fs.FS, routePrefix string) http.HandlerFunc {
 	indexBytes := rendered.Bytes()
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeContent(w, r, path.Base("index.html"), indexMod, bytes.NewReader(indexBytes))
 	}
 }

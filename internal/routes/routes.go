@@ -21,11 +21,12 @@ func NewRouter(
 ) (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	spaFiles := http.FileServer(http.FS(spaFS))
+	spaFiles := newStaticFileHandler(spaFS)
+	spa := handler.SPA(spaFS, routePrefix)
 	mux.Handle("GET /assets/", spaFiles)
 	mux.Handle("GET /fonts/", spaFiles)
 	mux.Handle("GET /sounds/", spaFiles)
-	mux.Handle("GET /index.html", spaFiles)
+	mux.Handle("GET /index.html", spa)
 	mux.Handle("GET /motus.svg", spaFiles)
 	mux.Handle("GET /brand.svg", spaFiles)
 	mux.Handle("GET /favicon-16x16.png", spaFiles)
@@ -91,7 +92,7 @@ func NewRouter(
 	mux.Handle("/api/", http.StripPrefix("/api", protectedAPI))
 
 	// SPA
-	mux.Handle("/", handler.SPA(spaFS, routePrefix))
+	mux.Handle("/", spa)
 
 	var h http.Handler = mux
 	h = handler.WithCORS(api.Origin, h)

@@ -19,6 +19,7 @@ import { NavTabs } from "./NavigationTabs";
 type AppShellProps = {
   view: View;
   onViewChange: (view: View) => void;
+  onViewPreload: (view: View) => void;
   currentUser: User | null;
   authHeaderEnabled: boolean;
   onLogout?: () => void;
@@ -34,6 +35,7 @@ type AppShellProps = {
 export function AppShell({
   view,
   onViewChange,
+  onViewPreload,
   currentUser,
   authHeaderEnabled,
   onLogout,
@@ -105,6 +107,7 @@ export function AppShell({
                   view={view}
                   views={availableViews}
                   onSelect={onViewChange}
+                  onPreload={onViewPreload}
                 />
 
                 {!authHeaderEnabled && currentUser && onLogout ? (
