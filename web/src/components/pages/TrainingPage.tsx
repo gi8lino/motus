@@ -34,6 +34,7 @@ import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
 import { useTrainingAudio } from "../../hooks/useTrainingAudio";
 import { useTrainingOverrun } from "../../hooks/useTrainingOverrun";
 import { useTrainingKeyboard } from "../../hooks/useTrainingKeyboard";
+import { useTrainingDevice } from "../../hooks/useTrainingDevice";
 
 export type TrainingViewData = {
   workouts: Workout[];
@@ -114,7 +115,11 @@ export function TrainingView({
       return [];
     }
   });
+  const [vibrationEnabled, setVibrationEnabled] = useState(
+    () => localStorage.getItem("motus:vibration") === "true",
+  );
   const autoFinishRef = useRef<string | null>(null);
+  useTrainingDevice(Boolean(training?.running), vibrationEnabled);
 
   const trainingRef = useRef<TrainingState | null>(training);
   const currentStepRef = useRef<TrainingStepState | null>(currentStep);
@@ -251,6 +256,23 @@ export function TrainingView({
                       color="primary"
                       label={
                         workoutName || UI_TEXT.training.headers.workoutFallback
+                      }
+                    />
+                    <Chip
+                      size="small"
+                      clickable
+                      variant={vibrationEnabled ? "filled" : "outlined"}
+                      label={
+                        vibrationEnabled ? "Vibration on" : "Vibration off"
+                      }
+                      onClick={() =>
+                        setVibrationEnabled((current) => {
+                          localStorage.setItem(
+                            "motus:vibration",
+                            String(!current),
+                          );
+                          return !current;
+                        })
                       }
                     />
                     <Chip size="small" label={headerStatus} />
