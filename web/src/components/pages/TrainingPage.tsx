@@ -26,6 +26,7 @@ import { PROMPTS } from "../../utils/messages";
 import { UI_TEXT } from "../../utils/uiText";
 import { getTrainingHeaderStatus } from "../../utils/training";
 import { selectQuickWorkouts } from "../../utils/trainingHome";
+import { getTotalElapsedMillis } from "../../utils/trainingElapsed";
 import { TrainingCard } from "../training/TrainingCard";
 import { TrainingFinishModal } from "../training/FinishTrainingModal";
 import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
@@ -187,6 +188,10 @@ export function TrainingView({
     () => getTrainingHeaderStatus(training),
     [training],
   );
+  const totalElapsed = useMemo(
+    () => getTotalElapsedMillis(training, elapsed),
+    [elapsed, training],
+  );
 
   const startLabel =
     selectedWorkoutId && training?.workoutId === selectedWorkoutId
@@ -259,9 +264,9 @@ export function TrainingView({
                     <Chip
                       size="small"
                       variant="outlined"
-                      label={formatElapsedMillis(elapsed, {
+                      label={`Total ${formatElapsedMillis(totalElapsed, {
                         showHours: data.showHours,
-                      })}
+                      })}`}
                     />
                   </Stack>
                 ) : (
