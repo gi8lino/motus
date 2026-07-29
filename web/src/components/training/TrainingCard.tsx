@@ -24,6 +24,7 @@ import { STEP_TYPE_PAUSE } from "../../utils/step";
 import type { Exercise, TrainingState, TrainingStepState } from "../../types";
 import {
   formatExerciseMetric,
+  formatExerciseSide,
   formatRoundValue,
   formatStepValue,
 } from "../../utils/trainingCard";
@@ -54,9 +55,9 @@ function getUpcomingStep(
 
 function getModeLabel(mode: TrainingMode) {
   if (mode === "superset") return "Superset";
-  if (mode === "timed") return "Timed round";
+  if (mode === "timed") return "Timed exercise";
   if (mode === "recovery") return "Recovery";
-  return "Round";
+  return "Exercise";
 }
 
 function getExerciseName(exercise: Exercise | undefined, fallback: string) {
@@ -64,20 +65,34 @@ function getExerciseName(exercise: Exercise | undefined, fallback: string) {
 }
 
 function getExerciseNameWithSide(exercise: Exercise) {
-  const side =
-    exercise.side === "left"
-      ? "Left"
-      : exercise.side === "right"
-        ? "Right"
-        : "";
+  const side = formatExerciseSide(exercise);
   return side ? `${exercise.name} (${side})` : exercise.name;
+}
+
+function SideBadge({ exercise }: { exercise: Exercise | undefined }) {
+  const side = formatExerciseSide(exercise);
+  if (!side) return null;
+  return (
+    <Chip
+      size="small"
+      color="primary"
+      variant="outlined"
+      label={side}
+      sx={{
+        height: 28,
+        fontWeight: 900,
+        letterSpacing: "0.09em",
+        textTransform: "uppercase",
+      }}
+    />
+  );
 }
 
 function ExerciseMetric({ exercise }: { exercise: Exercise }) {
   const metric = formatExerciseMetric(exercise);
   if (!metric) return null;
   return (
-    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 650 }}>
       {metric}
     </Typography>
   );
@@ -86,14 +101,7 @@ function ExerciseMetric({ exercise }: { exercise: Exercise }) {
 function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
   return (
     <Stack
-      divider={
-        <Box
-          sx={{
-            borderTop: "1px solid",
-            borderColor: "divider",
-          }}
-        />
-      }
+      divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}
       sx={{
         border: "1px solid",
         borderColor: "primary.main",
@@ -107,41 +115,107 @@ function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
           key={`${exercise.name}-${exercise.side || ""}-${index}`}
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "36px minmax(0, 1fr)", sm: "48px 1fr" },
+            gridTemplateColumns: { xs: "34px minmax(0, 1fr)", sm: "46px 1fr" },
             gap: { xs: 1.25, sm: 2 },
             alignItems: "center",
-            px: { xs: 1.5, sm: 2.25 },
-            py: { xs: 1.5, sm: 1.8 },
+            px: { xs: 1.4, sm: 2.25 },
+            py: { xs: 1.45, sm: 1.75 },
           }}
         >
           <Typography
             variant="h5"
             color="primary.main"
-            sx={{ fontWeight: 800, textAlign: "center" }}
+            sx={{ fontWeight: 900, textAlign: "center" }}
           >
             {index + 1}
           </Typography>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                lineHeight: 1.15,
-                textTransform: "uppercase",
-                overflowWrap: "anywhere",
-              }}
+
+          <Stack spacing={0.6} sx={{ minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{ alignItems: "center", flexWrap: "wrap" }}
             >
-              {exercise.name}
-            </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 850,
+                  lineHeight: 1.15,
+                  textTransform: "uppercase",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {exercise.name}
+              </Typography>
+              <SideBadge exercise={exercise} />
+            </Stack>
             <ExerciseMetric exercise={exercise} />
-          </Box>
+          </Stack>
         </Box>
       ))}
     </Stack>
   );
 }
 
-function NextStepCard({
+function TimerDisplay({
+  clockText,
+  supportText,
+  transitioning,
+  compact,
+}: {
+  clockText: string;
+  supportText: string;
+  transitioning: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <Box sx={{ textAlign: "center", py: compact ? 0.5 : { xs: 1, md: 1.5 } }}>
+      <Typography
+        variant="h1"
+        sx={{
+          fontSize: compact
+            ? { xs: "clamp(3.6rem, 15vw, 5.4rem)", md: "5.5rem" }
+            : {
+                xs: "clamp(4rem, 17vw, 6.2rem)",
+                md: "clamp(5.5rem, 9vw, 8rem)",
+              },
+          fontVariantNumeric: "tabular-nums",
+          letterSpacing: "-0.065em",
+          lineHeight: 0.95,
+          color: transitioning ? "warning.main" : "text.primary",
+        }}
+      >
+        {clockText}
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mt: 1.1 }}>
+        {supportText}
+      </Typography>
+    </Box>
+  );
+}
+
+function Timeline({ value, recovery }: { value: number; recovery: boolean }) {
+  return (
+    <LinearProgress
+      aria-label="Timer progress"
+      variant="determinate"
+      value={value}
+      color={recovery ? "warning" : "primary"}
+      sx={{
+        height: 10,
+        borderRadius: 999,
+        bgcolor: (theme) =>
+          alpha(
+            recovery ? theme.palette.warning.main : theme.palette.primary.main,
+            0.14,
+          ),
+      }}
+    />
+  );
+}
+
+function NextStepPreview({
   step,
   emphasized,
 }: {
@@ -155,62 +229,63 @@ function NextStepCard({
       ? getStepName(step)
       : getExerciseName(primary, getStepName(step))
     : "Training complete";
+  const side = formatExerciseSide(primary);
   const detail =
     step?.superset && exercises.length > 1
       ? exercises.map(getExerciseNameWithSide).join(" • ")
       : primary
-        ? formatExerciseMetric(primary)
+        ? [formatExerciseMetric(primary), side].filter(Boolean).join(" · ")
         : step?.estimatedSeconds
           ? formatCountdownMillis(step.estimatedSeconds * 1000)
           : "";
 
   return (
-    <Card
-      variant="outlined"
+    <Box
       sx={{
+        pt: 2.25,
+        borderTop: "1px solid",
         borderColor: emphasized ? "warning.main" : "divider",
-        bgcolor: emphasized
-          ? (theme) => alpha(theme.palette.warning.main, 0.08)
-          : undefined,
       }}
     >
-      <CardContent sx={{ p: 2.25 }}>
-        <Typography
-          variant="overline"
-          color={emphasized ? "warning.main" : "text.secondary"}
-        >
-          Up next
-        </Typography>
-        <Typography
-          variant="h5"
-          sx={{
-            mt: 0.75,
-            fontWeight: 800,
-            lineHeight: 1.15,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {title}
-        </Typography>
-        {detail ? (
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
+      >
+        <Box sx={{ minWidth: 0 }}>
           <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ mt: 1, lineHeight: 1.5 }}
+            variant="overline"
+            color={emphasized ? "warning.main" : "text.secondary"}
           >
-            {detail}
+            Up next
           </Typography>
-        ) : null}
-        {step && step.estimatedSeconds ? (
+          <Typography
+            variant="h6"
+            sx={{
+              mt: 0.25,
+              fontWeight: 850,
+              lineHeight: 1.2,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {title}
+          </Typography>
+          {detail ? (
+            <Typography color="text.secondary" sx={{ mt: 0.45 }}>
+              {detail}
+            </Typography>
+          ) : null}
+        </Box>
+
+        {step?.estimatedSeconds ? (
           <Chip
             size="small"
             variant="outlined"
-            sx={{ mt: 1.5 }}
             label={formatCountdownMillis(step.estimatedSeconds * 1000)}
           />
         ) : null}
-      </CardContent>
-    </Card>
+      </Stack>
+    </Box>
   );
 }
 
@@ -243,7 +318,7 @@ function TrainingActions({
 }) {
   return (
     <Stack
-      direction={mobile ? "row" : "column"}
+      direction="row"
       spacing={1.25}
       sx={{ width: "100%", p: mobile ? 1.25 : 0 }}
     >
@@ -276,8 +351,8 @@ function TrainingActions({
         onClick={onAdvance}
         disabled={!training || done || !training.startedAt}
         sx={{
-          minHeight: mobile ? 64 : 56,
-          fontSize: mobile ? "0.95rem" : "0.98rem",
+          minHeight: mobile ? 64 : 58,
+          fontSize: mobile ? "0.95rem" : "1rem",
         }}
       >
         {advanceLabel}
@@ -328,11 +403,11 @@ export function TrainingCard({
   const targetMillis = (currentStep?.estimatedSeconds || 0) * 1000;
   const hasTimerTarget = targetMillis > 0;
   const remainingMillis =
-    isCountdown && targetMillis > 0
+    isCountdown && hasTimerTarget
       ? getCountdownDisplayMillis(targetMillis, elapsed)
       : 0;
   const clockText =
-    isCountdown && targetMillis > 0
+    isCountdown && hasTimerTarget
       ? formatCountdownMillis(remainingMillis, { showHours })
       : formatElapsedMillis(elapsed, { showHours });
   const progress = hasTimerTarget
@@ -343,6 +418,15 @@ export function TrainingCard({
     isCountdown &&
     remainingMillis > 0 &&
     remainingMillis <= 5000;
+  const timerSupport = isCountdown
+    ? `${formatCountdownMillis(targetMillis, {
+        showHours,
+      })} · advances automatically`
+    : hasTimerTarget
+      ? `Target ${formatCountdownMillis(targetMillis, {
+          showHours,
+        })} · continues after cue`
+      : "Elapsed";
   const upcomingStep = useMemo(() => getUpcomingStep(training), [training]);
 
   const totalSteps = training?.steps.length || 0;
@@ -393,231 +477,197 @@ export function TrainingCard({
   );
 
   return (
-    <Stack spacing={2.5}>
-      <Box
+    <Stack spacing={2}>
+      <Card
         sx={{
-          display: "grid",
-          gap: 2.5,
-          gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 320px" },
-          alignItems: "start",
+          overflow: "hidden",
+          background: `linear-gradient(150deg, ${alpha(
+            isRecovery
+              ? theme.palette.warning.main
+              : theme.palette.primary.main,
+            0.11,
+          )}, ${alpha(theme.palette.background.paper, 0.98)})`,
         }}
       >
-        <Card
-          sx={{
-            overflow: "hidden",
-            background: `linear-gradient(150deg, ${alpha(
-              isRecovery
-                ? theme.palette.warning.main
-                : theme.palette.primary.main,
-              0.12,
-            )}, ${alpha(theme.palette.background.paper, 0.98)})`,
-          }}
-        >
-          {isTransitioning ? (
-            <Box
+        {isTransitioning ? (
+          <Box
+            sx={{
+              py: 1,
+              px: 2,
+              bgcolor: "warning.main",
+              color: "warning.contrastText",
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="subtitle1"
               sx={{
-                py: 1,
-                px: 2,
-                bgcolor: "warning.main",
-                color: "warning.contrastText",
-                textAlign: "center",
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
               }}
             >
-              <Typography
-                variant="subtitle1"
+              Get ready
+            </Typography>
+          </Box>
+        ) : null}
+
+        <CardContent sx={{ p: { xs: 2, sm: 2.75, md: 3.5 } }}>
+          <Stack spacing={{ xs: 2.25, md: 2.75 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Chip
+                label={getModeLabel(mode)}
+                color={isRecovery ? "warning" : "primary"}
                 sx={{
-                  fontWeight: 900,
-                  letterSpacing: "0.14em",
+                  fontWeight: 850,
                   textTransform: "uppercase",
+                  letterSpacing: "0.08em",
                 }}
-              >
-                Get ready
-              </Typography>
-            </Box>
-          ) : null}
-
-          <CardContent sx={{ p: { xs: 2, sm: 2.75, md: 3.5 } }}>
-            <Stack spacing={{ xs: 2, md: 2.75 }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                useFlexGap
-                sx={{
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Chip
-                  label={getModeLabel(mode)}
-                  color={isRecovery ? "warning" : "primary"}
-                  sx={{
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                />
-                <Stack direction="row" spacing={1}>
-                  {roundValue ? (
-                    <Chip variant="outlined" label={`Round ${roundValue}`} />
-                  ) : null}
-                  {stepValue ? (
-                    <Chip variant="outlined" label={stepValue} />
-                  ) : null}
-                </Stack>
+              />
+              <Stack direction="row" spacing={1}>
+                {roundValue ? (
+                  <Chip variant="outlined" label={`Round ${roundValue}`} />
+                ) : null}
+                {stepValue ? (
+                  <Chip variant="outlined" label={stepValue} />
+                ) : null}
               </Stack>
-
-              <Box sx={{ textAlign: "center", py: { xs: 0.5, md: 1 } }}>
-                <Typography
-                  variant={isMobile ? "h1" : "h1"}
-                  sx={{
-                    fontSize: {
-                      xs: "clamp(4rem, 17vw, 6.2rem)",
-                      md: "clamp(5.5rem, 9vw, 8rem)",
-                    },
-                    fontVariantNumeric: "tabular-nums",
-                    letterSpacing: "-0.065em",
-                    lineHeight: 0.95,
-                    color: isTransitioning ? "warning.main" : "text.primary",
-                  }}
-                >
-                  {clockText}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mt: 1.25 }}
-                >
-                  {isCountdown
-                    ? `${formatCountdownMillis(targetMillis, {
-                        showHours,
-                      })} · advances automatically`
-                    : hasTimerTarget
-                      ? `Target ${formatCountdownMillis(targetMillis, {
-                          showHours,
-                        })} · continues after cue`
-                      : isSuperset
-                        ? "Elapsed · no time limit"
-                        : "Elapsed"}
-                </Typography>
-              </Box>
-
-              {!currentStep ? (
-                <Typography
-                  variant="h3"
-                  sx={{ textAlign: "center", py: 5, fontWeight: 800 }}
-                >
-                  {PROMPTS.noTraining}
-                </Typography>
-              ) : isSuperset ? (
-                <Stack spacing={1.5}>
-                  <SupersetExerciseList exercises={exercises} />
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textAlign: "center" }}
-                  >
-                    Perform these exercises continuously. Finish the block when
-                    you are done.
-                  </Typography>
-                </Stack>
-              ) : isRecovery ? (
-                <Box sx={{ textAlign: "center", py: { xs: 1.5, md: 3 } }}>
-                  <Typography
-                    variant="h2"
-                    sx={{
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    Rest
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1 }}>
-                    {isCountdown
-                      ? "The next round starts automatically."
-                      : "Continue when you are ready."}
-                  </Typography>
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: "center", py: { xs: 1.5, md: 3 } }}>
-                  <Typography
-                    variant="h2"
-                    sx={{
-                      fontSize: {
-                        xs: "clamp(2.5rem, 10vw, 4rem)",
-                        md: "clamp(3.5rem, 6vw, 5.5rem)",
-                      },
-                      fontWeight: 900,
-                      lineHeight: 1,
-                      textTransform: "uppercase",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {getExerciseName(primaryExercise, getStepName(currentStep))}
-                  </Typography>
-                  {primaryExercise ? (
-                    <Box sx={{ mt: 1.5 }}>
-                      <ExerciseMetric exercise={primaryExercise} />
-                    </Box>
-                  ) : null}
-                </Box>
-              )}
-
-              {hasTimerTarget ? (
-                <LinearProgress
-                  variant="determinate"
-                  value={progress}
-                  color={isRecovery ? "warning" : "primary"}
-                  sx={{
-                    height: 10,
-                    borderRadius: 999,
-                    bgcolor: alpha(
-                      isRecovery
-                        ? theme.palette.warning.main
-                        : theme.palette.primary.main,
-                      0.14,
-                    ),
-                  }}
-                />
-              ) : null}
             </Stack>
-          </CardContent>
-        </Card>
 
-        <Stack
-          spacing={2}
-          sx={{
-            position: { lg: "sticky" },
-            top: { lg: 104 },
-          }}
-        >
-          <NextStepCard step={upcomingStep} emphasized={isTransitioning} />
-          {!isMobile ? (
-            <Card>
-              <CardContent sx={{ p: 2 }}>
+            {!currentStep ? (
+              <Typography
+                variant="h3"
+                sx={{ textAlign: "center", py: 6, fontWeight: 850 }}
+              >
+                {PROMPTS.noTraining}
+              </Typography>
+            ) : isSuperset ? (
+              <Stack spacing={1.75}>
+                <TimerDisplay
+                  clockText={clockText}
+                  supportText={
+                    hasTimerTarget ? timerSupport : "Elapsed · no time limit"
+                  }
+                  transitioning={isTransitioning}
+                  compact
+                />
+                <SupersetExerciseList exercises={exercises} />
+                {hasTimerTarget ? (
+                  <Timeline value={progress} recovery={false} />
+                ) : null}
                 <Typography
-                  variant="overline"
+                  variant="body2"
                   color="text.secondary"
-                  sx={{ mb: 1.25, display: "block" }}
+                  sx={{ textAlign: "center" }}
                 >
-                  Controls
+                  Perform these exercises continuously. Finish the block when
+                  you are done.
                 </Typography>
+              </Stack>
+            ) : isRecovery ? (
+              <Stack spacing={1.75}>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    textAlign: "center",
+                    fontWeight: 900,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Rest
+                </Typography>
+                <TimerDisplay
+                  clockText={clockText}
+                  supportText={
+                    isCountdown
+                      ? "The next exercise starts automatically"
+                      : "Continue when you are ready"
+                  }
+                  transitioning={isTransitioning}
+                />
+                {hasTimerTarget ? <Timeline value={progress} recovery /> : null}
+              </Stack>
+            ) : (
+              <Stack spacing={1.8}>
+                <Stack
+                  spacing={1}
+                  sx={{ alignItems: "center", textAlign: "center" }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1.25}
+                    useFlexGap
+                    sx={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography
+                      variant="h2"
+                      sx={{
+                        fontSize: {
+                          xs: "clamp(2.5rem, 10vw, 4rem)",
+                          md: "clamp(3.5rem, 6vw, 5.5rem)",
+                        },
+                        fontWeight: 900,
+                        lineHeight: 1,
+                        textTransform: "uppercase",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {getExerciseName(
+                        primaryExercise,
+                        getStepName(currentStep),
+                      )}
+                    </Typography>
+                    <SideBadge exercise={primaryExercise} />
+                  </Stack>
+                  {primaryExercise ? (
+                    <ExerciseMetric exercise={primaryExercise} />
+                  ) : null}
+                </Stack>
+
+                <TimerDisplay
+                  clockText={clockText}
+                  supportText={timerSupport}
+                  transitioning={isTransitioning}
+                />
+                {hasTimerTarget ? (
+                  <Timeline value={progress} recovery={false} />
+                ) : null}
+              </Stack>
+            )}
+
+            <NextStepPreview step={upcomingStep} emphasized={isTransitioning} />
+
+            {!isMobile ? (
+              <Box
+                sx={{
+                  pt: 2.25,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
                 {actions}
-              </CardContent>
-            </Card>
-          ) : null}
-        </Stack>
-      </Box>
+              </Box>
+            ) : null}
+          </Stack>
+        </CardContent>
+      </Card>
 
       {isMobile ? (
-        <Box
-          sx={{
-            position: "sticky",
-            bottom: 12,
-            zIndex: 9,
-          }}
-        >
+        <Box sx={{ position: "sticky", bottom: 12, zIndex: 9 }}>
           <Card
             sx={{
               bgcolor: alpha(theme.palette.background.paper, 0.92),

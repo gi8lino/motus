@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   formatExerciseMetric,
   formatRoundValue,
+  formatExerciseSide,
   formatStepValue,
 } from "../src/utils/trainingCard.ts";
 import { workoutStepsReducer } from "../src/components/workouts/workoutDraftReducer.ts";
@@ -33,7 +34,7 @@ test("training card helpers cover metric, counters, and rounds", () => {
       reps: "8",
       side: "left",
     }),
-    "8 reps · Left side",
+    "8 reps",
   );
   assert.equal(
     formatExerciseMetric({
@@ -41,7 +42,11 @@ test("training card helpers cover metric, counters, and rounds", () => {
       duration: "20s",
       side: "right",
     }),
-    "20s · Right side",
+    "20s",
+  );
+  assert.equal(
+    formatExerciseSide({ name: "Single-arm row", side: "left" }),
+    "Left",
   );
   assert.equal(formatStepValue(2, 5), "2/5");
   assert.equal(

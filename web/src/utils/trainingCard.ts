@@ -9,10 +9,13 @@ export function formatExerciseMetric(exercise: Exercise | undefined) {
 
   if (exercise.weight) parts.push(exercise.weight);
 
-  if (exercise.side === "left") parts.push("Left side");
-  if (exercise.side === "right") parts.push("Right side");
-
   return parts.join(" · ");
+}
+
+export function formatExerciseSide(exercise: Exercise | undefined) {
+  if (exercise?.side === "left") return "Left";
+  if (exercise?.side === "right") return "Right";
+  return "";
 }
 
 export function formatRoundValue(step: TrainingStepState | null) {
