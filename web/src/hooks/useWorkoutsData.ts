@@ -4,7 +4,6 @@ import {
   listExercises,
   listTrainingHistory,
   listSounds,
-  listTemplates,
   listUsers,
   listWorkouts,
 } from "../api";
@@ -12,7 +11,6 @@ import type {
   CatalogExercise,
   TrainingHistoryItem,
   SoundOption,
-  Template,
   User,
   View,
   Workout,
@@ -43,7 +41,6 @@ export function useWorkoutsData({
   const needsExercises =
     canLoadUser && (wants("workouts") || wants("exercises"));
   const needsHistory = canLoadUser && wants("history");
-  const needsTemplates = canLoadUser && wants("templates");
 
   const currentUserLoader = useDataLoader<User | null>(
     () => (canLoadUser ? getCurrentUser() : Promise.resolve(null)),
@@ -77,10 +74,6 @@ export function useWorkoutsData({
     [currentUserId],
     { enabled: needsHistory, cacheKey: currentUserId },
   );
-  const templates = useDataLoader<Template[]>(listTemplates, [], {
-    enabled: needsTemplates,
-    cacheKey: currentUserId,
-  });
 
   const activeWorkouts = workouts.data || [];
   const currentUser = useMemo(
@@ -95,7 +88,6 @@ export function useWorkoutsData({
     workouts,
     exercises,
     history,
-    templates,
     activeWorkouts,
     currentUser,
   };

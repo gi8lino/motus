@@ -13,12 +13,11 @@ type User struct {
 
 // Workout groups stopwatch steps.
 type Workout struct {
-	ID         string        `json:"id"`         // ID is the unique workout identifier.
-	UserID     string        `json:"userId"`     // UserID owns the workout.
-	Name       string        `json:"name"`       // Name is the workout title.
-	IsTemplate bool          `json:"isTemplate"` // IsTemplate marks shared templates.
-	CreatedAt  time.Time     `json:"createdAt"`  // CreatedAt records when the workout was created.
-	Steps      []WorkoutStep `json:"steps"`      // Steps defines the workout flow.
+	ID        string        `json:"id"`        // ID is the unique workout identifier.
+	UserID    string        `json:"userId"`    // UserID owns the workout.
+	Name      string        `json:"name"`      // Name is the workout title.
+	CreatedAt time.Time     `json:"createdAt"` // CreatedAt records when the workout was created.
+	Steps     []WorkoutStep `json:"steps"`     // Steps defines the workout flow.
 }
 
 // PauseOptions captures optional behaviour for pause steps.

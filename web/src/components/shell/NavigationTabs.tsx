@@ -23,7 +23,6 @@ const LABELS: Record<View, string> = {
   login: UI_TEXT.nav.login,
   train: UI_TEXT.nav.train,
   workouts: UI_TEXT.nav.workouts,
-  templates: UI_TEXT.nav.templates,
   exercises: UI_TEXT.nav.exercises,
   history: UI_TEXT.nav.history,
   profile: UI_TEXT.nav.profile,

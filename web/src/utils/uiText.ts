@@ -48,7 +48,6 @@ export const UI_TEXT = {
   },
   prompts: {
     selectUserFirst: "Select a user first.",
-    templateName: "Template name",
     workoutNameOptional: "Workout name (optional)",
     exerciseName: "Exercise name",
     coreExerciseName: "Core exercise name",
@@ -67,7 +66,6 @@ export const UI_TEXT = {
   },
   toasts: {
     shared: "Shared.",
-    templateCopied: "Template copied to clipboard.",
     workoutDeleted: "Workout deleted.",
     copiedSummary: "Copied summary",
     workoutExported: "Workout exported.",
@@ -184,14 +182,6 @@ export const UI_TEXT = {
       addCoreExercise: "Add Core Exercise",
       empty: "No exercises yet.",
     },
-    templates: {
-      title: "Templates",
-      hint: "Create workouts from shared templates.",
-      refresh: "Refresh",
-      loading: "Loading templates…",
-      apply: "Use for user",
-      empty: "No templates yet.",
-    },
     history: {
       title: "Training history",
       hint: "Completed trainings for the selected user.",
@@ -247,7 +237,6 @@ export const UI_TEXT = {
     login: "Login",
     train: "Training",
     workouts: "Workouts",
-    templates: "Templates",
     exercises: "Exercises",
     history: "History",
     profile: "Profile",

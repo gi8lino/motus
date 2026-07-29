@@ -440,6 +440,12 @@ export function WorkoutForm({
     markDirty();
   };
 
+  const duplicateStep = (idx: number) => {
+    dispatchSteps({ type: "duplicateStep", index: idx });
+    setExpandedSteps((current) => new Set(current).add(idx + 1));
+    markDirty();
+  };
+
   const moveStep = (index: number, delta: number) => {
     dispatchSteps({ type: "moveStep", index, delta });
 
@@ -980,6 +986,15 @@ export function WorkoutForm({
                   title={UI_TEXT.titles.moveDown}
                 >
                   <ArrowDownIcon />
+                </button>
+
+                <button
+                  className="btn subtle"
+                  type="button"
+                  onClick={() => duplicateStep(idx)}
+                  title="Duplicate step"
+                >
+                  Duplicate
                 </button>
 
                 <button

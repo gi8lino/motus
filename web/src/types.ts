@@ -67,12 +67,8 @@ export type Workout = {
   userId: string;
   name: string;
   createdAt?: string;
-  isTemplate?: boolean;
   steps: WorkoutStep[];
 };
-
-// Template describes a reusable workout template.
-export type Template = Workout;
 
 // View represents the active app section.
 export type View =
@@ -82,7 +78,6 @@ export type View =
   | "profile"
   | "history"
   | "exercises"
-  | "templates"
   | "admin";
 
 // User describes a Motus account.

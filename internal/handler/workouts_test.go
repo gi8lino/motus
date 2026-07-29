@@ -16,35 +16,11 @@ import (
 )
 
 type fakeWorkoutStore struct {
-	listTemplatesFn           func(context.Context) ([]db.Workout, error)
-	createTemplateFn          func(context.Context, string, string) (*db.Workout, error)
-	createWorkoutFromTemplate func(context.Context, string, string, string) (*db.Workout, error)
-	workoutWithStepsFn        func(context.Context, string) (*db.Workout, error)
-	createWorkoutFn           func(context.Context, *db.Workout) (*db.Workout, error)
-	updateWorkoutFn           func(context.Context, *db.Workout) (*db.Workout, error)
-	workoutsByUserFn          func(context.Context, string) ([]db.Workout, error)
-	deleteWorkoutFn           func(context.Context, string) error
-}
-
-func (f *fakeWorkoutStore) ListTemplates(ctx context.Context) ([]db.Workout, error) {
-	if f.listTemplatesFn == nil {
-		return nil, nil
-	}
-	return f.listTemplatesFn(ctx)
-}
-
-func (f *fakeWorkoutStore) CreateTemplateFromWorkout(ctx context.Context, workoutID, name string) (*db.Workout, error) {
-	if f.createTemplateFn == nil {
-		return nil, nil
-	}
-	return f.createTemplateFn(ctx, workoutID, name)
-}
-
-func (f *fakeWorkoutStore) CreateWorkoutFromTemplate(ctx context.Context, templateID, userID, name string) (*db.Workout, error) {
-	if f.createWorkoutFromTemplate == nil {
-		return nil, nil
-	}
-	return f.createWorkoutFromTemplate(ctx, templateID, userID, name)
+	workoutWithStepsFn func(context.Context, string) (*db.Workout, error)
+	createWorkoutFn    func(context.Context, *db.Workout) (*db.Workout, error)
+	updateWorkoutFn    func(context.Context, *db.Workout) (*db.Workout, error)
+	workoutsByUserFn   func(context.Context, string) ([]db.Workout, error)
+	deleteWorkoutFn    func(context.Context, string) error
 }
 
 func (f *fakeWorkoutStore) WorkoutWithSteps(ctx context.Context, id string) (*db.Workout, error) {

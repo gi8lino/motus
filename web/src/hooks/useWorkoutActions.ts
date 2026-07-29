@@ -1,7 +1,8 @@
 import { useCallback } from "react";
+import { createWorkout } from "../api";
 import type { AskConfirmOptions, Workout } from "../types";
 import { MESSAGES, PROMPTS, toErrorMessage } from "../utils/messages";
-import { UI_TEXT } from "../utils/uiText";
+import { duplicateWorkoutDraft } from "../components/workouts/workoutDraftReducer";
 
 type UseWorkoutActionsArgs = {
   workouts: Workout[];
@@ -18,12 +19,8 @@ type UseWorkoutActionsArgs = {
     message: string,
     options?: AskConfirmOptions,
   ) => Promise<boolean>;
-  askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
-
   notify: (message: string) => Promise<void>;
-
-  // Optional: refresh templates list after “share”
-  templatesReload?: () => void;
+  currentUserId: string | null;
 
   /**
    * Optional persistence hooks.
@@ -31,7 +28,6 @@ type UseWorkoutActionsArgs = {
    * without changing the UI components.
    */
   deleteWorkoutApi?: (workoutId: string) => Promise<void>;
-  shareWorkoutApi?: (workoutId: string) => Promise<void>;
 };
 
 /**
@@ -49,11 +45,9 @@ export function useWorkoutActions({
   setSelectedWorkoutId,
   setWorkouts,
   askConfirm,
-  askPrompt,
   notify,
-  templatesReload,
+  currentUserId,
   deleteWorkoutApi,
-  shareWorkoutApi,
 }: UseWorkoutActionsArgs) {
   const newWorkout = useCallback(() => {
     setSelectedWorkoutId(null);
@@ -110,57 +104,31 @@ export function useWorkoutActions({
     ],
   );
 
-  const shareWorkout = useCallback(
+  const duplicateWorkout = useCallback(
     async (workoutId: string) => {
       const workout = workouts.find((w) => w.id === workoutId);
-      if (!workout) {
+      if (!workout || !currentUserId) {
         await notify(PROMPTS.workoutNotFound);
         return;
       }
-
-      // If you have a real share endpoint, prefer it.
-      if (shareWorkoutApi) {
-        try {
-          await shareWorkoutApi(workoutId);
-          templatesReload?.();
-          await notify(UI_TEXT.toasts.shared);
-          return;
-        } catch (err) {
-          await notify(toErrorMessage(err, MESSAGES.shareWorkoutFailed));
-          return;
-        }
-      }
-
-      // Fallback: “share” by copying JSON to clipboard.
-      const name = workout.name || UI_TEXT.labels.workout;
-      const defaultValue = `${name} (template)`;
-      const templateName = await askPrompt(
-        UI_TEXT.prompts.templateName,
-        defaultValue,
-      );
-      if (templateName === null) return;
-
-      const payload = {
-        ...workout,
-        name: templateName.trim() || name,
-        isTemplate: true,
-      };
-
       try {
-        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-        templatesReload?.();
-        await notify(UI_TEXT.toasts.templateCopied);
+        const created = await createWorkout({
+          userId: currentUserId,
+          ...duplicateWorkoutDraft(workout),
+        });
+        setWorkouts((current) => (current ? [created, ...current] : [created]));
+        await notify("Workout duplicated.");
       } catch (err) {
-        await notify(toErrorMessage(err, MESSAGES.copyTemplateFailed));
+        await notify(toErrorMessage(err, MESSAGES.saveWorkoutFailed));
       }
     },
-    [askPrompt, notify, shareWorkoutApi, templatesReload, workouts],
+    [currentUserId, notify, setWorkouts, workouts],
   );
 
   return {
     newWorkout,
     editWorkoutFromList,
     removeWorkout,
-    shareWorkout,
+    duplicateWorkout,
   };
 }

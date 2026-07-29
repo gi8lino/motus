@@ -81,12 +81,12 @@ func TestWrapError(t *testing.T) {
 	t.Run("WrapsWithScope", func(t *testing.T) {
 		t.Parallel()
 		cause := errors.New("boom")
-		err := WrapErrorWithScope(ErrorInternal, "templates", cause)
+		err := WrapErrorWithScope(ErrorInternal, "workouts", cause)
 		var svcErr *Error
 		if !errors.As(err, &svcErr) {
 			t.Fatalf("expected service error")
 		}
-		if svcErr.Scope != "templates" {
+		if svcErr.Scope != "workouts" {
 			t.Fatalf("expected scope to be set")
 		}
 	})

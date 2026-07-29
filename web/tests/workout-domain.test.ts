@@ -7,7 +7,10 @@ import {
   formatExerciseSide,
   formatStepValue,
 } from "../src/utils/trainingCard.ts";
-import { workoutStepsReducer } from "../src/components/workouts/workoutDraftReducer.ts";
+import {
+  duplicateWorkoutDraft,
+  workoutStepsReducer,
+} from "../src/components/workouts/workoutDraftReducer.ts";
 
 test("workout steps reducer supports replacement and functional updates", () => {
   const initial = [{ name: "One", type: "set" as const }];
@@ -62,4 +65,38 @@ test("training card helpers cover metric, counters, and rounds", () => {
     }),
     "2/3",
   );
+});
+
+test("duplicate workout and step create independent nested drafts", () => {
+  const workout = {
+    id: "w1",
+    userId: "u1",
+    name: "Strength",
+    steps: [
+      {
+        id: "step-1",
+        name: "Set",
+        type: "set" as const,
+        subsets: [
+          {
+            id: "subset-1",
+            name: "Main",
+            exercises: [{ name: "Squat", reps: "5" }],
+          },
+        ],
+      },
+    ],
+  };
+  const draft = duplicateWorkoutDraft(workout);
+  assert.equal(draft.name, "Strength (copy)");
+  assert.equal(draft.steps[0].id, undefined);
+  assert.equal(draft.steps[0].subsets?.[0].id, undefined);
+
+  const duplicated = workoutStepsReducer(workout.steps, {
+    type: "duplicateStep",
+    index: 0,
+  });
+  assert.equal(duplicated.length, 2);
+  duplicated[1].subsets![0].exercises![0].reps = "10";
+  assert.equal(duplicated[0].subsets![0].exercises![0].reps, "5");
 });

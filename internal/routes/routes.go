@@ -65,11 +65,6 @@ func NewRouter(
 	apiMux.Handle("PUT /workouts/{id}", api.UpdateWorkout())
 	apiMux.Handle("DELETE /workouts/{id}", api.DeleteWorkout())
 
-	apiMux.Handle("GET /templates", api.ListTemplates())
-	apiMux.Handle("POST /templates", api.CreateTemplate())
-	apiMux.Handle("GET /templates/{id}", api.GetTemplate())
-	apiMux.Handle("POST /templates/{id}/apply", api.ApplyTemplate())
-
 	apiMux.Handle("GET /exercises", api.ListExercises())
 	apiMux.Handle("POST /exercises", api.CreateExercise())
 	apiMux.Handle("PUT /exercises/{id}", api.UpdateExercise())

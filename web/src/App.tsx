@@ -16,7 +16,7 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { applyTemplate, getWorkout, logoutUser, updateUserName } from "./api";
+import { getWorkout, logoutUser, updateUserName } from "./api";
 
 import type { ThemeMode, User, View } from "./types";
 
@@ -46,7 +46,6 @@ const loadLoginView = () => import("./components/pages/LoginPage");
 const loadAdminView = () => import("./components/pages/AdminPage");
 const loadWorkoutsView = () => import("./components/pages/WorkoutsPage");
 const loadTrainingView = () => import("./components/pages/TrainingPage");
-const loadTemplatesView = () => import("./components/pages/TemplatesPage");
 const loadHistoryView = () => import("./components/pages/HistoryPage");
 const loadProfileView = () => import("./components/pages/ProfilePage");
 const loadExercisesView = () => import("./components/pages/ExercisesPage");
@@ -56,7 +55,6 @@ const viewLoaders: Partial<Record<View, () => Promise<unknown>>> = {
   admin: loadAdminView,
   workouts: loadWorkoutsView,
   train: loadTrainingView,
-  templates: loadTemplatesView,
   history: loadHistoryView,
   profile: loadProfileView,
   exercises: loadExercisesView,
@@ -84,11 +82,6 @@ const WorkoutsView = lazy(() =>
 const TrainingView = lazy(() =>
   loadTrainingView().then((module) => ({
     default: module.TrainingView,
-  })),
-);
-const TemplatesView = lazy(() =>
-  loadTemplatesView().then((module) => ({
-    default: module.TemplatesView,
   })),
 );
 const HistoryView = lazy(() =>
@@ -210,7 +203,6 @@ export default function App() {
     workouts,
     exercises,
     history,
-    templates,
     activeWorkouts,
     currentUser,
     currentUserLoader,
@@ -318,16 +310,12 @@ export default function App() {
       (
         [
           "workouts",
-          "templates",
           "exercises",
           "history",
           "profile",
           ...(currentUser?.isAdmin ? (["admin"] as const) : []),
         ] as View[]
       ).forEach(preloadView);
-      // Templates are tiny and a primary navigation destination. Warm their
-      // authenticated data after the initial training screen is idle.
-      handleViewPreload("templates");
     };
     if ("requestIdleCallback" in window) {
       const id = window.requestIdleCallback(preload, { timeout: 1500 });
@@ -508,32 +496,6 @@ export default function App() {
       window.removeEventListener("motus:unauthorized", handleUnauthorized);
   }, [clearTraining, setView]);
 
-  // ---------- template apply ----------
-  const handleApplyTemplate = useCallback(
-    async (templateId: string) => {
-      if (!currentUserId) {
-        await notify("Select a user first.");
-        return;
-      }
-      const name = await askPrompt("Workout name (optional)");
-      if (name === null) return;
-
-      try {
-        const created = await applyTemplate(templateId, {
-          userId: currentUserId,
-          name: name.trim() || undefined,
-        });
-
-        workouts.setData?.((prev) => (prev ? [created, ...prev] : [created]));
-        setView("workouts");
-        showToast("Template applied.");
-      } catch (err) {
-        await notify(toErrorMessage(err, "Unable to apply template"));
-      }
-    },
-    [askPrompt, currentUserId, notify, setView, showToast, workouts],
-  );
-
   // ---------- guards ----------
   if (!config) {
     return (
@@ -660,7 +622,6 @@ export default function App() {
                 askConfirm,
                 askPrompt,
                 notifyUser: notify,
-                templatesReload: () => templates.reload(),
                 onCreateExercise: createExerciseEntry,
                 promptUser: askPrompt,
                 onToast: showToast,
@@ -695,20 +656,6 @@ export default function App() {
                 onFinishTraining: handleFinishTraining,
                 onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
                 onToast: showToast,
-              }}
-            />
-          )}
-
-          {view === "templates" && (
-            <TemplatesView
-              data={{
-                templates: templates.data || [],
-                loading: templates.loading,
-                hasUser: Boolean(currentUserId),
-              }}
-              actions={{
-                onRefresh: () => templates.reload(),
-                onApplyTemplate: handleApplyTemplate,
               }}
             />
           )}

@@ -7,7 +7,6 @@ import type {
   User,
   Workout,
   WorkoutStep,
-  Template,
 } from "./types";
 import { withBasePath } from "./utils/basePath";
 import { workoutWriteSteps } from "./utils/workoutWrite";
@@ -205,14 +204,6 @@ export async function importWorkout(payload: {
   });
 }
 
-// shareTemplate makes a workout available as a template.
-export async function shareTemplate(workoutId: string, name?: string) {
-  return requestJSON("/api/templates", {
-    method: "POST",
-    body: JSON.stringify({ workoutId, name }),
-  });
-}
-
 // listExercises returns all exercises.
 export async function listExercises(): Promise<CatalogExercise[]> {
   return requestJSON("/api/exercises");
@@ -304,20 +295,4 @@ export async function getTrainingSteps(
   trainingId: string,
 ): Promise<TrainingStepLog[]> {
   return requestJSON(`/api/trainings/${encodeURIComponent(trainingId)}/steps`);
-}
-
-// listTemplates returns all templates.
-export async function listTemplates(): Promise<Template[]> {
-  return requestJSON("/api/templates");
-}
-
-// applyTemplate clones a template into a workout.
-export async function applyTemplate(
-  templateId: string,
-  payload: { userId: string; name?: string },
-): Promise<Workout> {
-  return requestJSON(`/api/templates/${templateId}/apply`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
 }

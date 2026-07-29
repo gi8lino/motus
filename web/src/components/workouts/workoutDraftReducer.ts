@@ -1,11 +1,32 @@
 import type { SetStateAction } from "react";
-import type { Exercise, WorkoutStep } from "../../types";
+import type { Exercise, Workout, WorkoutStep } from "../../types";
+
+export function cloneWorkoutStep(step: WorkoutStep): WorkoutStep {
+  return {
+    ...step,
+    id: undefined,
+    subsets: step.subsets?.map((subset) => ({
+      ...subset,
+      id: undefined,
+      exercises: subset.exercises?.map((exercise) => ({ ...exercise })),
+    })),
+    exercises: step.exercises?.map((exercise) => ({ ...exercise })),
+  };
+}
+
+export function duplicateWorkoutDraft(workout: Workout) {
+  return {
+    name: `${workout.name} (copy)`,
+    steps: workout.steps.map(cloneWorkoutStep),
+  };
+}
 
 export type WorkoutDraftAction =
   | { type: "updateSteps"; update: SetStateAction<WorkoutStep[]> }
   | { type: "addStep"; step: WorkoutStep }
   | { type: "updateStep"; index: number; patch: Partial<WorkoutStep> }
   | { type: "removeStep"; index: number }
+  | { type: "duplicateStep"; index: number }
   | { type: "moveStep"; index: number; delta: number }
   | {
       type: "updateExercise";
@@ -70,6 +91,13 @@ export function workoutStepsReducer(
       );
     case "removeStep":
       return steps.filter((_, index) => index !== action.index);
+    case "duplicateStep": {
+      const source = steps[action.index];
+      if (!source) return steps;
+      const next = [...steps];
+      next.splice(action.index + 1, 0, cloneWorkoutStep(source));
+      return next;
+    }
     case "moveStep": {
       const target = action.index + action.delta;
       if (target < 0 || target >= steps.length) return steps;

@@ -16,7 +16,6 @@ const viewOptions: View[] = [
   "profile",
   "history",
   "exercises",
-  "templates",
   "admin",
 ];
 

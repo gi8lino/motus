@@ -14,11 +14,11 @@ import (
 // CreateWorkout inserts a workout and its steps for a user.
 func (s *Store) CreateWorkout(ctx context.Context, w *Workout) (*Workout, error) {
 	// Persist workout and steps as a new workout.
-	return s.insertWorkout(ctx, w, false)
+	return s.insertWorkout(ctx, w)
 }
 
-// insertWorkout stores a workout and optionally marks it as a template.
-func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) (*Workout, error) {
+// insertWorkout stores a workout and its steps.
+func (s *Store) insertWorkout(ctx context.Context, w *Workout) (*Workout, error) {
 	// Start a transaction so workout and steps are created together.
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
@@ -29,9 +29,9 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 	w.ID = utils.NewID()
 	w.CreatedAt = time.Now().UTC()
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO workouts(id, user_id, name, is_template, created_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`, w.ID, w.UserID, w.Name, isTemplate, w.CreatedAt); err != nil {
+		INSERT INTO workouts(id, user_id, name, created_at)
+		VALUES ($1, $2, $3, $4)
+	`, w.ID, w.UserID, w.Name, w.CreatedAt); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +91,6 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	w.IsTemplate = isTemplate
 	return w, nil
 }
 
@@ -99,9 +98,9 @@ func (s *Store) insertWorkout(ctx context.Context, w *Workout, isTemplate bool) 
 func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, error) {
 	// Load workouts and their steps for the given user.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, user_id, name, is_template, created_at
+		SELECT id, user_id, name, created_at
 		FROM workouts
-		WHERE user_id=$1 AND is_template=FALSE
+		WHERE user_id=$1
 		ORDER BY created_at DESC
 	`, userID)
 	if err != nil {
@@ -113,7 +112,7 @@ func (s *Store) WorkoutsByUser(ctx context.Context, userID string) ([]Workout, e
 	// Collect workouts and hydrate each with steps.
 	for rows.Next() {
 		var w Workout
-		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
+		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
 			return nil, err
 		}
 		steps, err := s.WorkoutSteps(ctx, w.ID)
@@ -290,12 +289,12 @@ func (s *Store) WorkoutSteps(ctx context.Context, workoutID string) ([]WorkoutSt
 func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workout, error) {
 	// Fetch the workout row and hydrate its steps.
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, name, is_template, created_at
+		SELECT id, user_id, name, created_at
 		FROM workouts
 		WHERE id=$1
 	`, workoutID)
 	var w Workout
-	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
+	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrWorkoutNotFound
 		}
@@ -311,9 +310,9 @@ func (s *Store) WorkoutWithSteps(ctx context.Context, workoutID string) (*Workou
 
 // WorkoutWithStepsForUser retrieves a workout only when owned by the user.
 func (s *Store) WorkoutWithStepsForUser(ctx context.Context, workoutID, userID string) (*Workout, error) {
-	row := s.pool.QueryRow(ctx, `SELECT id, user_id, name, is_template, created_at FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
+	row := s.pool.QueryRow(ctx, `SELECT id, user_id, name, created_at FROM workouts WHERE id=$1 AND user_id=$2`, workoutID, userID)
 	var w Workout
-	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.IsTemplate, &w.CreatedAt); err != nil {
+	if err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrWorkoutNotFound
 		}

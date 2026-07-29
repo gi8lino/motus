@@ -18,7 +18,7 @@ export type WorkoutsListProps = {
   onEdit: (workoutId: string) => void;
   onOpenEditor: () => void;
 
-  onShare: (workoutId: string) => void;
+  onDuplicate: (workoutId: string) => void;
   onDelete: (workoutId: string) => void;
 };
 
@@ -30,7 +30,7 @@ export function WorkoutsList({
   onNew,
   onEdit,
   onOpenEditor,
-  onShare,
+  onDuplicate,
   onDelete,
 }: WorkoutsListProps) {
   return (
@@ -97,9 +97,9 @@ export function WorkoutsList({
                 <button
                   className="btn subtle"
                   type="button"
-                  onClick={() => onShare(workout.id)}
+                  onClick={() => onDuplicate(workout.id)}
                 >
-                  Share
+                  Duplicate
                 </button>
 
                 <button

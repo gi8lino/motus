@@ -30,7 +30,6 @@ export type WorkoutsServices = {
     options?: AskConfirmOptions,
   ) => Promise<boolean>;
   askPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
-  templatesReload: () => void;
   onToast?: (message: string) => void;
 };
 
@@ -72,7 +71,7 @@ export function WorkoutsView(props: WorkoutsViewProps) {
   }, []);
 
   // Keep using existing action logic for "new/edit" selection behavior
-  const { newWorkout, editWorkoutFromList, removeWorkout, shareWorkout } =
+  const { newWorkout, editWorkoutFromList, removeWorkout, duplicateWorkout } =
     useWorkoutActions({
       workouts,
       selectedWorkoutId,
@@ -80,9 +79,8 @@ export function WorkoutsView(props: WorkoutsViewProps) {
       setSelectedWorkoutId,
       setWorkouts: props.setWorkouts,
       askConfirm: props.services.askConfirm,
-      askPrompt: props.services.askPrompt,
       notify: props.services.notifyUser,
-      templatesReload: props.services.templatesReload,
+      currentUserId: props.currentUserId,
     });
 
   return (
@@ -95,7 +93,7 @@ export function WorkoutsView(props: WorkoutsViewProps) {
         onNew={() => newWorkout()}
         onEdit={(id) => editWorkoutFromList(id)}
         onOpenEditor={() => setEditorOpen(true)}
-        onShare={(id) => shareWorkout(id)}
+        onDuplicate={(id) => duplicateWorkout(id)}
         onDelete={(id) => removeWorkout(id)}
       />
 
