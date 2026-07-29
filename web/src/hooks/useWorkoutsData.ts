@@ -35,12 +35,12 @@ export function useWorkoutsData({
   const wants = (candidate: View) =>
     view === candidate || prefetchedViews.has(candidate);
   const needsWorkouts =
-    canLoadUser && (wants("train") || wants("workouts") || wants("profile"));
+    canLoadUser && (wants("training") || wants("workouts") || wants("profile"));
   const needsSounds =
-    canLoadUser && (wants("train") || wants("workouts") || wants("profile"));
+    canLoadUser && (wants("training") || wants("workouts") || wants("profile"));
   const needsExercises =
     canLoadUser && (wants("workouts") || wants("exercises"));
-  const needsHistory = canLoadUser && (wants("history") || wants("train"));
+  const needsHistory = canLoadUser && (wants("history") || wants("training"));
 
   const currentUserLoader = useDataLoader<User | null>(
     () => (canLoadUser ? getCurrentUser() : Promise.resolve(null)),

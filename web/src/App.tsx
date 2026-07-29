@@ -59,7 +59,7 @@ const viewLoaders: Partial<Record<View, () => Promise<unknown>>> = {
   login: loadLoginView,
   admin: loadAdminView,
   workouts: loadWorkoutsView,
-  train: loadTrainingView,
+  training: loadTrainingView,
   history: loadHistoryView,
   profile: loadProfileView,
   exercises: loadExercisesView,
@@ -139,7 +139,7 @@ function PageFallback() {
 }
 
 export default function App() {
-  const { view, setView } = useViewState("train");
+  const { view, setView } = useViewState("training");
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [prefetchedViews, setPrefetchedViews] = useState<ReadonlySet<View>>(
@@ -170,7 +170,7 @@ export default function App() {
     document.documentElement.dataset.theme = resolvedThemeMode;
   }, [resolvedThemeMode]);
 
-  // train view state
+  // training view state
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
@@ -288,10 +288,10 @@ export default function App() {
     if (view === "login") setLoginError(null);
   }, [view]);
 
-  // ---------- auto-redirect to train when local user logs in ----------
+  // ---------- auto-redirect to training when local user logs in ----------
   useEffect(() => {
     if (authHeaderEnabled) return;
-    if (currentUserId && view === "login") setView("train");
+    if (currentUserId && view === "login") setView("training");
   }, [authHeaderEnabled, currentUserId, view, setView]);
 
   // ---------- force login when local auth has no user ----------
@@ -344,7 +344,7 @@ export default function App() {
   // ---------- auth actions ----------
   const onLoginSuccess = (user: User) => {
     setCurrentUserId(user.id);
-    setView("train");
+    setView("training");
   };
 
   const onRegisterSuccess = (user: User) => {
@@ -442,7 +442,7 @@ export default function App() {
     selectedWorkoutId,
     training,
     currentWorkoutName,
-    setTrainingView: () => setView("train"),
+    setTrainingView: () => setView("training"),
     setPromptedResume,
     setResumeSuppressed,
     startFromState,
@@ -550,7 +550,7 @@ export default function App() {
         resumeText={resumeMessage(training)}
         onResume={() => {
           setPromptedResume(false);
-          setView("train");
+          setView("training");
           if (!training?.running) startCurrentStep();
           setToast(null);
           setResumeSuppressed(true);
@@ -575,7 +575,7 @@ export default function App() {
                 onCreateUser: async (email, password) => {
                   try {
                     await handleRegister(email, password);
-                    setView("train");
+                    setView("training");
                   } catch (err) {
                     await notify(toErrorMessage(err, "Unable to create user"));
                   }
@@ -635,7 +635,7 @@ export default function App() {
             />
           )}
 
-          {view === "train" && (
+          {view === "training" && (
             <TrainingView
               data={{
                 workouts: activeWorkouts,
@@ -684,7 +684,7 @@ export default function App() {
                 activeTraining: training,
               }}
               actions={{
-                onResume: () => setView("train"),
+                onResume: () => setView("training"),
                 loadWorkout: getWorkout,
                 onCopySummary: () => showToast(UI_TEXT.toasts.copiedSummary),
               }}

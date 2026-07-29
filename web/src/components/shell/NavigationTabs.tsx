@@ -21,7 +21,7 @@ type NavTabsProps = {
 
 const LABELS: Record<View, string> = {
   login: UI_TEXT.nav.login,
-  train: UI_TEXT.nav.train,
+  training: UI_TEXT.nav.training,
   workouts: UI_TEXT.nav.workouts,
   exercises: UI_TEXT.nav.exercises,
   history: UI_TEXT.nav.history,

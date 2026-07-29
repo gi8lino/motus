@@ -10,7 +10,7 @@ import type { View } from "../types";
 const VIEW_PARAM = "view";
 
 const viewOptions: View[] = [
-  "train",
+  "training",
   "login",
   "workouts",
   "profile",
@@ -19,7 +19,7 @@ const viewOptions: View[] = [
   "admin",
 ];
 
-function isValidView(value: string): value is View {
+export function isValidView(value: string): value is View {
   return viewOptions.includes(value as View);
 }
 
@@ -34,7 +34,7 @@ function writeViewToURL(view: View) {
   const params = new URLSearchParams(window.location.search);
 
   // Keep the URL clean for the default view.
-  if (view === "train") {
+  if (view === "training") {
     if (!params.has(VIEW_PARAM)) return;
     params.delete(VIEW_PARAM);
   } else {
@@ -52,7 +52,7 @@ function writeViewToURL(view: View) {
 /**
  * useViewState stores the current view in React state and mirrors it to the URL.
  * - Reads initial view from `?view=...`
- * - Writes changes back to `?view=...` (except "train", which removes the param)
+ * - Writes changes back to `?view=...` (except "training", which removes the param)
  */
 export function useViewState(defaultView: View) {
   const initial = useMemo(() => readViewFromURL(defaultView), [defaultView]);

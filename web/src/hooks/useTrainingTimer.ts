@@ -191,7 +191,7 @@ export function useTrainingTimer({
   // finishAndLog completes training and sends it to the backend.
   const finishAndLog = useCallback(async () => {
     const current = trainingRef.current || loadPersistedTraining();
-    if (!current) return { ok: false, error: "no train" };
+    if (!current) return { ok: false, error: "no active training" };
 
     if (current.logged) return { ok: true, training: current };
     if (current.done) return { ok: true, training: current };

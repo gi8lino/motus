@@ -39,7 +39,7 @@ export function useAppConfig({
           .then((user) => {
             setCurrentUserId(user.id);
             setAuthError(null);
-            if (viewRef.current === "login") setView("train");
+            if (viewRef.current === "login") setView("training");
           })
           .catch((err: Error) => {
             setCurrentUserId(null);

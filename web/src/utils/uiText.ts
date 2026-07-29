@@ -235,7 +235,7 @@ export const UI_TEXT = {
   },
   nav: {
     login: "Login",
-    train: "Training",
+    training: "Training",
     workouts: "Workouts",
     exercises: "Exercises",
     history: "History",

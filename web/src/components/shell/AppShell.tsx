@@ -50,7 +50,14 @@ export function AppShell({
   const isAuthed = Boolean(authHeaderEnabled || currentUser);
 
   const availableViews: View[] = (
-    ["train", "workouts", "exercises", "history", "profile", "admin"] as View[]
+    [
+      "training",
+      "workouts",
+      "exercises",
+      "history",
+      "profile",
+      "admin",
+    ] as View[]
   ).filter((nextView) =>
     nextView === "admin" ? Boolean(currentUser?.isAdmin) : true,
   );

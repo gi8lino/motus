@@ -76,7 +76,7 @@ export type Workout = {
 
 // View represents the active app section.
 export type View =
-  | "train"
+  | "training"
   | "login"
   | "workouts"
   | "profile"
