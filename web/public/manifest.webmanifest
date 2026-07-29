@@ -1,0 +1,13 @@
+{
+  "name": "Motus Training",
+  "short_name": "Motus",
+  "description": "Focused workout timing and training history.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#101418",
+  "theme_color": "#101418",
+  "icons": [
+    { "src": "motus.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

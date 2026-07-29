@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles.css";
+import { serviceWorkerUrl } from "./utils/pwa";
 
 declare global {
   interface Window {
@@ -22,6 +23,14 @@ const readRoutePrefix = (): string => {
 
 // Expose the base path so helpers can prefix asset URLs.
 window.__MOTUS_BASE = readRoutePrefix();
+
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register(
+      serviceWorkerUrl(window.__MOTUS_BASE || ""),
+    );
+  });
+}
 
 // Render the SPA into the root node.
 ReactDOM.createRoot(document.getElementById("root")!).render(
