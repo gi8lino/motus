@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createAudioController } from "../src/utils/audioController.ts";
+import {
+  createAudioController,
+  SILENT_WAV_DATA_URL,
+} from "../src/utils/audioController.ts";
 
 type PlayGate = {
   promise: Promise<void>;
@@ -90,6 +93,18 @@ function installFakeAudio() {
     FakeAudio.reset();
   };
 }
+
+test("unlock WAV contains valid RIFF metadata and audio samples", () => {
+  const encoded = SILENT_WAV_DATA_URL.split(",")[1];
+  const wav = Buffer.from(encoded, "base64");
+
+  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
+  assert.equal(wav.readUInt32LE(4), wav.length - 8);
+  assert.equal(wav.toString("ascii", 8, 12), "WAVE");
+  assert.equal(wav.toString("ascii", 36, 40), "data");
+  assert.equal(wav.readUInt32LE(40), wav.length - 44);
+  assert.ok(wav.readUInt32LE(40) > 0);
+});
 
 test("unlock primes a muted inline audio element for mobile playback", async () => {
   const restore = installFakeAudio();

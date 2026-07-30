@@ -5,15 +5,16 @@ import type {
 } from "../../types";
 import { resolveMediaUrl } from "../../utils/basePath";
 import { parseDurationSeconds } from "../../utils/time";
+import { getStepSoundTargetSeconds } from "./transitions";
 
 // ResolvedSoundPlan contains normalized sound/timing values for scheduling.
 export type ResolvedSoundPlan = {
   subsetSoundUrl: string;
-  exerciseSoundUrl: string;
+  stepSoundUrl: string;
   subsetLeadSeconds: number;
-  exerciseLeadSeconds: number;
+  stepLeadSeconds: number;
   subsetTargetSeconds: number;
-  exerciseTargetSeconds: number;
+  stepTargetSeconds: number;
 };
 
 // resolveSoundPlan normalizes target sounds and timing values for a step.
@@ -24,6 +25,7 @@ export function resolveSoundPlan(
   const subsetSoundKey = currentStep.soundKey || "";
   const hasExerciseTarget =
     !currentStep.superset && currentStep.exercises?.length === 1;
+  const hasStepTarget = currentStep.type === "pause" || hasExerciseTarget;
   const exerciseSoundKey = hasExerciseTarget
     ? currentStep.exercises?.[0]?.soundKey || ""
     : "";
@@ -40,32 +42,34 @@ export function resolveSoundPlan(
     ? sounds.find((sound) => sound.key === exerciseSoundKey)
     : undefined;
 
-  const exerciseSoundUrl = hasExerciseTarget
+  const stepSoundUrl = hasStepTarget
     ? exerciseSoundKey && exerciseSoundOption
       ? resolveMediaUrl(exerciseSoundOption.file || "")
       : subsetSoundUrl
     : "";
 
   const subsetLeadSeconds = subsetSoundOption?.leadSeconds ?? 0;
-  const exerciseLeadSeconds = exerciseSoundKey
+  const stepLeadSeconds = exerciseSoundKey
     ? (exerciseSoundOption?.leadSeconds ?? 0)
     : subsetLeadSeconds;
 
   const subsetTargetSeconds = currentStep.subsetEstimatedSeconds ?? 0;
-  const exerciseTargetSeconds = hasExerciseTarget
-    ? currentStep.estimatedSeconds ||
-      parseDurationSeconds(currentStep.duration) ||
-      parseDurationSeconds(currentStep.exercises?.[0]?.duration) ||
-      0
-    : 0;
+  const exerciseDurationSeconds =
+    parseDurationSeconds(currentStep.duration) ||
+    parseDurationSeconds(currentStep.exercises?.[0]?.duration) ||
+    0;
+  const stepTargetSeconds = getStepSoundTargetSeconds(
+    currentStep,
+    exerciseDurationSeconds,
+  );
 
   return {
     subsetSoundUrl,
-    exerciseSoundUrl,
+    stepSoundUrl,
     subsetLeadSeconds,
-    exerciseLeadSeconds,
+    stepLeadSeconds,
     subsetTargetSeconds,
-    exerciseTargetSeconds,
+    stepTargetSeconds,
   };
 }
 

@@ -11,6 +11,7 @@ import type {
   UseTrainingAudioArgs,
 } from "./trainingAudio/types";
 import { usePauseOnHidden } from "./trainingAudio/usePauseOnHidden";
+import { didStepChange } from "./trainingAudio/transitions";
 
 // useTrainingAudio manages training audio playback and target-sound scheduling.
 export function useTrainingAudio({
@@ -51,6 +52,7 @@ export function useTrainingAudio({
   });
 
   const trainingIdRef = useRef<string | null>(null);
+  const activeStepKeyRef = useRef<string | null>(null);
   const subsetSoundPlayedRef = useRef(new Set<string>());
 
   const clearSoundTimers = useCallback(() => {
@@ -110,16 +112,24 @@ export function useTrainingAudio({
 
   // Schedule subset + exercise target sounds.
   useEffect(() => {
+    const currentStepKey = currentStep
+      ? currentStep.id || `${training?.trainingId}-${training?.currentIndex}`
+      : "";
+    const stepChanged = currentStep
+      ? didStepChange(activeStepKeyRef.current, currentStepKey)
+      : false;
+    activeStepKeyRef.current = currentStep ? currentStepKey : null;
+
     if (!currentStep || !training?.running) {
       clearSoundTimers();
       if (!currentStep) stopAllAudio();
-      else pauseAudio();
+      else if (!stepChanged) pauseAudio();
       resetSchedules();
       return;
     }
 
     const soundPlan = resolveSoundPlan(currentStep, sounds);
-    if (!soundPlan.subsetSoundUrl && !soundPlan.exerciseSoundUrl) return;
+    if (!soundPlan.subsetSoundUrl && !soundPlan.stepSoundUrl) return;
 
     const hasSubsetTarget = soundPlan.subsetTargetSeconds > 0;
     const allowStepSound = !currentStep.soundPlayed;
@@ -183,17 +193,17 @@ export function useTrainingAudio({
     // Step/exercise target sound: schedule once per step instance + config.
     if (
       allowStepSound &&
-      soundPlan.exerciseTargetSeconds > 0 &&
-      soundPlan.exerciseSoundUrl
+      soundPlan.stepTargetSeconds > 0 &&
+      soundPlan.stepSoundUrl
     ) {
-      const stepTargetMs = soundPlan.exerciseTargetSeconds * 1000;
+      const stepTargetMs = soundPlan.stepTargetSeconds * 1000;
       const leadMs = Math.min(
         stepTargetMs,
-        Math.max(0, soundPlan.exerciseLeadSeconds * 1000),
+        Math.max(0, soundPlan.stepLeadSeconds * 1000),
       );
       const triggerMs = Math.max(0, stepTargetMs - leadMs);
 
-      const scheduleKey = `${currentStep.id || `${training.trainingId}-${training.currentIndex}`}:${stepTargetMs}:${soundPlan.exerciseSoundUrl}`;
+      const scheduleKey = `${currentStep.id || `${training.trainingId}-${training.currentIndex}`}:${stepTargetMs}:${soundPlan.stepSoundUrl}`;
       const existing = stepSoundScheduleRef.current;
 
       if (existing.key !== scheduleKey) {
@@ -201,7 +211,7 @@ export function useTrainingAudio({
         stepSoundScheduleRef.current = {
           key: scheduleKey,
           triggerAtMs: 0,
-          soundUrl: soundPlan.exerciseSoundUrl,
+          soundUrl: soundPlan.stepSoundUrl,
         };
 
         const remaining = triggerMs - elapsedRef.current;
@@ -210,7 +220,7 @@ export function useTrainingAudio({
           if (tokenRef.current !== tokenAtSchedule) return;
 
           stopAllAudio();
-          playAudio(soundPlan.exerciseSoundUrl);
+          playAudio(soundPlan.stepSoundUrl);
           stepSoundTimerRef.current = null;
           markSoundPlayed();
         };

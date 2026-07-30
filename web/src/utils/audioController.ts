@@ -7,8 +7,8 @@ export type AudioController = {
   play: (soundUrl: string) => void;
 };
 
-const SILENT_WAV_DATA_URL =
-  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+export const SILENT_WAV_DATA_URL =
+  "data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQIAAACAgA==";
 
 function createManagedAudio(soundUrl = ""): HTMLAudioElement {
   const audio = new Audio(soundUrl);
