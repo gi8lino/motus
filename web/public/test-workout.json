@@ -1,0 +1,143 @@
+{
+  "name": "Motus Test Workout (≤6s timers)",
+  "steps": [
+    {
+      "type": "set",
+      "name": "Repetitions and sides",
+      "subsets": [
+        {
+          "name": "Manual sequence",
+          "superset": false,
+          "exercises": [
+            {
+              "name": "Goblet Squat",
+              "type": "rep",
+              "reps": "5",
+              "weight": "16kg",
+              "side": "not_applicable"
+            },
+            {
+              "name": "Single-Arm Row",
+              "type": "rep",
+              "reps": "3",
+              "weight": "12kg",
+              "side": "left"
+            },
+            {
+              "name": "Single-Arm Row",
+              "type": "rep",
+              "reps": "3",
+              "weight": "12kg",
+              "side": "right"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "set",
+      "name": "Sequential timer types",
+      "subsets": [
+        {
+          "name": "Timed sequence",
+          "superset": false,
+          "exercises": [
+            {
+              "name": "Mountain Climbers",
+              "type": "countdown",
+              "duration": "6s",
+              "soundKey": "count321",
+              "side": "not_applicable"
+            },
+            {
+              "name": "Plank",
+              "type": "stopwatch",
+              "duration": "5s",
+              "soundKey": "beep",
+              "side": "not_applicable"
+            },
+            {
+              "name": "Push-up",
+              "type": "rep",
+              "reps": "3",
+              "side": "not_applicable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "name": "Auto pause with end sound",
+      "estimatedSeconds": 4,
+      "soundKey": "chime",
+      "pauseOptions": {
+        "autoAdvance": true
+      }
+    },
+    {
+      "type": "set",
+      "name": "Repetition superset",
+      "subsets": [
+        {
+          "name": "Three-move superset",
+          "superset": true,
+          "exercises": [
+            {
+              "name": "Pull-up",
+              "type": "rep",
+              "reps": "2",
+              "side": "not_applicable"
+            },
+            {
+              "name": "Push-up",
+              "type": "rep",
+              "reps": "3",
+              "side": "not_applicable"
+            },
+            {
+              "name": "Air Squat",
+              "type": "rep",
+              "reps": "4",
+              "side": "not_applicable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "set",
+      "name": "Repeated set with rest",
+      "repeatCount": 2,
+      "repeatRestSeconds": 3,
+      "repeatRestAfterLast": true,
+      "repeatRestSoundKey": "click",
+      "repeatRestAutoAdvance": true,
+      "repeatRestName": "Round rest",
+      "subsets": [
+        {
+          "name": "Swing round",
+          "superset": false,
+          "exercises": [
+            {
+              "name": "Swing",
+              "type": "rep",
+              "reps": "5",
+              "weight": "16kg",
+              "side": "not_applicable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "name": "Manual pause with cue",
+      "estimatedSeconds": 5,
+      "soundKey": "soft1",
+      "pauseOptions": {
+        "autoAdvance": false
+      }
+    }
+  ]
+}

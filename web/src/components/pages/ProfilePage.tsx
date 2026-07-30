@@ -40,6 +40,7 @@ export type ProfileViewActions = {
   onExportWorkoutChange: (id: string) => void;
   onExportWorkout: () => void | Promise<void>;
   onImportWorkout: (file: File) => void | Promise<void>;
+  onImportTestWorkout: () => void | Promise<void>;
   onPasswordChange: (
     currentPassword: string,
     newPassword: string,
@@ -85,6 +86,7 @@ export function ProfileView({
     onExportWorkoutChange,
     onExportWorkout,
     onImportWorkout,
+    onImportTestWorkout,
     onPasswordChange,
   } = actions;
   const canExport = Boolean(exportWorkoutId);
@@ -273,6 +275,13 @@ export function ProfileView({
                   onClick={() => importInputRef.current?.click()}
                 >
                   {UI_TEXT.pages.profile.importButton}
+                </button>
+                <button
+                  className="btn subtle"
+                  type="button"
+                  onClick={onImportTestWorkout}
+                >
+                  {UI_TEXT.pages.profile.importTestWorkoutButton}
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { UI_TEXT } from "../utils/uiText";
 
 import { changePassword, exportWorkout, importWorkout } from "../api";
 import type { Workout } from "../types";
+import { withBasePath } from "../utils/basePath";
 
 // UseProfileActionsArgs wires profile and transfer actions.
 type UseProfileActionsArgs = {
@@ -24,6 +25,23 @@ export function useProfileActions({
   showToast,
   notify,
 }: UseProfileActionsArgs) {
+  const importWorkoutPayload = useCallback(
+    async (workoutPayload: Workout) => {
+      if (!workoutPayload?.name || !workoutPayload?.steps) {
+        await notify(UI_TEXT.toasts.invalidWorkoutJson);
+        return;
+      }
+      const created = await importWorkout({
+        userId: currentUserId || undefined,
+        workout: workoutPayload,
+      });
+      setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
+      setSelectedWorkoutId(created.id);
+      showToast(UI_TEXT.toasts.workoutImported);
+    },
+    [currentUserId, notify, setSelectedWorkoutId, setWorkouts, showToast],
+  );
+
   // exportSelectedWorkout downloads the selected workout JSON.
   const exportSelectedWorkout = useCallback(async () => {
     if (!exportWorkoutId) {
@@ -56,23 +74,23 @@ export function useProfileActions({
         const parsed = JSON.parse(raw);
         // Accept either { workout: {...} } or a raw workout export.
         const workoutPayload = parsed.workout ? parsed.workout : parsed;
-        if (!workoutPayload?.name || !workoutPayload?.steps) {
-          await notify(UI_TEXT.toasts.invalidWorkoutJson);
-          return;
-        }
-        const created = await importWorkout({
-          userId: currentUserId || undefined,
-          workout: workoutPayload,
-        });
-        setWorkouts((prev) => (prev ? [created, ...prev] : [created]));
-        setSelectedWorkoutId(created.id);
-        showToast(UI_TEXT.toasts.workoutImported);
+        await importWorkoutPayload(workoutPayload);
       } catch (err) {
         await notify(toErrorMessage(err, MESSAGES.importWorkoutFailed));
       }
     },
-    [currentUserId, notify, setSelectedWorkoutId, setWorkouts, showToast],
+    [importWorkoutPayload, notify],
   );
+
+  const importTestWorkout = useCallback(async () => {
+    try {
+      const response = await fetch(withBasePath("/test-workout.json"));
+      if (!response.ok) throw new Error("Unable to load test workout");
+      await importWorkoutPayload((await response.json()) as Workout);
+    } catch (err) {
+      await notify(toErrorMessage(err, MESSAGES.importWorkoutFailed));
+    }
+  }, [importWorkoutPayload, notify]);
 
   // updatePassword changes the current user's password.
   const updatePassword = useCallback(
@@ -87,5 +105,10 @@ export function useProfileActions({
     [notify],
   );
 
-  return { exportSelectedWorkout, importWorkoutFile, updatePassword };
+  return {
+    exportSelectedWorkout,
+    importWorkoutFile,
+    importTestWorkout,
+    updatePassword,
+  };
 }

@@ -203,6 +203,7 @@ export const UI_TEXT = {
       exportLabel: "Export workout",
       exportButton: "Export",
       importButton: "Import",
+      importTestWorkoutButton: "Add test workout",
       settingsTab: "Settings",
       passwordTab: "Password",
       transferTab: "Export/Import",

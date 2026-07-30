@@ -307,6 +307,7 @@ export default function App() {
   const {
     exportSelectedWorkout: handleExportSelected,
     importWorkoutFile: handleImportSelected,
+    importTestWorkout: handleImportTestWorkout,
     updatePassword: handlePasswordSubmit,
   } = useProfileActions({
     currentUserId,
@@ -640,6 +641,7 @@ export default function App() {
                 onExportWorkoutChange: setExportWorkoutId,
                 onExportWorkout: handleExportSelected,
                 onImportWorkout: handleImportSelected,
+                onImportTestWorkout: handleImportTestWorkout,
                 onPasswordChange: handlePasswordSubmit,
               }}
             />
