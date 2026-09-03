@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/containeroo/httpgrace v0.2.0
 	github.com/containeroo/httpprefix v0.0.2
-	github.com/containeroo/tinyflags v0.0.80
+	github.com/containeroo/tinyflags v0.0.81
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/crypto v0.56.0
