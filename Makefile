@@ -6,6 +6,18 @@ $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
+DEV_PORT := $(LOCALBIN)/dev-port
+OPEN_BROWSER := $(LOCALBIN)/open-browser
+DEV_TAG := $(LOCALBIN)/dev-tag
+GO_INSTALL_TOOL := $(LOCALBIN)/go-install-tool
+
+# renovate: datasource=github-releases depName=gi8lino/dev-tools
+DEV_TOOLS_VERSION ?= v0.3.0
+DEV_PORT_VERSIONED := $(DEV_PORT)-$(DEV_TOOLS_VERSION)
+OPEN_BROWSER_VERSIONED := $(OPEN_BROWSER)-$(DEV_TOOLS_VERSION)
+DEV_TAG_VERSIONED := $(DEV_TAG)-$(DEV_TOOLS_VERSION)
+GO_INSTALL_TOOL_VERSIONED := $(GO_INSTALL_TOOL)-$(DEV_TOOLS_VERSION)
+
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
@@ -13,45 +25,75 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 GOLANGCI_LINT_VERSION ?= v2.13.2
 
 # Default: no prefix. Can be overridden via `make patch VERSION_PREFIX=v`
-VERSION_PREFIX ?= "v"
+VERSION_PREFIX ?= v
 
 ##@ Tagging
 
-# Find the latest tag (with prefix filter if defined, default to 0.0.0 if none found)
-# Lazy evaluation ensures fresh values on every run
-LATEST_TAG = $(shell git tag --list "$(VERSION_PREFIX)*" --sort=-v:refname | head -n 1)
-VERSION = $(shell [ -n "$(LATEST_TAG)" ] && echo $(LATEST_TAG) | sed "s/^$(VERSION_PREFIX)//" || echo "0.0.0")
+.PHONY: patch
+patch: dev-tools ## Create a new patch release (x.y.Z+1).
+	$(DEV_TAG) --prefix "$(VERSION_PREFIX)" patch
 
-patch: ## Create a new patch release (x.y.Z+1)
-	@NEW_VERSION=$$(echo "$(VERSION)" | awk -F. '{printf "%d.%d.%d", $$1, $$2, $$3+1}') && \
-	git tag "$(VERSION_PREFIX)$${NEW_VERSION}" && \
-	echo "Tagged $(VERSION_PREFIX)$${NEW_VERSION}"
+.PHONY: minor
+minor: dev-tools ## Create a new minor release (x.Y+1.0).
+	$(DEV_TAG) --prefix "$(VERSION_PREFIX)" minor
 
-minor: ## Create a new minor release (x.Y+1.0)
-	@NEW_VERSION=$$(echo "$(VERSION)" | awk -F. '{printf "%d.%d.0", $$1, $$2+1}') && \
-	git tag "$(VERSION_PREFIX)$${NEW_VERSION}" && \
-	echo "Tagged $(VERSION_PREFIX)$${NEW_VERSION}"
+.PHONY: major
+major: dev-tools ## Create a new major release (X+1.0.0).
+	$(DEV_TAG) --prefix "$(VERSION_PREFIX)" major
 
-major: ## Create a new major release (X+1.0.0)
-	@NEW_VERSION=$$(echo "$(VERSION)" | awk -F. '{printf "%d.0.0", $$1+1}') && \
-	git tag "$(VERSION_PREFIX)$${NEW_VERSION}" && \
-	echo "Tagged $(VERSION_PREFIX)$${NEW_VERSION}"
+.PHONY: tag
+tag: dev-tools ## Show the latest tag.
+	@echo "Latest version: $$($(DEV_TAG) --prefix "$(VERSION_PREFIX)" current)"
 
-tag: ## Show latest tag
-	@echo "Latest version: $(LATEST_TAG)"
-
-push: ## Push tags to remote
+.PHONY: push
+push: ## Push tags to the configured remote.
 	git push --tags
 
 ##@ Development
 
+# Persistent local ports, shared by separate Make invocations.
+dev-port = $(or $(shell $(DEV_PORT) $(1)),$(error Could not resolve port for $(1)))
+MOTUS_ASSIGNED_PORT ?= $(call dev-port,app)
+DB_ASSIGNED_PORT ?= $(call dev-port,postgres)
+SITE_ROOT ?= http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)
+RUN_ARGS ?=
+COMPOSE_PROJECT ?= $(notdir $(CURDIR))
+COMPOSE_FILE ?= deploy/motus/docker-compose.db.yml
+COMPOSE = MOTUS_POSTGRES_PORT=$(DB_ASSIGNED_PORT) docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT)
+
+.PHONY: ports ports-reset postgres serve dev-build
+ports: dev-tools ## Print saved local development ports.
+	@$(DEV_PORT) app --port "$(MOTUS_ASSIGNED_PORT)" > /dev/null
+	@$(DEV_PORT) postgres --port "$(DB_ASSIGNED_PORT)" > /dev/null
+	@echo "Motus: $(SITE_ROOT)/"
+	@echo "Postgres: 127.0.0.1:$(DB_ASSIGNED_PORT)"
+
+ports-reset: dev-tools ## Clear saved ports after stopping local services.
+	$(DEV_PORT) --reset
+
+postgres: ports ## Start local Postgres and wait for readiness.
+	@$(COMPOSE) up -d --wait --wait-timeout 60 motus-db
+
+dev-build: ports
+	$(MAKE) web
+
+serve: ports ## Run the app using the saved ports (build and Postgres must be ready).
+	go run ./cmd --listen-address="127.0.0.1:$(MOTUS_ASSIGNED_PORT)" \
+		--site-root="$(SITE_ROOT)" \
+		--database-url="postgres://motus:motus@127.0.0.1:$(DB_ASSIGNED_PORT)/motus?sslmode=disable" \
+		$(RUN_ARGS)
+
+
 .PHONY: download
-download: ## Download go packages
+download: dev-tools ## Download go packages
 	go mod download
 
-.PHONY:run
-run: ## Run go fmt against code.
-	go run ./cmd
+.PHONY: run
+run: dev-build postgres ## Build, start Postgres, and run Motus with the browser.
+	@$(OPEN_BROWSER) "http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)/" & \
+	browser_pid=$$!; \
+	trap 'kill "$$browser_pid" 2>/dev/null || true' EXIT; \
+	$(MAKE) serve
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -118,7 +160,7 @@ favicon: ## Create favicons
 ##@ Admin
 
 .PHONY: create-user
-create-user: ## Create a user via API: make create-user NAME="Alice"
+create-user: dev-tools ## Create a user via API: make create-user NAME="Alice"
 	@[ -n "$(NAME)" ] || (echo "NAME is required" && exit 1)
 	curl -sSf -X POST \
 	  -H "Content-Type: application/json" \
@@ -126,7 +168,7 @@ create-user: ## Create a user via API: make create-user NAME="Alice"
 	  $(SITE_ROOT)/api/users
 
 .PHONY: promote-admin
-promote-admin: ## Promote a user to admin via API: make promote-admin USER_ID=<id> ADMIN_USER_ID=<id>
+promote-admin: dev-tools ## Promote a user to admin via API: make promote-admin USER_ID=<id> ADMIN_USER_ID=<id>
 	@[ -n "$(USER_ID)" ] || (echo "USER_ID is required" && exit 1)
 	@[ -n "$(ADMIN_USER_ID)" ] || (echo "ADMIN_USER_ID is required (an existing admin)" && exit 1)
 	curl -sSf -X PUT \
@@ -137,26 +179,51 @@ promote-admin: ## Promote a user to admin via API: make promote-admin USER_ID=<i
 
 ##@ Dependencies
 
-.PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+.PHONY: dev-tools
+dev-tools: \
+	$(DEV_PORT_VERSIONED) \
+	$(OPEN_BROWSER_VERSIONED) \
+	$(DEV_TAG_VERSIONED) \
+	$(GO_INSTALL_TOOL_VERSIONED) ## Download the pinned development tools.
+	@ln -sf "$(notdir $(DEV_PORT_VERSIONED))" "$(DEV_PORT)"
+	@ln -sf "$(notdir $(OPEN_BROWSER_VERSIONED))" "$(OPEN_BROWSER)"
+	@ln -sf "$(notdir $(DEV_TAG_VERSIONED))" "$(DEV_TAG)"
+	@ln -sf "$(notdir $(GO_INSTALL_TOOL_VERSIONED))" "$(GO_INSTALL_TOOL)"
 
-# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
-# $1 - target path with name of binary
-# $2 - package url which can be installed
-# $3 - specific version of package
-define go-install-tool
-@[ -f "$(1)-$(3)" ] || { \
-set -e; \
-package=$(2)@$(3) ;\
-echo "Downloading $${package}" ;\
-rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${package} ;\
-mv $(1) $(1)-$(3) ;\
-} ;\
-ln -sf $(1)-$(3) $(1)
+$(DEV_PORT_VERSIONED): | $(LOCALBIN)
+	$(call download-dev-tool,dev-port,$@)
+
+$(OPEN_BROWSER_VERSIONED): | $(LOCALBIN)
+	$(call download-dev-tool,open-browser,$@)
+
+$(DEV_TAG_VERSIONED): | $(LOCALBIN)
+	$(call download-dev-tool,dev-tag,$@)
+
+$(GO_INSTALL_TOOL_VERSIONED): | $(LOCALBIN)
+	$(call download-dev-tool,go-install-tool,$@)
+
+# download-dev-tool downloads a versioned tool from gi8lino/dev-tools.
+# $1 - release asset name
+# $2 - versioned destination path
+define download-dev-tool
+	@set -eu; \
+	tmp="$(2).tmp"; \
+	trap 'rm -f "$$tmp"' EXIT INT TERM; \
+	echo "Downloading gi8lino/dev-tools $(DEV_TOOLS_VERSION) $(1)"; \
+	curl --fail --silent --show-error --location \
+		"https://github.com/gi8lino/dev-tools/releases/download/$(DEV_TOOLS_VERSION)/$(1)" \
+		-o "$$tmp"; \
+	chmod +x "$$tmp"; \
+	mv "$$tmp" "$(2)"; \
+	trap - EXIT INT TERM
 endef
+
+.PHONY: golangci-lint
+golangci-lint: dev-tools ## Download golangci-lint locally if necessary.
+	$(GO_INSTALL_TOOL) \
+		--target "$(GOLANGCI_LINT)" \
+		--package github.com/golangci/golangci-lint/v2/cmd/golangci-lint \
+		--tool-version "$(GOLANGCI_LINT_VERSION)"
 
 ##@ Frontend
 
@@ -189,3 +256,7 @@ web: ## Build frontend app.
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: open
+open: ports ## Open the browser once the application responds.
+	$(OPEN_BROWSER) "http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)/"

@@ -14,6 +14,29 @@
 
 Motus is a training companion for circuit and round-based workouts. It keeps track of which exercise comes next, how many reps you need, and when to take a break. Timers run in the browser, while trainings, workouts, templates, and history are stored in PostgreSQL.
 
+## Local development ports
+
+With Python 3 installed, `bin/dev-port` saves named ports in the
+Git-ignored `.dev-ports.json`. Separate Make commands reuse the same ports:
+
+```sh
+make web-install
+make dev-build
+make postgres
+make serve
+```
+
+`make run` starts the application with its dependencies; `make ports` prints
+saved addresses. `bin/dev-port app` retrieves an assignment;
+`--port 8080` saves an explicit port. Stop local services before `make ports-reset`.
+Saved ports are reused even when occupied, and are not reserved between runs.
+
+Shared development tools come from [gi8lino/dev-tools](https://github.com/gi8lino/dev-tools).
+`make dev-tools` downloads the pinned `DEV_TOOLS_VERSION` into `bin/`; startup
+targets install them automatically. To upgrade, change that version in the
+Makefile and run `make dev-tools`. `make open` opens the browser once the app responds.
+`make run` starts the app and opens the browser automatically.
+
 ## Features
 
 - Create users and manage local accounts.

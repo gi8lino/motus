@@ -10,3 +10,9 @@ web/dist/*
 web/node_modules/
 
 .gocache/
+
+# Local development port assignments
+/.dev-ports.json
+/.dev-ports.json.lock
+
+/bin/
