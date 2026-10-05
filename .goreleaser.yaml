@@ -8,7 +8,7 @@ before:
 
 builds:
   - id: motus
-    main: ./cmd
+    main: ./cmd/motus/
     binary: motus
     env: [CGO_ENABLED=0]
     goos: [linux]
@@ -40,3 +40,4 @@ dockers_v2:
     platforms:
       - linux/amd64
       - linux/arm64
+

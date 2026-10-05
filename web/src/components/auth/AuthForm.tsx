@@ -7,8 +7,10 @@ import { UI_TEXT } from "../../utils/uiText";
 // UserForm creates a new user.
 export function UserForm({
   onCreate,
+  submitLabel = "Create user",
 }: {
   onCreate: (email: string, password: string) => void;
+  submitLabel?: string;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +51,7 @@ export function UserForm({
         required
       />
       <Button variant="contained" size="large" type="submit">
-        Create user
+        {submitLabel}
       </Button>
     </Stack>
   );

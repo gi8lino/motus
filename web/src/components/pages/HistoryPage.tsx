@@ -4,6 +4,7 @@ import type { TrainingHistoryItem, TrainingState, Workout } from "../../types";
 import { HistoryList } from "../history/HistoryCard";
 import { HistoryPreviewModal } from "../history/HistoryPreviewModal";
 import { UI_TEXT } from "../../utils/uiText";
+import { EmptyState } from "../common/EmptyState";
 
 export type HistoryViewData = {
   items: TrainingHistoryItem[];
@@ -48,12 +49,21 @@ export function HistoryView({
             <p className="muted small">{UI_TEXT.pages.history.hint}</p>
           </div>
         </div>
-        <HistoryList
-          items={items}
-          activeTraining={activeTraining}
-          onResume={onResume}
-          onSelect={handleSelect}
-        />
+        {items.length === 0 ? (
+          <EmptyState
+            title="Your completed sessions will appear here"
+            description="Finish a workout to build a useful history of your training."
+            actionLabel={activeTraining ? "Resume training" : undefined}
+            onAction={activeTraining ? onResume : undefined}
+          />
+        ) : (
+          <HistoryList
+            items={items}
+            activeTraining={activeTraining}
+            onResume={onResume}
+            onSelect={handleSelect}
+          />
+        )}
       </section>
       {/* Preview modal */}
       <HistoryPreviewModal

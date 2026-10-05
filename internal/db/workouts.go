@@ -1,6 +1,7 @@
 package db
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"strings"
@@ -491,7 +492,7 @@ func (s *Store) insertSubsetExercises(ctx context.Context, tx pgx.Tx, subsetID s
 		ex.ID = utils.NewID()
 		ex.SubsetID = subsetID
 		ex.Order = idx
-		token := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
+		token := cmp.Or(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
 		exType := utils.NormalizeExerciseType(token)
 
 		if _, err := tx.Exec(ctx, `

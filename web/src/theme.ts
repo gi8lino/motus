@@ -120,6 +120,15 @@ export function buildAppTheme(mode: PaletteMode) {
           },
         },
       },
+      MuiCardContent: {
+        styleOverrides: {
+          root: {
+            "&:last-child": {
+              paddingBottom: 24,
+            },
+          },
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: {
@@ -147,6 +156,20 @@ export function buildAppTheme(mode: PaletteMode) {
             backgroundColor: isDark
               ? alpha("#0f1a24", 0.72)
               : alpha("#ffffff", 0.72),
+            transition: "box-shadow 160ms ease, background-color 160ms ease",
+            "&.Mui-focused": {
+              boxShadow: `0 0 0 4px ${alpha(isDark ? "#7dd3fc" : "#0f766e", 0.14)}`,
+            },
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            transition: "transform 160ms ease, background-color 160ms ease",
+            "&:hover": {
+              transform: "translateY(-1px)",
+            },
           },
         },
       },

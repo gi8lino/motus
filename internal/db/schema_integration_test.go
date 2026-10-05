@@ -39,9 +39,11 @@ func TestEnsureSchemaPostgres(t *testing.T) {
 
 	require.NoError(t, store.EnsureSchema(ctx, logger))
 	require.NoError(t, store.EnsureSchema(ctx, logger), "migrations must be safe to check repeatedly")
-	var version int
-	require.NoError(t, store.pool.QueryRow(ctx, `SELECT version FROM schema_version WHERE id=1`).Scan(&version))
-	require.Equal(t, schemaVersionLatest, version)
+	var applied int
+	require.NoError(t, store.pool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&applied))
+	planned, err := loadMigrations(migrationFiles)
+	require.NoError(t, err)
+	require.Equal(t, len(planned), applied)
 	for _, table := range []string{"users", "workouts", "exercises", "exercise_labels", "user_sessions"} {
 		var exists bool
 		require.NoError(t, store.pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists))

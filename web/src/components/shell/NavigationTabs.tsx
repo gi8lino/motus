@@ -1,14 +1,4 @@
-import { useState } from "react";
-import MenuIcon from "@mui/icons-material/Menu";
-import {
-  Button,
-  Menu,
-  MenuItem,
-  Tab,
-  Tabs,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Tab, Tabs } from "@mui/material";
 import type { View } from "../../types";
 import { UI_TEXT } from "../../utils/uiText";
 
@@ -30,48 +20,6 @@ const LABELS: Record<View, string> = {
 };
 
 export function NavTabs({ view, views, onSelect, onPreload }: NavTabsProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
-  if (isMobile) {
-    return (
-      <>
-        <Button
-          color="inherit"
-          variant="outlined"
-          startIcon={<MenuIcon />}
-          aria-label={UI_TEXT.accessibility.navToggle}
-          onClick={(event) => setAnchorEl(event.currentTarget)}
-          sx={{ justifyContent: "flex-start", borderColor: "divider" }}
-        >
-          {LABELS[view]}
-        </Button>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={() => setAnchorEl(null)}
-        >
-          {views.map((nextView) => (
-            <MenuItem
-              key={nextView}
-              selected={view === nextView}
-              onFocus={() => onPreload(nextView)}
-              onMouseEnter={() => onPreload(nextView)}
-              onClick={() => {
-                onSelect(nextView);
-                setAnchorEl(null);
-              }}
-            >
-              {LABELS[nextView]}
-            </MenuItem>
-          ))}
-        </Menu>
-      </>
-    );
-  }
-
   return (
     <Tabs
       value={view}
@@ -79,6 +27,7 @@ export function NavTabs({ view, views, onSelect, onPreload }: NavTabsProps) {
       variant="scrollable"
       allowScrollButtonsMobile
       sx={{
+        display: { xs: "none", lg: "flex" },
         minHeight: 0,
         "& .MuiTabs-flexContainer": {
           gap: 0.75,

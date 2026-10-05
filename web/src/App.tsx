@@ -19,6 +19,7 @@ import {
 import {
   getWorkout,
   logoutUser,
+  setupUser,
   updateTrainingFeedback,
   updateUserName,
 } from "./api";
@@ -177,6 +178,8 @@ export default function App() {
   });
   const allowRegistration = config?.allowRegistration ?? true;
   const authHeaderEnabled = config?.authHeaderEnabled ?? false;
+  const oidcEnabled = config?.oidcEnabled ?? false;
+  const setupRequired = config?.setupRequired ?? false;
   const appVersion = config?.version || "dev";
   const {
     prefetchedViews,
@@ -484,13 +487,20 @@ export default function App() {
             <LoginView
               data={{
                 allowRegistration,
+                oidcEnabled,
+                setupRequired,
                 loginError,
               }}
               actions={{
                 onLogin: handleLogin,
                 onCreateUser: async (email, password) => {
                   try {
-                    await handleRegister(email, password);
+                    if (setupRequired) {
+                      const user = await setupUser(email, password);
+                      onLoginSuccess(user);
+                    } else {
+                      await handleRegister(email, password);
+                    }
                     setView("training");
                   } catch (err) {
                     await notify(toErrorMessage(err, "Unable to create user"));

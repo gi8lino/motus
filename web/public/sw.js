@@ -1,5 +1,5 @@
 const CACHE = "motus-shell-v2";
-const SHELL = ["./", "./manifest.webmanifest", "./motus.svg"];
+const SHELL = ["./", "./manifest.webmanifest", "./brand.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));

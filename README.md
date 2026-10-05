@@ -59,7 +59,7 @@ Motus separates training timing from data storage:
 
 ## Using the app
 
-1. **Log in or register** (local mode) or rely on proxy auth (auth-header mode).
+1. **Choose an authentication mode**: local accounts, a trusted proxy, OpenID Connect, or an explicitly unauthenticated single-user deployment.
 2. **Create workouts** in the Workouts tab. Add sets and pauses.
 3. **Select a workout** in Training and click Start to begin.
 4. **Pause/resume/advance** steps, and use the summary when finished.
@@ -81,7 +81,7 @@ Each step can include multiple exercises and a sound cue. Auto-advance pauses tr
 
    ```bash
    docker run --name motus-db -e POSTGRES_PASSWORD=motus -e POSTGRES_USER=motus -e POSTGRES_DB=motus -p 5432:5432 -d postgres:18
-   export MOTUS_DATABASE_URL="postgres://motus:motus@localhost:5432/motus?sslmode=disable"
+   export MOTUS__DATABASE_URL="postgres://motus:motus@localhost:5432/motus?sslmode=disable"
    ```
 
    (Adjust the credentials and host if you already have a local Postgres instance.)
@@ -95,35 +95,46 @@ Each step can include multiple exercises and a sound cue. Auto-advance pauses tr
 3. Run the server:
 
    ```bash
-   go run .
+   go run ./cmd/motus
    ```
 
 4. Open <http://localhost:8080> to use the UI.
 
 ## CLI flags
 
-Motus supports a handful of runtime flags (or environment variables with the `MOTUS_` prefix):
+Motus can be configured using command-line flags or environment variables. Environment variables use the `MOTUS__` prefix.
 
 - `--database-url` (required): PostgreSQL connection string.
-- `--listen-address` (default `:8080`): server bind address.
-- `--route-prefix` (default empty): mount the app under a path (e.g. `/motus`).
-- `--site-root` (default `http://localhost:8080`): base URL used in links.
-- `--auth-header` (default empty): header name to trust for proxy auth.
+- `--listen-address` (default `127.0.0.1:8080`): public application bind address.
+- `--management-listen-address` (default `127.0.0.1:8081`): health/readiness bind address.
+- `--route-prefix` (default empty): mount the public app under a path (e.g. `/motus`).
+- `--public-url` (default `http://localhost:8080`): externally visible base URL used for browser callbacks.
+- `--auth-mode` (default `local`): one of `local`, `trusted-proxy`, `oidc`, or `none`.
+- `--trusted-proxy-user-header`: identity header accepted only in `trusted-proxy` mode.
+- `--oidc-issuer`, `--oidc-client-id`, `--oidc-client-secret`, and `--oidc-session-secret`: configure browser OIDC login in `oidc` mode. The session secret must be at least 32 bytes.
 - `--allow-registration` (default false): allow local user sign-up.
-- `--auto-create-users` (default false): auto-create users when auth-header is enabled.
 - `--core-exercises-file` (default empty): optional YAML file overriding the embedded core exercise catalog.
-- `--admin-email` (default empty): admin email to bootstrap or update at startup.
-- `--admin-password` (default empty): admin password to bootstrap or update at startup.
 - `--debug` (default false): enable debug logging.
+- `--access-log` (default false): log completed application requests.
 - `--log-format` (default `json`): `json` or `text`.
 
-## Auth header mode
+The management listener is deliberately separate from the public application listener. It exposes `GET /healthz` for process liveness and `GET /readyz` for PostgreSQL readiness, and it is not mounted below `--route-prefix`.
 
-When `--auth-header` is set, Motus trusts the specified header as the authenticated user ID (email). The UI switches to proxy-auth mode, disables local login, and expects the reverse proxy to inject a valid email address. If you also set `--auto-create-users`, Motus will create missing users on first access. When the header is not set, Motus runs in local-auth mode and requires email + password.
+## Trusted-proxy mode
+
+Use `--auth-mode=trusted-proxy --trusted-proxy-user-header=X-User-Email` when a reverse proxy strips client-supplied headers and injects a verified email. Motus disables local password login in this mode. New trusted identities are created only when `--allow-registration` is enabled.
+
+## OIDC mode
+
+Set `--auth-mode=oidc` and all four OIDC flags to use a single OpenID Connect provider. Motus uses the authorization-code flow with PKCE and nonce/state validation, verifies the provider ID token, and creates its normal opaque Motus session. The provider callback is `<public-url>/auth/oidc/callback`; add that exact URL to the provider client. New verified identities are admitted only when `--allow-registration` is enabled.
+
+## No-auth mode
+
+`--auth-mode=none` is for a genuinely single-user deployment behind an already trusted boundary. Requests run as Motus's local `admin` account, created only when this mode first handles a request. Do not expose this mode directly to the internet.
 
 ## Local admin bootstrap
 
-To auto-create or update a local admin account at startup, use the admin flags (or env vars with `MOTUS_` prefix). The server logs when it creates or updates the admin user.
+To auto-create or update a local admin account at startup, use the admin flags (or env vars with the `MOTUS__` prefix). The server logs when it creates or updates the admin user.
 
 To promote an existing user to admin directly in the database:
 
@@ -133,7 +144,7 @@ UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
 
 ## Core exercises YAML
 
-Motus embeds and reconciles its default core exercises on every startup, including in the container image. No file mount is required. To replace the built-in catalog, pass `--core-exercises-file` (or `MOTUS_CORE_EXERCISES_FILE`) with a mounted YAML file. Every entry has a concise name and optional searchable labels. Set `hasSides: true` for unilateral exercises; when omitted, it defaults to `false`. `previousNames` lets catalog upgrades rename existing entries and linked workout snapshots safely:
+Motus embeds and reconciles its default core exercises on every startup, including in the container image. No file mount is required. To replace the built-in catalog, pass `--core-exercises-file` (or `MOTUS__CORE_EXERCISES_FILE`) with a mounted YAML file. Every entry has a concise name and optional searchable labels. Set `hasSides: true` for unilateral exercises; when omitted, it defaults to `false`. `previousNames` lets catalog upgrades rename existing entries and linked workout snapshots safely:
 
 ```yaml
 version: 2
@@ -145,28 +156,15 @@ exercises:
 
 See `examples/core-exercises.yaml` for the embedded default and override format.
 
-## Docker Compose (DB + pgAdmin)
+## Docker Compose
 
-Use `docker-compose.db.yml` for the database and pgAdmin:
+Start the local PostgreSQL service with the same Compose file used by the Makefile:
 
 ```bash
-docker compose -f docker-compose.db.yml up -d
+docker compose -f deploy/motus/docker-compose.db.yml up -d
 ```
 
-pgAdmin runs at <http://localhost:5050>.
-
-Connection settings inside pgAdmin:
-
-- Host name/address: `motus-db`
-- Port: `5432`
-- Maintenance database: `motus`
-- Username: `motus`
-- Password: `motus`
-
-Default pgAdmin login:
-
-- Email: `admin@motus.app`
-- Password: `motus`
+The database listens on `127.0.0.1:5431` by default; set `MOTUS_POSTGRES_PORT` to choose a different host port.
 
 ## Sound cues
 

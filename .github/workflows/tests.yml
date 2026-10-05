@@ -8,13 +8,19 @@ on:
       - main
     paths:
       - "internal/**"
+      - "pkg/**"
       - "cmd/**"
       - "go.mod"
       - "go.sum"
       - "web/**"
       - "examples/**"
       - "scripts/**"
-      - ".github/workflows/tests.yml"
+      - "Makefile"
+      - "Dockerfile*"
+      - ".goreleaser.yaml"
+      - "bin/dev-tools.mk"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
   workflow_dispatch:
 
 jobs:
@@ -64,24 +70,20 @@ jobs:
           cache: "npm"
           cache-dependency-path: "web/package-lock.json"
 
-      - name: Install Dependencies
-        run: |
-          make download
+      - name: Install dependencies
+        run: make download
 
-      - name: Build Frontend
+      - name: Build frontend
         run: |
-          cd web
-          npm ci
-          npm run typecheck
-          npm run lint
-          npm run format:check
-          npm run build
+          npm --prefix web run typecheck
+          npm --prefix web run lint
+          npm --prefix web run format:check
+          make web
 
-      - name: Check formatting and exercise YAML
+      - name: Check generated files and formatting
         run: |
           test -z "$(gofmt -l .)"
-          go vet ./...
-          go run honnef.co/go/tools/cmd/staticcheck@v0.6.1 ./...
+          make lint-go
           ruby scripts/check-core-exercises.rb
           git diff --check
 
@@ -92,6 +94,6 @@ jobs:
           path: web/dist
           if-no-files-found: error
 
-      - name: Run Unit Tests
-        run: |
-          make test
+      - name: Run tests
+        run: make test
+

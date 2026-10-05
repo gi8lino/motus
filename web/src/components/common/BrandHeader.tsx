@@ -12,19 +12,15 @@ export function BrandHeader() {
         src={brandLogoSrc}
         alt={UI_TEXT.accessibility.brandAlt}
         sx={{
-          width: 42,
+          width: 142,
           height: 42,
-          objectFit: "cover",
-          objectPosition: "left",
+          objectFit: "contain",
           flexShrink: 0,
           filter: "drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18))",
         }}
       />
 
       <Box>
-        <Typography variant="h5" sx={{ lineHeight: 1, fontWeight: 800 }}>
-          Motus
-        </Typography>
         <Typography variant="caption" color="text.secondary">
           Training cockpit
         </Typography>

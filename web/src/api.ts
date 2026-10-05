@@ -17,6 +17,8 @@ export { workoutWriteSteps } from "./utils/workoutWrite";
 type AppConfig = {
   authHeaderEnabled: boolean;
   allowRegistration: boolean;
+  oidcEnabled: boolean;
+  setupRequired: boolean;
   version: string;
   commit: string;
 };
@@ -90,6 +92,16 @@ export async function createUser(
   password?: string,
 ): Promise<User> {
   return requestJSON("/api/users", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function setupUser(
+  email: string,
+  password: string,
+): Promise<User> {
+  return requestJSON("/api/setup", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });

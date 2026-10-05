@@ -13,7 +13,7 @@ COPY web/ ./
 RUN npm run build
 
 
-# Build the manager binary.
+# Build the Motus server binary.
 FROM golang:1.27 AS prep
 
 ENV CGO_ENABLED=0
@@ -35,8 +35,9 @@ ARG COMMIT=none
 ARG LDFLAGS="-s -w -X main.Version=${VERSION} -X main.Commit=${COMMIT}"
 
 # Copy the Go source and templates.
-COPY cmd/ cmd
+COPY cmd/motus/ cmd/motus/
 COPY internal/ internal
+COPY pkg/ pkg/
 COPY examples/ examples
 COPY web/web.go web/web.go
 COPY --from=frontend /web/dist web/dist
@@ -51,14 +52,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   -ldflags="$LDFLAGS" \
   -a \
   -o motus \
-  ./cmd
+  ./cmd/motus
 
 # Create writable runtime directories owned by the root group.
 # The setgid bit keeps new files/directories in group 0, which supports
 # OpenShift's arbitrary UID model while still running as a non-root user.
 RUN install -d -o 0 -g 0 -m 2775 /outfs/work /outfs/tmp
 
-# Use distroless as minimal base image to package the manager binary.
+# Use distroless as a minimal base image for the Motus server binary.
 # Refer to https://github.com/GoogleContainerTools/distroless for more details.
 FROM gcr.io/distroless/static:nonroot
 
@@ -76,3 +77,4 @@ WORKDIR /work
 USER 65532:0
 
 ENTRYPOINT ["/motus"]
+

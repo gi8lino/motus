@@ -17,12 +17,12 @@ func (s *Service) Create(ctx context.Context, email, avatarURL, password string)
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
 
-	if s.authHeader == "" && !s.allowRegistration {
+	if !s.allowRegistration {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "registration is disabled", errorScope)
 	}
 
 	password = strings.TrimSpace(password)
-	if s.authHeader == "" && password == "" {
+	if password == "" {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "email and password are required", errorScope)
 	}
 

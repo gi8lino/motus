@@ -1,262 +1,234 @@
-# Makefile
-
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
+.DEFAULT_GOAL := help
 
 ## Tool Versions
-# renovate: datasource=github-releases depName=gi8lino/dev-tools
-DEV_TOOLS_VERSION ?= v0.9.0
 
-## Tool Binaries
-DEV_TOOL_NAMES := dev-port open-browser dev-tag make-help go-install-tool
-DEV_TOOL_TARGETS := $(addprefix $(LOCALBIN)/,$(DEV_TOOL_NAMES))
-DEV_TOOL_VERSIONED := $(addsuffix -$(DEV_TOOLS_VERSION),$(DEV_TOOL_TARGETS))
-
-DEV_PORT := $(LOCALBIN)/dev-port
-OPEN_BROWSER := $(LOCALBIN)/open-browser
-DEV_TAG := $(LOCALBIN)/dev-tag
-MAKE_HELP := $(LOCALBIN)/make-help
-GO_INSTALL_TOOL := $(LOCALBIN)/go-install-tool
-
-# Run a local tool while displaying only its executable name.
-define run-tool
-@printf '%s\n' '$(notdir $(1)) $(2)'
-@$(1) $(2)
-endef
-
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-## Tool Binaries
-
-
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
-
-## Tool Versions
 # renovate: datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION ?= v2.14.0
 
-##@ Tagging
+# renovate: datasource=github-releases depName=gi8lino/dev-tools
+DEV_TOOLS_VERSION ?= v0.9.0
 
-VERSION_PREFIX ?= v
+NPX ?= npx
 
-.PHONY: current
-current: $(DEV_TAG) ## Show the current semantic version tag.
-	$(call run-tool,$(DEV_TAG),--prefix "$(VERSION_PREFIX)" current)
+## Shared development tools
 
-.PHONY: patch
-patch: $(DEV_TAG) ## Create a new patch release (x.y.Z+1).
-	$(call run-tool,$(DEV_TAG),--prefix "$(VERSION_PREFIX)" patch)
+include bin/dev-tools.mk
+include $(call dev-tools-module,tag)
+include $(call dev-tools-module,port)
+include $(call dev-tools-module,browser)
+include $(call dev-tools-module,help)
 
-.PHONY: minor
-minor: $(DEV_TAG) ## Create a new minor release (x.Y+1.0).
-	$(call run-tool,$(DEV_TAG),--prefix "$(VERSION_PREFIX)" minor)
+## Project-local tools
 
-.PHONY: major
-major: $(DEV_TAG) ## Create a new major release (X+1.0.0).
-	$(call run-tool,$(DEV_TAG),--prefix "$(VERSION_PREFIX)" major)
+GOLANGCI_LINT := bin/golangci-lint
 
-.PHONY: tag
-tag: current
+## Build Configuration
 
-.PHONY: push
-push: ## Push tags to the configured remote.
-	git push --tags
+BINARY ?= motus
+COMMAND ?= ./cmd/motus
+BUILD_VERSION ?= dev
+BUILD_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
+LDFLAGS ?= -s -w -X main.Version=$(BUILD_VERSION) -X main.Commit=$(BUILD_COMMIT)
+RUN_ARGS ?=
+
+## Development
+
+COMPOSE_PROJECT ?= $(notdir $(CURDIR))
+COMPOSE_FILE := deploy/motus/docker-compose.db.yml
+DB_CONTAINER_NAME ?= motus-db
+
+MOTUS_ASSIGNED_PORT ?= $(call dev-port,app)
+MOTUS_MANAGEMENT_ASSIGNED_PORT ?= $(call dev-port,management)
+DB_ASSIGNED_PORT ?= $(call dev-port,postgres)
+PUBLIC_URL ?= http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)
+
+## Frontend
+
+NPM ?= npm
+WEB_NODE_MODULES := web/node_modules/.package-lock.json
 
 ##@ Development
 
-# Persistent local ports, shared by separate Make invocations.
-dev-port = $(or $(shell $(DEV_PORT) $(1)),$(error Could not resolve port for $(1)))
-MOTUS_ASSIGNED_PORT ?= $(call dev-port,app)
-DB_ASSIGNED_PORT ?= $(call dev-port,postgres)
-SITE_ROOT ?= http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)
-RUN_ARGS ?=
-COMPOSE_PROJECT ?= $(notdir $(CURDIR))
-COMPOSE_FILE ?= deploy/motus/docker-compose.db.yml
-COMPOSE = MOTUS_POSTGRES_PORT=$(DB_ASSIGNED_PORT) docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT)
+.PHONY: ports-reset
+ports-reset: $(DEV_PORT) ## Clear saved ports after stopping local services.
+	$(call run-tool,$(DEV_PORT),--reset)
 
-.PHONY: ports ports-reset postgres serve dev-build
-ports: $(DEV_PORT) ## Print saved local development ports.
+.PHONY: ports
+ports: $(DEV_PORT) ## Print selected local development ports.
 	@$(DEV_PORT) app --port "$(MOTUS_ASSIGNED_PORT)" > /dev/null
+	@$(DEV_PORT) management --port "$(MOTUS_MANAGEMENT_ASSIGNED_PORT)" > /dev/null
 	@$(DEV_PORT) postgres --port "$(DB_ASSIGNED_PORT)" > /dev/null
-	@echo "Motus: $(SITE_ROOT)/"
+	@echo "Motus: $(PUBLIC_URL)/"
+	@echo "Management: http://127.0.0.1:$(MOTUS_MANAGEMENT_ASSIGNED_PORT)/"
 	@echo "Postgres: 127.0.0.1:$(DB_ASSIGNED_PORT)"
 
-ports-reset: $(DEV_PORT) ## Clear saved ports after stopping local services.
-	$(DEV_PORT) --reset
+.PHONY: postgres
+postgres: ports ## Run PostgreSQL locally.
+	@echo "Starting PostgreSQL on dynamic host port: $(DB_ASSIGNED_PORT)"
+	@MOTUS_POSTGRES_PORT=$(DB_ASSIGNED_PORT) docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait --wait-timeout 60 $(DB_CONTAINER_NAME)
 
-postgres: ports ## Start local Postgres and wait for readiness.
-	@$(COMPOSE) up -d --wait --wait-timeout 60 motus-db
+.PHONY: dev-build
+dev-build: ports web ## Build development assets.
 
-dev-build: ports
-	$(MAKE) web
-
-serve: ports ## Run the app using the saved ports (build and Postgres must be ready).
-	go run ./cmd --listen-address="127.0.0.1:$(MOTUS_ASSIGNED_PORT)" \
-		--site-root="$(SITE_ROOT)" \
+.PHONY: serve
+serve: ports ## Run Motus using the saved ports.
+	@echo "Starting Motus application..."
+	@go run $(COMMAND) \
+		--listen-address="127.0.0.1:$(MOTUS_ASSIGNED_PORT)" \
+		--management-listen-address="127.0.0.1:$(MOTUS_MANAGEMENT_ASSIGNED_PORT)" \
+		--public-url="$(PUBLIC_URL)" \
+		--log-format=text \
 		--database-url="postgres://motus:motus@127.0.0.1:$(DB_ASSIGNED_PORT)/motus?sslmode=disable" \
 		$(RUN_ARGS)
 
-
-.PHONY: download
-download: dev-tools ## Download go packages
-	go mod download
+.PHONY: open
+open: ports $(OPEN_BROWSER) ## Open Motus in the browser.
+	$(call run-tool,$(OPEN_BROWSER),"$(PUBLIC_URL)/")
 
 .PHONY: run
-run: dev-build postgres ## Build, start Postgres, and run Motus with the browser.
-	@$(OPEN_BROWSER) "http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)/" & \
+run: dev-build postgres $(OPEN_BROWSER) ## Build, start services, and run Motus.
+	@$(OPEN_BROWSER) "$(PUBLIC_URL)/" & \
 	browser_pid=$$!; \
 	trap 'kill "$$browser_pid" 2>/dev/null || true' EXIT; \
-	$(MAKE) serve
+	$(MAKE) serve RUN_ARGS="$(RUN_ARGS)"
 
-.PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
+##@ Build
+
+.PHONY: build
+build: web ## Build the Motus binary.
+	go build -ldflags="$(LDFLAGS)" -o $(BINARY) $(COMMAND)
 
 .PHONY: vet
-vet: ## Run go vet against code.
+vet: ## Run Go static analysis.
 	go vet ./...
 
-.PHONY: test test-backend test-frontend
+.PHONY: clean
+clean: ## Clean generated application files.
+	rm -f $(BINARY) coverage.out coverage.html
+	rm -rf web/dist
+
+##@ Testing
+
+.PHONY: test
 test: test-backend test-frontend ## Run backend and frontend unit tests.
 
+.PHONY: test-backend
 test-backend: vet ## Run backend unit tests.
 	go test -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
 
-test-frontend: ## Run frontend unit tests.
-	npm --prefix web test
+.PHONY: test-frontend
+test-frontend: $(WEB_NODE_MODULES) ## Run frontend unit tests.
+	$(NPM) --prefix web test
 
 .PHONY: cover
-cover: ## Display test coverage
+cover: ## Display Go test coverage.
 	go test -coverprofile=coverage.out -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
 	go tool cover -html=coverage.out
 
-.PHONY: clean
-clean: ## Clean up generated files
-	rm -f coverage.out coverage.html
+##@ Assets
 
-.PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter.
-	$(GOLANGCI_LINT) run
-
-.PHONY: lint-fix
-lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
-	$(GOLANGCI_LINT) run --fix
-
-##@ Icons
-
-SVG       := web/motus.svg
-ICON_DIR  := web/public
+SVG := web/motus.svg
+ICON_DIR := web/public
 ICON_SIZES := 16x16 32x32 48x48 64x64
 
 .PHONY: favicon
-favicon: ## Create favicons
+favicon: ## Create favicons.
 	@mkdir -p $(ICON_DIR)
 	@for size in $(ICON_SIZES); do \
-	  outfile=favicon-$$size.png; \
-	  echo "create $$outfile"; \
-	  convert $(SVG) \
-	    -fuzz 5% -transparent white \
-	    -background none \
-	    -resize $$size \
-	    $(ICON_DIR)/$$outfile \
-	    >/dev/null 2>&1; \
+		outfile=favicon-$$size.png; \
+		echo "create $$outfile"; \
+		convert $(SVG) \
+			-fuzz 5% -transparent white \
+			-background none \
+			-resize $$size \
+			$(ICON_DIR)/$$outfile \
+			>/dev/null 2>&1; \
 	done
 	@echo "create apple-touch-icon.png"
 	@convert $(SVG) \
-	  -fuzz 5% -transparent white \
-	  -background none \
-	  -resize 180x180 \
-	  $(ICON_DIR)/apple-touch-icon.png \
-	  >/dev/null 2>&1
-
+		-fuzz 5% -transparent white \
+		-background none \
+		-resize 180x180 \
+		$(ICON_DIR)/apple-touch-icon.png \
+		>/dev/null 2>&1
 
 ##@ Admin
 
 .PHONY: create-user
-create-user: dev-tools ## Create a user via API: make create-user NAME="Alice"
+create-user: ## Create a user via API: make create-user NAME="Alice".
 	@[ -n "$(NAME)" ] || (echo "NAME is required" && exit 1)
 	curl -sSf -X POST \
-	  -H "Content-Type: application/json" \
-	  -d '{"name":"$(NAME)"}' \
-	  $(SITE_ROOT)/api/users
+		-H "Content-Type: application/json" \
+		-d '{"name":"$(NAME)"}' \
+		$(PUBLIC_URL)/api/users
 
 .PHONY: promote-admin
-promote-admin: dev-tools ## Promote a user to admin via API: make promote-admin USER_ID=<id> ADMIN_USER_ID=<id>
+promote-admin: ## Promote a user to admin via API: make promote-admin USER_ID=<id> ADMIN_USER_ID=<id>.
 	@[ -n "$(USER_ID)" ] || (echo "USER_ID is required" && exit 1)
 	@[ -n "$(ADMIN_USER_ID)" ] || (echo "ADMIN_USER_ID is required (an existing admin)" && exit 1)
 	curl -sSf -X PUT \
-	  -H "Content-Type: application/json" \
-	  -H "X-User-ID: $(ADMIN_USER_ID)" \
-	  -d '{"isAdmin":true}' \
-	  $(SITE_ROOT)/api/users/$(USER_ID)/admin
-
-##@ Dependencies
-
-
+		-H "Content-Type: application/json" \
+		-H "X-User-ID: $(ADMIN_USER_ID)" \
+		-d '{"isAdmin":true}' \
+		$(PUBLIC_URL)/api/users/$(USER_ID)/admin
 
 ##@ Frontend
 
+.PHONY: web
+web: $(WEB_NODE_MODULES) ## Build the frontend application.
+	$(NPM) --prefix web run build
+
 .PHONY: lint-web
-lint-web: ## Run frontend eslint checks.
-	npm --prefix web run lint
+lint-web: $(WEB_NODE_MODULES) ## Run frontend eslint checks.
+	$(NPM) --prefix web run lint
 
 .PHONY: lint-fix-web
-lint-fix-web: ## Run frontend eslint with auto-fix.
-	npm --prefix web run lint:fix
+lint-fix-web: $(WEB_NODE_MODULES) ## Run frontend eslint with auto-fix.
+	$(NPM) --prefix web run lint:fix
 
-.PHONY: web-install
-web-install: ## Install frontend dependencies (prefers lockfile; falls back to npm install if out-of-sync).
-	@npm --prefix web ci || ( \
-		echo "npm ci failed (lockfile out-of-sync); running npm install to refresh web/package-lock.json"; \
-		npm --prefix web install \
-	)
+##@ Formatting
 
-.PHONY: web-ci
-web-ci: ## Strict frontend install from lockfile (for CI).
-	npm --prefix web ci
+.PHONY: fmt
+fmt: fmt-go fmt-web ## Format authored source.
 
-.PHONY: web
-web: ## Build frontend app.
-	npm --prefix web run build
+.PHONY: fmt-go
+fmt-go: ## Format Go code.
+	go fmt ./...
+
+.PHONY: fmt-web
+fmt-web: ## Format CSS and TypeScript source.
+	$(NPX) prettier --write \
+		"web/src/**/*.css" \
+		"web/src/**/*.ts" \
+		"web/src/**/*.tsx" \
+		"web/tests/*.ts" \
+		"web/tests/**/*.ts"
 
 
-##@ General
+##@ Linting
 
-.PHONY: help
-help: $(MAKE_HELP) ## Display this help.
-	@$(MAKE_HELP) $(MAKEFILE_LIST)
+.PHONY: lint
+lint: lint-go lint-web ## Run all linters.
 
-.PHONY: open
-open: ports ## Open the browser once the application responds.
-	$(OPEN_BROWSER) "http://127.0.0.1:$(MOTUS_ASSIGNED_PORT)/"
+.PHONY: lint-go
+lint-go: golangci-lint ## Run golangci-lint.
+	$(GOLANGCI_LINT) run
 
-##@ Development tools
+.PHONY: lint-fix
+lint-fix: golangci-lint ## Run golangci-lint and apply fixes.
+	$(GOLANGCI_LINT) run --fix
+
+##@ Dependencies
+
+$(WEB_NODE_MODULES): web/package.json web/package-lock.json
+	$(NPM) --prefix web ci
+
+.PHONY: download
+download: dev-tools $(WEB_NODE_MODULES) ## Download project dependencies.
+	go mod download
 
 .PHONY: dev-tools
-dev-tools: $(DEV_TOOL_TARGETS) ## Download the pinned development tools.
-
-$(DEV_TOOL_TARGETS): $(LOCALBIN)/%: $(LOCALBIN)/%-$(DEV_TOOLS_VERSION)
-	@ln -sf "$(notdir $<)" "$@"
-
-$(DEV_TOOL_VERSIONED): $(LOCALBIN)/%-$(DEV_TOOLS_VERSION): | $(LOCALBIN)
-	$(call download-dev-tool,$*,$@)
-
-# download-dev-tool downloads a versioned tool from gi8lino/dev-tools.
-# $1 - release asset name
-# $2 - versioned destination path
-define download-dev-tool
-	@set -eu; \
-	tmp="$(2).tmp"; \
-	trap 'rm -f "$$tmp"' EXIT INT TERM; \
-	echo "Downloading gi8lino/dev-tools $(DEV_TOOLS_VERSION) $(1)"; \
-	curl --fail --silent --show-error --location \
-		"https://github.com/gi8lino/dev-tools/releases/download/$(DEV_TOOLS_VERSION)/$(1)" \
-		-o "$$tmp"; \
-	chmod +x "$$tmp"; \
-	mv "$$tmp" "$(2)"; \
-	trap - EXIT INT TERM
-endef
+dev-tools: $(DEV_PORT) $(OPEN_BROWSER) $(DEV_TAG) $(MAKE_HELP) $(GO_INSTALL_TOOL) ## Download pinned development tools.
 
 .PHONY: golangci-lint
 golangci-lint: $(GO_INSTALL_TOOL) ## Download golangci-lint locally if necessary.

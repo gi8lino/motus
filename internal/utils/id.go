@@ -7,10 +7,9 @@ import (
 
 // NewID returns a random hexadecimal string identifier.
 func NewID() string {
-	var b [16]byte
-	_, err := rand.Read(b[:])
-	if err != nil {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
 		panic(err)
 	}
-	return hex.EncodeToString(b[:])
+	return hex.EncodeToString(bytes[:])
 }

@@ -28,8 +28,10 @@ import { getTrainingHeaderStatus } from "../../utils/training";
 import { selectQuickWorkouts } from "../../utils/trainingHome";
 import { getTotalElapsedMillis } from "../../utils/trainingElapsed";
 import { TrainingCard } from "../training/TrainingCard";
+import { WorkoutPlanPreview } from "../training/WorkoutPlanPreview";
 import { TrainingFinishModal } from "../training/FinishTrainingModal";
 import { TrainingOverrunModal } from "../training/OverrunTrainingModal";
+import { EmptyState } from "../common/EmptyState";
 import { useTrainingAudio } from "../../hooks/useTrainingAudio";
 import { useTrainingOverrun } from "../../hooks/useTrainingOverrun";
 import { useTrainingKeyboard } from "../../hooks/useTrainingKeyboard";
@@ -213,8 +215,15 @@ export function TrainingView({
         sx={{
           overflow: "visible",
           border: 1,
-          borderColor: "divider",
+          borderColor: training?.running ? "primary.main" : "divider",
           bgcolor: "background.paper",
+          backgroundImage: (theme) =>
+            training?.running
+              ? `linear-gradient(145deg, ${theme.palette.primary.main}12, transparent 38%)`
+              : "none",
+          boxShadow: training?.running
+            ? (theme) => `0 18px 48px ${theme.palette.primary.main}24`
+            : undefined,
         }}
       >
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -362,21 +371,15 @@ export function TrainingView({
               </Stack>
             ) : null}
 
+            {!training && workouts.length === 0 ? (
+              <EmptyState
+                title="Your next workout starts with a plan"
+                description="Create a workout first, then come back here to run it with the timer."
+              />
+            ) : null}
+
             {selectedWorkout && !training ? (
-              <Box
-                sx={{
-                  px: 1.5,
-                  py: 1.25,
-                  borderRadius: 3,
-                  bgcolor: "action.hover",
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  {selectedWorkout.name} is ready with{" "}
-                  {selectedWorkout.steps.length} steps. Hit start to jump into
-                  the first exercise.
-                </Typography>
-              </Box>
+              <WorkoutPlanPreview workout={selectedWorkout} />
             ) : null}
 
             <TrainingCard

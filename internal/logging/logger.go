@@ -5,7 +5,7 @@ import (
 	"log/slog"
 )
 
-// LogFormat defines the supported log formats.
+// LogFormat defines a supported structured log format.
 type LogFormat string
 
 const (
@@ -13,23 +13,20 @@ const (
 	LogFormatJSON LogFormat = "json"
 )
 
-// SetupLogger configures a structured logger with the specified format and debug mode.
-func SetupLogger(format LogFormat, debug bool, output io.Writer) *slog.Logger {
-	handlerOpts := &slog.HandlerOptions{}
+// Setup creates a structured logger for the selected format and level.
+func Setup(format LogFormat, debug bool, output io.Writer) *slog.Logger {
+	options := &slog.HandlerOptions{}
 
 	if debug {
-		handlerOpts.Level = slog.LevelDebug
+		options.Level = slog.LevelDebug
 	}
 
 	var handler slog.Handler
-	switch format {
-	case LogFormatJSON:
-		handler = slog.NewJSONHandler(output, handlerOpts)
-	case LogFormatText:
-		handler = slog.NewTextHandler(output, handlerOpts)
-	default:
-		// Default to JSON if an invalid format is provided.
-		handler = slog.NewJSONHandler(output, handlerOpts)
+
+	if format == LogFormatText {
+		handler = slog.NewTextHandler(output, options)
+	} else {
+		handler = slog.NewJSONHandler(output, options)
 	}
 
 	return slog.New(handler)

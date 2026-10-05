@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gi8lino/motus/internal/utils"
+	"github.com/jackc/pgx/v5"
 )
 
 // CreateUser inserts a new user with the provided password hash.
@@ -33,6 +34,79 @@ func (s *Store) CreateUser(ctx context.Context, email, avatarURL, passwordHash s
 	`,
 		user.ID, user.Name, user.IsAdmin, user.AvatarURL, strings.TrimSpace(passwordHash), user.CreatedAt)
 	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// ResolveTrustedProxyUser maps a verified proxy identity to exactly one Motus user.
+// A first-seen identity is provisioned only when the deployment allows it.
+func (s *Store) ResolveTrustedProxyUser(ctx context.Context, email string, allowRegistration bool) (*User, error) {
+	user, err := s.GetUser(ctx, email)
+	if err == nil {
+		return user, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) || !allowRegistration {
+		return nil, err
+	}
+	user, err = s.CreateUser(ctx, email, "", "")
+	if err == nil {
+		return user, nil
+	}
+	// A concurrent first login may have won the insert race.
+	return s.GetUser(ctx, email)
+}
+
+// EnsureAdministrator returns the administrator used by explicitly unauthenticated deployments.
+// Normal authentication modes never create an implicit administrator.
+func (s *Store) EnsureAdministrator(ctx context.Context) (*User, error) {
+	now := time.Now().UTC()
+	row := s.pool.QueryRow(ctx, `
+		INSERT INTO users (id, name, is_admin, avatar_url, password_hash, created_at)
+		VALUES ('admin', 'Administrator', TRUE, '', '', $1)
+		ON CONFLICT (id) DO UPDATE SET is_admin=TRUE
+		RETURNING id, name, is_admin, avatar_url, created_at
+	`, now)
+	var user User
+	if err := row.Scan(&user.ID, &user.Name, &user.IsAdmin, &user.AvatarURL, &user.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// SetupRequired reports whether Motus has an initial administrator.
+func (s *Store) SetupRequired(ctx context.Context) (bool, error) {
+	var required bool
+	err := s.pool.QueryRow(ctx, `SELECT NOT EXISTS (SELECT 1 FROM users)`).Scan(&required)
+	return required, err
+}
+
+// CreateInitialAdministrator atomically creates the first local administrator.
+func (s *Store) CreateInitialAdministrator(ctx context.Context, email, passwordHash string) (*User, error) {
+	email, err := utils.NormalizeEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `LOCK TABLE users IN EXCLUSIVE MODE`); err != nil {
+		return nil, err
+	}
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users)`).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.New("setup is already complete")
+	}
+	user := &User{ID: email, Name: email, IsAdmin: true, CreatedAt: time.Now().UTC()}
+	if _, err := tx.Exec(ctx, `INSERT INTO users(id,name,is_admin,avatar_url,password_hash,created_at) VALUES($1,$2,TRUE,'',$3,$4)`, user.ID, user.Name, passwordHash, user.CreatedAt); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return user, nil

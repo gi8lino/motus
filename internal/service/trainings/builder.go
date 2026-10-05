@@ -1,6 +1,7 @@
 package trainings
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -105,7 +106,7 @@ func NewStateFromWorkout(workout *Workout, soundURLByKey func(string) string) Tr
 			}
 
 			if st.RepeatRestSeconds > 0 && (loopIdx < repeatCount-1 || st.RepeatRestAfterLast) {
-				restName := utils.DefaultIfZero(strings.TrimSpace(st.RepeatRestName), "Pause")
+				restName := cmp.Or(strings.TrimSpace(st.RepeatRestName), "Pause")
 				restState := TrainingStepState{
 					ID:               fmt.Sprintf("%s-rest-%d", st.ID, loopIdx+1),
 					Name:             restName,

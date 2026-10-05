@@ -7,7 +7,7 @@ func TestNew(t *testing.T) {
 
 	t.Run("CreatesService", func(t *testing.T) {
 		t.Parallel()
-		svc := New(&fakeStore{}, "", false)
+		svc := New(&fakeStore{}, false)
 		if svc == nil {
 			t.Fatalf("expected service")
 		}

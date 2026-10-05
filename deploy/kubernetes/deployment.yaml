@@ -23,23 +23,36 @@ spec:
           env:
             - name: TZ
               value: Europe/Zurich
+            - name: MOTUS__LISTEN_ADDRESS
+              value: 0.0.0.0:8080
+            - name: MOTUS__MANAGEMENT_LISTEN_ADDRESS
+              value: 0.0.0.0:8081
           envFrom:
             - secretRef:
                 name: motus-db-url
           ports:
             - name: http
               containerPort: 8080
+            - name: management
+              containerPort: 8081
           startupProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: management
             failureThreshold: 30
             timeoutSeconds: 2
             periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: management
+            failureThreshold: 3
+            timeoutSeconds: 2
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: management
             failureThreshold: 2
             periodSeconds: 30
           resources:
@@ -51,3 +64,4 @@ spec:
               cpu: 100m
       restartPolicy: Always
       automountServiceAccountToken: false
+

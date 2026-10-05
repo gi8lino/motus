@@ -49,7 +49,28 @@ body {
   background: transparent;
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: 40px;
+  padding-bottom: 0;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 34%, transparent);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 74%, white);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .shell {

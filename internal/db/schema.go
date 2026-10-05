@@ -4,153 +4,107 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
 
-const schemaVersionLatest = 10
-
-type schemaMigration struct {
-	version int
-	name    string
-	file    string
-}
-
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-var schemaMigrations = []schemaMigration{
-	{
-		version: 1,
-		name:    "baseline",
-		file:    "migrations/001_baseline.sql",
-	},
-	{
-		version: 2,
-		name:    "repeat rest name",
-		file:    "migrations/002_repeat_rest_name.sql",
-	},
-	{
-		version: 3,
-		name:    "exercise sides",
-		file:    "migrations/003_exercise_sides.sql",
-	},
-	{
-		version: 4,
-		name:    "local auth sessions",
-		file:    "migrations/004_local_auth_sessions.sql",
-	},
-	{
-		version: 5,
-		name:    "constraints and indexes",
-		file:    "migrations/005_constraints_and_indexes.sql",
-	},
-	{
-		version: 6,
-		name:    "exercise labels",
-		file:    "migrations/006_exercise_labels.sql",
-	},
-	{
-		version: 7,
-		name:    "remove templates",
-		file:    "migrations/007_remove_templates.sql",
-	},
-	{
-		version: 8,
-		name:    "training feedback",
-		file:    "migrations/008_training_feedback.sql",
-	},
-	{
-		version: 9,
-		name:    "training performance",
-		file:    "migrations/009_training_performance.sql",
-	},
-	{
-		version: 10,
-		name:    "workout organization",
-		file:    "migrations/010_workout_organization.sql",
-	},
+// migration is one validated, versioned SQL migration.
+type migration struct {
+	version int
+	entry   fs.DirEntry
 }
 
-// EnsureSchema applies the baseline schema and any pending migrations.
+// EnsureSchema applies each embedded migration exactly once and records its version.
 func (s *Store) EnsureSchema(ctx context.Context, logger *slog.Logger) error {
+	migrations, err := loadMigrations(migrationFiles)
+	if err != nil {
+		return err
+	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx) // nolint:errcheck
-
-	if err := ensureSchemaVersionTable(ctx, tx); err != nil {
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := initializeMigrations(ctx, tx); err != nil {
 		return err
 	}
-	currentVersion, err := readSchemaVersion(ctx, tx)
-	if err != nil {
-		return err
-	}
-
-	for _, migration := range schemaMigrations {
-		if migration.version <= currentVersion {
-			// Skip migrations that have already been applied.
-			continue
-		}
-		startVersion := currentVersion
-		data, err := migrationFiles.ReadFile(migration.file)
+	for _, item := range migrations {
+		applied, err := migrationApplied(ctx, tx, item.version)
 		if err != nil {
-			return fmt.Errorf("read migration %d: %w", migration.version, err)
-		}
-		results, err := tx.Conn().PgConn().Exec(ctx, string(data)).ReadAll()
-		if err != nil {
-			return fmt.Errorf("execute migration %d: %w", migration.version, err)
-		}
-		for _, result := range results {
-			if result.Err != nil {
-				return fmt.Errorf("execute migration %d: %w", migration.version, result.Err)
-			}
-		}
-		if err := writeSchemaVersion(ctx, tx, migration.version); err != nil {
 			return err
 		}
-		logger.Info(
-			"db migration applied",
-			slog.String("event", "db_migration_applied"),
-			slog.Int("from_version", startVersion),
-			slog.Int("to_version", migration.version),
-			slog.String("name", migration.name),
-		)
-		currentVersion = migration.version
+		if applied {
+			continue
+		}
+		if err := applyMigration(ctx, tx, item); err != nil {
+			return err
+		}
+		logger.Info("applied database migration", "event", "database_migration_applied", "version", item.version, "migration", item.entry.Name())
 	}
-
 	return tx.Commit(ctx)
 }
 
-// ensureSchemaVersionTable creates the schema version tracker if missing.
-func ensureSchemaVersionTable(ctx context.Context, tx pgx.Tx) error {
-	_, err := tx.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_version (
-        id INT PRIMARY KEY,
-        version INT NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )`)
+func initializeMigrations(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(734627198236)`); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`)
 	return err
 }
 
-// readSchemaVersion returns the current schema version (or 0 when missing).
-func readSchemaVersion(ctx context.Context, tx pgx.Tx) (int, error) {
-	var version int
-	err := tx.QueryRow(ctx, `SELECT version FROM schema_version WHERE id = 1`).Scan(&version)
-	if err == pgx.ErrNoRows {
-		return 0, nil
-	}
+func migrationApplied(ctx context.Context, tx pgx.Tx, version int) (bool, error) {
+	var applied bool
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=$1)`, version).Scan(&applied)
+	return applied, err
+}
+
+func applyMigration(ctx context.Context, tx pgx.Tx, item migration) error {
+	sql, err := fs.ReadFile(migrationFiles, "migrations/"+item.entry.Name())
 	if err != nil {
-		return 0, err
+		return fmt.Errorf("migration %d: read: %w", item.version, err)
 	}
-	return version, nil
+	if _, err := tx.Exec(ctx, string(sql)); err != nil {
+		return fmt.Errorf("migration %d: %w", item.version, err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations(version) VALUES($1)`, item.version); err != nil {
+		return fmt.Errorf("migration %d: record: %w", item.version, err)
+	}
+	return nil
 }
 
-// writeSchemaVersion persists the latest schema version.
-func writeSchemaVersion(ctx context.Context, tx pgx.Tx, version int) error {
-	_, err := tx.Exec(ctx, `INSERT INTO schema_version (id, version, updated_at)
-        VALUES (1, $1, NOW())
-        ON CONFLICT (id) DO UPDATE SET version = EXCLUDED.version, updated_at = NOW()`, version)
-	return err
+func loadMigrations(source fs.FS) ([]migration, error) {
+	entries, err := fs.ReadDir(source, "migrations")
+	if err != nil {
+		return nil, err
+	}
+	migrations := make([]migration, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+		prefix, _, found := strings.Cut(entry.Name(), "_")
+		if !found {
+			return nil, fmt.Errorf("invalid migration %q", entry.Name())
+		}
+		version, err := strconv.Atoi(prefix)
+		if err != nil || version < 1 {
+			return nil, fmt.Errorf("invalid migration %q", entry.Name())
+		}
+		migrations = append(migrations, migration{version: version, entry: entry})
+	}
+	slices.SortFunc(migrations, func(left, right migration) int { return left.version - right.version })
+	for index := 1; index < len(migrations); index++ {
+		if migrations[index-1].version == migrations[index].version {
+			return nil, fmt.Errorf("duplicate migration version %d", migrations[index].version)
+		}
+	}
+	return migrations, nil
 }

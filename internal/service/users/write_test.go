@@ -77,7 +77,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Registration disabled", func(t *testing.T) {
 		t.Parallel()
 
-		svc := New(&fakeStore{}, "", false)
+		svc := New(&fakeStore{}, false)
 		_, err := svc.Create(context.Background(), "user@example.com", "", "secret")
 		require.Error(t, err)
 		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
@@ -86,28 +86,12 @@ func TestCreate(t *testing.T) {
 	t.Run("Password required", func(t *testing.T) {
 		t.Parallel()
 
-		svc := New(&fakeStore{}, "", true)
+		svc := New(&fakeStore{}, true)
 		_, err := svc.Create(context.Background(), "user@example.com", "", " ")
 		require.Error(t, err)
 		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
 	})
 
-	t.Run("Proxy auth allows empty password", func(t *testing.T) {
-		t.Parallel()
-
-		called := false
-		svc := New(&fakeStore{
-			createUserFn: func(context.Context, string, string, string) (*User, error) {
-				called = true
-				return &User{ID: "user"}, nil
-			},
-		}, "X-User", false)
-		user, err := svc.Create(context.Background(), "user@example.com", "", "")
-		require.NoError(t, err)
-		require.NotNil(t, user)
-		assert.Equal(t, "user", user.ID)
-		assert.True(t, called, "expected CreateUser to be called")
-	})
 }
 
 func TestUpdateRole(t *testing.T) {
@@ -122,7 +106,7 @@ func TestUpdateRole(t *testing.T) {
 				called = true
 				return nil
 			},
-		}, "", false)
+		}, false)
 		if err := svc.UpdateRole(context.Background(), "user", true); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -144,7 +128,7 @@ func TestUpdateName(t *testing.T) {
 				called = true
 				return nil
 			},
-		}, "", false)
+		}, false)
 		if err := svc.UpdateName(context.Background(), "user", "New"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

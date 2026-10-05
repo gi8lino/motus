@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestSetupLogger validates logger output formats and log levels.
-func TestSetupLogger(t *testing.T) {
+// TestSetup validates logger output formats and log levels.
+func TestSetup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("JSON logger", func(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatJSON, false, &buf)
+		logger := Setup(LogFormatJSON, false, &buf)
 
 		logger.Info("test message", "key", "value")
 
@@ -32,7 +32,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatText, false, &buf)
+		logger := Setup(LogFormatText, false, &buf)
 
 		logger.Info("hello world", "foo", "bar")
 
@@ -46,7 +46,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger("invalid", false, &buf)
+		logger := Setup("invalid", false, &buf)
 
 		logger.Info("fallback check", "k", "v")
 
@@ -61,7 +61,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatText, true, &buf)
+		logger := Setup(LogFormatText, true, &buf)
 
 		logger.Debug("debug enabled", "foo", "bar")
 

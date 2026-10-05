@@ -1,6 +1,7 @@
 package trainings
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
-	"github.com/gi8lino/motus/internal/utils"
 )
 
 // BuildTrainingLog validates and maps a completion payload to a log and step entries.
@@ -23,8 +23,8 @@ func BuildTrainingLog(req CompleteRequest) (TrainingLog, []TrainingStepLog, erro
 	}
 	// Default timestamps to now when missing.
 	now := time.Now()
-	req.StartedAt = utils.DefaultIfZero(req.StartedAt, now)
-	req.CompletedAt = utils.DefaultIfZero(req.CompletedAt, now)
+	req.StartedAt = cmp.Or(req.StartedAt, now)
+	req.CompletedAt = cmp.Or(req.CompletedAt, now)
 
 	// Ensure completion is never before the start.
 	if req.CompletedAt.Before(req.StartedAt) {

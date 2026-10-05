@@ -1,6 +1,7 @@
 package workouts
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"regexp"
@@ -145,7 +146,7 @@ func normalizeSubsets(stepName string, inputs []SubsetInput, validSoundKey func(
 // normalizeSubset builds a WorkoutSubset, enforcing duration and sound rules.
 func normalizeSubset(stepName string, index int, input SubsetInput, validSoundKey func(string) bool) (db.WorkoutSubset, error) {
 	name := strings.TrimSpace(input.Name)
-	label := utils.DefaultIfZero(name, fmt.Sprintf("subset %d of %s", index+1, stepName))
+	label := cmp.Or(name, fmt.Sprintf("subset %d of %s", index+1, stepName))
 
 	seconds, err := parseDurationField(input.Duration, 0)
 	if err != nil {
@@ -184,7 +185,7 @@ func normalizeSubsetExercises(name string, inputs []ExerciseInput, validSoundKey
 	var exercises []db.SubsetExercise
 	for _, ex := range inputs {
 		exName := strings.TrimSpace(ex.Name)
-		token := utils.DefaultIfZero(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
+		token := cmp.Or(utils.NormalizeToken(ex.Type), utils.ExerciseTypeRep)
 
 		switch token {
 		case utils.ExerciseTypeRep, utils.ExerciseTypeStopwatch, utils.ExerciseTypeCountdown:

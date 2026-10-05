@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type RefObject } from "react";
+import { useCallback, useMemo, useState, type RefObject } from "react";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import SkipNextRoundedIcon from "@mui/icons-material/SkipNextRounded";
@@ -100,6 +100,9 @@ function ExerciseMetric({ exercise }: { exercise: Exercise }) {
 }
 
 function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleExercises = expanded ? exercises : exercises.slice(0, 3);
+  const hiddenCount = exercises.length - visibleExercises.length;
   return (
     <Stack
       divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}
@@ -111,7 +114,7 @@ function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
         bgcolor: (theme) => alpha(theme.palette.primary.main, 0.045),
       }}
     >
-      {exercises.map((exercise, index) => (
+      {visibleExercises.map((exercise, index) => (
         <Box
           key={`${exercise.name}-${exercise.side || ""}-${index}`}
           sx={{
@@ -120,7 +123,7 @@ function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
             gap: { xs: 1.25, sm: 2 },
             alignItems: "center",
             px: { xs: 1.4, sm: 2.25 },
-            py: { xs: 1.45, sm: 1.75 },
+            py: { xs: 1.1, sm: 1.35 },
           }}
         >
           <Typography
@@ -155,6 +158,24 @@ function SupersetExerciseList({ exercises }: { exercises: Exercise[] }) {
           </Stack>
         </Box>
       ))}
+      {hiddenCount > 0 ? (
+        <Button
+          size="small"
+          onClick={() => setExpanded(true)}
+          sx={{ alignSelf: "center", my: 0.5 }}
+        >
+          Show {hiddenCount} more {hiddenCount === 1 ? "movement" : "movements"}
+        </Button>
+      ) : null}
+      {expanded && exercises.length > 3 ? (
+        <Button
+          size="small"
+          onClick={() => setExpanded(false)}
+          sx={{ alignSelf: "center", my: 0.5 }}
+        >
+          Show less
+        </Button>
+      ) : null}
     </Stack>
   );
 }
@@ -452,7 +473,7 @@ export function TrainingCard({
     : isCountdown
       ? "Skip"
       : isSuperset
-        ? "Finish superset"
+        ? "Complete round"
         : "Next";
   const finishAction = isLastStep || isSuperset;
 
@@ -575,9 +596,19 @@ export function TrainingCard({
                   color="text.secondary"
                   sx={{ textAlign: "center" }}
                 >
-                  Perform these exercises continuously. Finish the block when
-                  you are done.
+                  Complete the full circuit, then continue with one action.
                 </Typography>
+                {!isMobile ? (
+                  <Box
+                    sx={{
+                      pt: 1.5,
+                      borderTop: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    {actions}
+                  </Box>
+                ) : null}
               </Stack>
             ) : isRecovery ? (
               <Stack spacing={1.75}>
@@ -655,7 +686,10 @@ export function TrainingCard({
               </Stack>
             )}
 
-            {currentStep && !isRecovery && exercises.length > 0 ? (
+            {currentStep &&
+            !isRecovery &&
+            !isSuperset &&
+            exercises.length > 0 ? (
               <Stack direction="row" spacing={1}>
                 <TextField
                   size="small"
@@ -688,7 +722,7 @@ export function TrainingCard({
 
             <NextStepPreview step={upcomingStep} emphasized={isTransitioning} />
 
-            {!isMobile ? (
+            {!isMobile && !isSuperset ? (
               <Box
                 sx={{
                   pt: 2.25,

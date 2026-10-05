@@ -1,19 +1,22 @@
 .DS_Store
 .envrc
-cover.out
-web/node_modules/
-# Build outputs
-web/dist/*
-!web/dist/.gitkeep
 
-# Noe deps in web
-web/node_modules/
+/coverage.out
+/coverage.html
+/.gocache/
 
-.gocache/
+/web/node_modules/
+/web/dist/*
+!/web/dist/.gitkeep
+
+/bin/*
+!/bin/dev-tools.mk
 
 # Local development port assignments
 /.dev-ports.json
 /.dev-ports.json.lock
 
-/bin/
-.projectatlas
+# Local ProjectAtlas index and runtime state
+/.projectatlas/
+
+/motus

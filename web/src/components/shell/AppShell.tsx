@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import {
   Alert,
   AppBar,
+  BottomNavigation,
+  BottomNavigationAction,
   Box,
   Button,
   Container,
@@ -11,6 +13,11 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import DirectionsRunRoundedIcon from "@mui/icons-material/DirectionsRunRounded";
+import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import type { User, View } from "../../types";
 import { PROMPTS } from "../../utils/messages";
 import { BrandHeader } from "../common/BrandHeader";
@@ -61,6 +68,24 @@ export function AppShell({
   ).filter((nextView) =>
     nextView === "admin" ? Boolean(currentUser?.isAdmin) : true,
   );
+  const mobileViews = availableViews.filter(
+    (nextView): nextView is Exclude<View, "admin" | "login"> =>
+      nextView !== "admin" && nextView !== "login",
+  );
+  const mobileNavigation: Record<
+    Exclude<View, "admin" | "login">,
+    ReactNode
+  > = {
+    training: <DirectionsRunRoundedIcon />,
+    workouts: <FitnessCenterRoundedIcon />,
+    exercises: <TuneRoundedIcon />,
+    history: <HistoryRoundedIcon />,
+    profile: <PersonRoundedIcon />,
+  } as const;
+  const mobileView = mobileViews.find((nextView) => nextView === view);
+  const toastSeverity = /error|failed|unable|denied/i.test(toast ?? "")
+    ? "error"
+    : "success";
 
   return (
     <>
@@ -109,6 +134,16 @@ export function AppShell({
                   onPreload={onViewPreload}
                 />
 
+                {currentUser?.isAdmin ? (
+                  <Button
+                    variant={view === "admin" ? "contained" : "text"}
+                    onClick={() => onViewChange("admin")}
+                    sx={{ display: { xs: "inline-flex", lg: "none" } }}
+                  >
+                    Admin
+                  </Button>
+                ) : null}
+
                 {!authHeaderEnabled && currentUser && onLogout ? (
                   <Button
                     color="inherit"
@@ -131,7 +166,8 @@ export function AppShell({
           maxWidth="xl"
           sx={{
             px: { xs: 2, md: 3 },
-            py: { xs: 2.5, md: 4 },
+            pt: { xs: 2.5, md: 4 },
+            pb: { xs: 11, md: 4 },
           }}
         >
           {resumeOpen ? (
@@ -205,7 +241,7 @@ export function AppShell({
         autoHideDuration={1800}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert severity="info" variant="filled" sx={{ width: "100%" }}>
+        <Alert severity={toastSeverity} variant="filled" sx={{ width: "100%" }}>
           {toast}
         </Alert>
       </Snackbar>
@@ -233,6 +269,45 @@ export function AppShell({
           © {new Date().getFullYear()} Motus · Version {appVersion}
         </Typography>
       </Box>
+
+      {isAuthed ? (
+        <Paper
+          elevation={0}
+          sx={{
+            display: { xs: "block", lg: "none" },
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: (theme) => theme.zIndex.appBar,
+            borderTop: 1,
+            borderColor: "divider",
+            borderRadius: 0,
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(8, 16, 25, 0.94)"
+                : "rgba(255, 252, 247, 0.96)",
+            backdropFilter: "blur(18px)",
+          }}
+        >
+          <BottomNavigation
+            showLabels
+            value={mobileView ?? false}
+            onChange={(_event, nextView: View) => onViewChange(nextView)}
+            sx={{ height: 70 }}
+          >
+            {mobileViews.map((nextView) => (
+              <BottomNavigationAction
+                key={nextView}
+                value={nextView}
+                label={nextView === "training" ? "Train" : nextView}
+                icon={mobileNavigation[nextView]}
+                onFocus={() => onViewPreload(nextView)}
+              />
+            ))}
+          </BottomNavigation>
+        </Paper>
+      ) : null}
     </>
   );
 }
