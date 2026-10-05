@@ -16,3 +16,4 @@ web/node_modules/
 /.dev-ports.json.lock
 
 /bin/
+.projectatlas
