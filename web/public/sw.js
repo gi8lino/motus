@@ -1,5 +1,15 @@
-const CACHE = "motus-shell-v2";
-const SHELL = ["./", "./manifest.webmanifest", "./brand.svg"];
+const CACHE = "motus-shell-v3";
+const SHELL = [
+  "./",
+  "./manifest.webmanifest",
+  "./brand.svg",
+  "./motus.svg",
+  "./favicon-16x16.png",
+  "./favicon-32x32.png",
+  "./favicon-48x48.png",
+  "./favicon-64x64.png",
+  "./apple-touch-icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));

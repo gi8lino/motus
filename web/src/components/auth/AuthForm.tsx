@@ -37,7 +37,7 @@ export function UserForm({
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
         error={emailInvalid}
-        helperText={emailInvalid ? "Enter a valid email address" : " "}
+        helperText={emailInvalid ? "Enter a valid email address" : undefined}
         autoComplete="email"
         required
       />
@@ -94,7 +94,7 @@ export function LoginForm({
         }}
         placeholder="you@example.com"
         error={emailInvalid}
-        helperText={emailInvalid ? "Enter a valid email address" : " "}
+        helperText={emailInvalid ? "Enter a valid email address" : undefined}
         autoComplete="email"
         autoFocus
         required
@@ -117,7 +117,7 @@ export function LoginForm({
         type="submit"
         disabled={!email.trim() || !password.trim()}
       >
-        Log in
+        Sign in
       </Button>
     </Stack>
   );

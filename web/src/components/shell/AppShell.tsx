@@ -39,6 +39,69 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+type ToastProps = {
+  message: string | null;
+};
+
+// Toast renders short application feedback above either shell.
+function Toast({ message }: ToastProps) {
+  const severity = /error|failed|unable|denied/i.test(message ?? "")
+    ? "error"
+    : "success";
+
+  return (
+    <Snackbar
+      open={Boolean(message)}
+      autoHideDuration={1800}
+      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+    >
+      <Alert severity={severity} variant="filled" sx={{ width: "100%" }}>
+        {message}
+      </Alert>
+    </Snackbar>
+  );
+}
+
+// AppFooter renders the compact Motus version footer.
+function AppFooter({
+  appVersion,
+  auth = false,
+}: {
+  appVersion: string;
+  auth?: boolean;
+}) {
+  return (
+    <Box
+      component="footer"
+      sx={{
+        borderTop: auth ? 0 : 1,
+        borderColor: "divider",
+        bgcolor: auth
+          ? "transparent"
+          : (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(8, 18, 26, 0.92)"
+                : "rgba(255, 252, 247, 0.92)",
+        backdropFilter: auth ? "none" : "blur(14px)",
+        py: auth ? 2 : 0.75,
+        px: 2,
+        zIndex: (theme) => theme.zIndex.appBar - 1,
+      }}
+    >
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", textAlign: "center" }}
+      >
+        {auth
+          ? `Motus ${appVersion} · Training companion`
+          : `© ${new Date().getFullYear()} Motus · Version ${appVersion}`}
+      </Typography>
+    </Box>
+  );
+}
+
+// AppShell renders the authenticated application chrome or the public auth shell.
 export function AppShell({
   view,
   onViewChange,
@@ -55,6 +118,36 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const isAuthed = Boolean(authHeaderEnabled || currentUser);
+
+  if (!isAuthed) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "grid",
+          gridTemplateRows: "1fr auto",
+          bgcolor: "background.default",
+        }}
+      >
+        <Box
+          component="main"
+          key={view}
+          sx={{
+            width: "min(440px, calc(100vw - 32px))",
+            placeSelf: "center",
+            display: "grid",
+            gap: 2.25,
+            py: 5,
+          }}
+        >
+          <BrandHeader auth />
+          {children}
+        </Box>
+        <AppFooter appVersion={appVersion} auth />
+        <Toast message={toast} />
+      </Box>
+    );
+  }
 
   const availableViews: View[] = (
     [
@@ -83,9 +176,6 @@ export function AppShell({
     profile: <PersonRoundedIcon />,
   } as const;
   const mobileView = mobileViews.find((nextView) => nextView === view);
-  const toastSeverity = /error|failed|unable|denied/i.test(toast ?? "")
-    ? "error"
-    : "success";
 
   return (
     <>
@@ -113,52 +203,50 @@ export function AppShell({
               flexDirection: { xs: "column", lg: "row" },
             }}
           >
-            <BrandHeader />
+            <BrandHeader onClick={() => onViewChange("training")} />
 
-            {isAuthed ? (
-              <Box
-                sx={{
-                  ml: { lg: "auto" },
-                  width: { xs: "100%", lg: "auto" },
-                  display: "flex",
-                  alignItems: { xs: "stretch", lg: "center" },
-                  justifyContent: "space-between",
-                  gap: 1.5,
-                  flexWrap: "wrap",
-                }}
-              >
-                <NavTabs
-                  view={view}
-                  views={availableViews}
-                  onSelect={onViewChange}
-                  onPreload={onViewPreload}
-                />
+            <Box
+              sx={{
+                ml: { lg: "auto" },
+                width: { xs: "100%", lg: "auto" },
+                display: "flex",
+                alignItems: { xs: "stretch", lg: "center" },
+                justifyContent: "space-between",
+                gap: 1.5,
+                flexWrap: "wrap",
+              }}
+            >
+              <NavTabs
+                view={view}
+                views={availableViews}
+                onSelect={onViewChange}
+                onPreload={onViewPreload}
+              />
 
-                {currentUser?.isAdmin ? (
-                  <Button
-                    variant={view === "admin" ? "contained" : "text"}
-                    onClick={() => onViewChange("admin")}
-                    sx={{ display: { xs: "inline-flex", lg: "none" } }}
-                  >
-                    Admin
-                  </Button>
-                ) : null}
+              {currentUser?.isAdmin ? (
+                <Button
+                  variant={view === "admin" ? "contained" : "text"}
+                  onClick={() => onViewChange("admin")}
+                  sx={{ display: { xs: "inline-flex", lg: "none" } }}
+                >
+                  Admin
+                </Button>
+              ) : null}
 
-                {!authHeaderEnabled && currentUser && onLogout ? (
-                  <Button
-                    color="inherit"
-                    variant="outlined"
-                    onClick={onLogout}
-                    sx={{
-                      alignSelf: { xs: "stretch", sm: "center" },
-                      borderColor: "divider",
-                    }}
-                  >
-                    Logout
-                  </Button>
-                ) : null}
-              </Box>
-            ) : null}
+              {!authHeaderEnabled && currentUser && onLogout ? (
+                <Button
+                  color="inherit"
+                  variant="outlined"
+                  onClick={onLogout}
+                  sx={{
+                    alignSelf: { xs: "stretch", sm: "center" },
+                    borderColor: "divider",
+                  }}
+                >
+                  Logout
+                </Button>
+              ) : null}
+            </Box>
           </Toolbar>
         </AppBar>
 
@@ -236,78 +324,45 @@ export function AppShell({
         </Container>
       </Box>
 
-      <Snackbar
-        open={Boolean(toast)}
-        autoHideDuration={1800}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert severity={toastSeverity} variant="filled" sx={{ width: "100%" }}>
-          {toast}
-        </Alert>
-      </Snackbar>
+      <Toast message={toast} />
+      <AppFooter appVersion={appVersion} />
 
-      <Box
-        component="footer"
+      <Paper
+        elevation={0}
         sx={{
+          display: { xs: "block", lg: "none" },
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
           borderTop: 1,
           borderColor: "divider",
+          borderRadius: 0,
           bgcolor: (theme) =>
             theme.palette.mode === "dark"
-              ? "rgba(8, 18, 26, 0.92)"
-              : "rgba(255, 252, 247, 0.92)",
-          backdropFilter: "blur(14px)",
-          py: 0.75,
-          px: 2,
-          zIndex: (theme) => theme.zIndex.appBar - 1,
+              ? "rgba(8, 16, 25, 0.94)"
+              : "rgba(255, 252, 247, 0.96)",
+          backdropFilter: "blur(18px)",
         }}
       >
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", textAlign: "center" }}
+        <BottomNavigation
+          showLabels
+          value={mobileView ?? false}
+          onChange={(_event, nextView: View) => onViewChange(nextView)}
+          sx={{ height: 70 }}
         >
-          © {new Date().getFullYear()} Motus · Version {appVersion}
-        </Typography>
-      </Box>
-
-      {isAuthed ? (
-        <Paper
-          elevation={0}
-          sx={{
-            display: { xs: "block", lg: "none" },
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: (theme) => theme.zIndex.appBar,
-            borderTop: 1,
-            borderColor: "divider",
-            borderRadius: 0,
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark"
-                ? "rgba(8, 16, 25, 0.94)"
-                : "rgba(255, 252, 247, 0.96)",
-            backdropFilter: "blur(18px)",
-          }}
-        >
-          <BottomNavigation
-            showLabels
-            value={mobileView ?? false}
-            onChange={(_event, nextView: View) => onViewChange(nextView)}
-            sx={{ height: 70 }}
-          >
-            {mobileViews.map((nextView) => (
-              <BottomNavigationAction
-                key={nextView}
-                value={nextView}
-                label={nextView === "training" ? "Train" : nextView}
-                icon={mobileNavigation[nextView]}
-                onFocus={() => onViewPreload(nextView)}
-              />
-            ))}
-          </BottomNavigation>
-        </Paper>
-      ) : null}
+          {mobileViews.map((nextView) => (
+            <BottomNavigationAction
+              key={nextView}
+              value={nextView}
+              label={nextView === "training" ? "Train" : nextView}
+              icon={mobileNavigation[nextView]}
+              onFocus={() => onViewPreload(nextView)}
+            />
+          ))}
+        </BottomNavigation>
+      </Paper>
     </>
   );
 }

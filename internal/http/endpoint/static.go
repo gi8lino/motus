@@ -16,6 +16,7 @@ import (
 const (
 	immutableCacheControl = "public, max-age=31536000, immutable"
 	staticCacheControl    = "public, max-age=86400"
+	noCacheControl        = "no-cache"
 )
 
 // staticFileHandler serves embedded frontend assets with cache and gzip handling.
@@ -38,13 +39,16 @@ func Static(files fs.FS) http.Handler {
 
 // ServeHTTP serves an embedded asset with appropriate caching and compression.
 func (h *staticFileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/assets/") {
+	name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	switch {
+	case name == "sw.js":
+		w.Header().Set("Cache-Control", noCacheControl)
+	case strings.HasPrefix(r.URL.Path, "/assets/"):
 		w.Header().Set("Cache-Control", immutableCacheControl)
-	} else {
+	default:
 		w.Header().Set("Cache-Control", staticCacheControl)
 	}
 
-	name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 	if !isCompressibleAsset(name) {
 		h.fileServer.ServeHTTP(w, r)
 		return

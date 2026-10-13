@@ -15,6 +15,7 @@ func registerPublicRoutes(mux *http.ServeMux, config Config) {
 	mux.Handle("GET /sounds/", assets)
 	// Root-level PWA and brand files must be served as files, not by the SPA fallback.
 	mux.Handle("GET /brand.svg", assets)
+	mux.Handle("GET /motus.svg", assets)
 	mux.Handle("GET /sw.js", assets)
 	mux.Handle("GET /manifest.webmanifest", assets)
 	mux.Handle("GET /favicon-16x16.png", assets)
