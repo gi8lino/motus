@@ -4,18 +4,26 @@ kind: Deployment
 metadata:
   name: motus
   namespace: motus
+  labels:
+    app.kubernetes.io/name: motus
+    app.kubernetes.io/component: motus
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: motus
+      app.kubernetes.io/component: motus
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
         app.kubernetes.io/name: motus
+        app.kubernetes.io/component: motus
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: motus
           image: ghcr.io/gi8lino/motus:latest
@@ -23,6 +31,10 @@ spec:
           env:
             - name: TZ
               value: Europe/Zurich
+            - name: MOTUS__AUTH_MODE
+              value: local
+            - name: MOTUS__PUBLIC_URL
+              value: https://motus.example.com
             - name: MOTUS__LISTEN_ADDRESS
               value: 0.0.0.0:8080
             - name: MOTUS__MANAGEMENT_LISTEN_ADDRESS
@@ -64,4 +76,3 @@ spec:
               cpu: 100m
       restartPolicy: Always
       automountServiceAccountToken: false
-

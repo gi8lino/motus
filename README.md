@@ -20,7 +20,7 @@ With Python 3 installed, `bin/dev-port` saves named ports in the
 Git-ignored `.dev-ports.json`. Separate Make commands reuse the same ports:
 
 ```sh
-make web-install
+make download
 make dev-build
 make postgres
 make serve
@@ -111,8 +111,10 @@ Motus can be configured using command-line flags or environment variables. Envir
 - `--public-url` (default `http://localhost:8080`): externally visible base URL used for browser callbacks.
 - `--auth-mode` (default `local`): one of `local`, `trusted-proxy`, `oidc`, or `none`.
 - `--trusted-proxy-user-header`: identity header accepted only in `trusted-proxy` mode.
+- `--allow-registration` (default false): allow new local, trusted-proxy, or OIDC users to be created.
+- `--session-lifetime` (default `720h`): lifetime of local and OIDC authentication sessions.
 - `--oidc-issuer`, `--oidc-client-id`, `--oidc-client-secret`, and `--oidc-session-secret`: configure browser OIDC login in `oidc` mode. The session secret must be at least 32 bytes.
-- `--allow-registration` (default false): allow local user sign-up.
+- `--encryption-key`: optional base64-encoded 256-bit key for sensitive persisted settings.
 - `--core-exercises-file` (default empty): optional YAML file overriding the embedded core exercise catalog.
 - `--debug` (default false): enable debug logging.
 - `--access-log` (default false): log completed application requests.
@@ -120,9 +122,33 @@ Motus can be configured using command-line flags or environment variables. Envir
 
 The management listener is deliberately separate from the public application listener. It exposes `GET /healthz` for process liveness and `GET /readyz` for PostgreSQL readiness, and it is not mounted below `--route-prefix`.
 
+## Local mode and first-run setup
+
+Local authentication is the default. On an empty database, open Motus and use the first-run setup screen to create the initial administrator. The setup endpoint can create the first user exactly once; there are no startup admin flags.
+
+After setup, additional local users can register only when `--allow-registration` is enabled. Administrators can manage users from the application.
+
 ## Trusted-proxy mode
 
-Use `--auth-mode=trusted-proxy --trusted-proxy-user-header=X-User-Email` when a reverse proxy strips client-supplied headers and injects a verified email. Motus disables local password login in this mode. New trusted identities are created only when `--allow-registration` is enabled.
+Use trusted-proxy mode when an authentication proxy such as oauth2-proxy authenticates the browser and forwards a verified email header to Motus:
+
+```yaml
+- name: MOTUS__AUTH_MODE
+  value: trusted-proxy
+- name: MOTUS__TRUSTED_PROXY_USER_HEADER
+  value: X-Auth-Request-Email
+```
+
+The proxy must strip any client-supplied copy of the configured identity header before setting its verified value. Setting `MOTUS__TRUSTED_PROXY_USER_HEADER` alone does not enable trusted-proxy authentication.
+
+Existing Motus users are resolved by email. To provision previously unknown proxy identities automatically, also set:
+
+```yaml
+- name: MOTUS__ALLOW_REGISTRATION
+  value: "true"
+```
+
+New proxy-provisioned users are not administrators automatically. For a new installation, either create the initial administrator in local mode first using the same email address and then switch to trusted-proxy mode, or promote the provisioned user explicitly.
 
 ## OIDC mode
 
@@ -131,16 +157,6 @@ Set `--auth-mode=oidc` and all four OIDC flags to use a single OpenID Connect pr
 ## No-auth mode
 
 `--auth-mode=none` is for a genuinely single-user deployment behind an already trusted boundary. Requests run as Motus's local `admin` account, created only when this mode first handles a request. Do not expose this mode directly to the internet.
-
-## Local admin bootstrap
-
-To auto-create or update a local admin account at startup, use the admin flags (or env vars with the `MOTUS__` prefix). The server logs when it creates or updates the admin user.
-
-To promote an existing user to admin directly in the database:
-
-```sql
-UPDATE users SET is_admin = TRUE WHERE id = 'user@example.com';
-```
 
 ## Core exercises YAML
 
@@ -155,6 +171,14 @@ exercises:
 ```
 
 See `examples/core-exercises.yaml` for the embedded default and override format.
+
+## Kubernetes
+
+The manifests in `deploy/kubernetes` use the Gateway API and default to local authentication so a fresh deployment can complete first-run setup without an external identity provider.
+
+`deployment.yaml` sets the application and management listeners, the public URL, and `MOTUS__AUTH_MODE=local` explicitly. `httproute.yaml` expects a Gateway named `external` in the `motus` namespace; change the parent reference and hostname to match your cluster.
+
+For oauth2-proxy or another trusted authentication proxy, replace the local auth environment setting with the trusted-proxy variables shown above.
 
 ## Docker Compose
 

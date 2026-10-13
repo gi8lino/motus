@@ -152,26 +152,6 @@ favicon: ## Create favicons.
 		$(ICON_DIR)/apple-touch-icon.png \
 		>/dev/null 2>&1
 
-##@ Admin
-
-.PHONY: create-user
-create-user: ## Create a user via API: make create-user NAME="Alice".
-	@[ -n "$(NAME)" ] || (echo "NAME is required" && exit 1)
-	curl -sSf -X POST \
-		-H "Content-Type: application/json" \
-		-d '{"name":"$(NAME)"}' \
-		$(PUBLIC_URL)/api/users
-
-.PHONY: promote-admin
-promote-admin: ## Promote a user to admin via API: make promote-admin USER_ID=<id> ADMIN_USER_ID=<id>.
-	@[ -n "$(USER_ID)" ] || (echo "USER_ID is required" && exit 1)
-	@[ -n "$(ADMIN_USER_ID)" ] || (echo "ADMIN_USER_ID is required (an existing admin)" && exit 1)
-	curl -sSf -X PUT \
-		-H "Content-Type: application/json" \
-		-H "X-User-ID: $(ADMIN_USER_ID)" \
-		-d '{"isAdmin":true}' \
-		$(PUBLIC_URL)/api/users/$(USER_ID)/admin
-
 ##@ Frontend
 
 .PHONY: web
