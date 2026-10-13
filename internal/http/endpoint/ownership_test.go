@@ -14,13 +14,6 @@ import (
 	"github.com/gi8lino/motus/internal/service/workouts"
 )
 
-type ownershipAuthStore struct{ user *db.User }
-
-func (s *ownershipAuthStore) GetUser(context.Context, string) (*db.User, error) { return s.user, nil }
-func (s *ownershipAuthStore) CreateUser(context.Context, string, string, string) (*db.User, error) {
-	return s.user, nil
-}
-
 func TestWorkoutOwnership(t *testing.T) {
 	store := &fakeWorkoutStore{workoutWithStepsFn: func(context.Context, string) (*db.Workout, error) {
 		return &db.Workout{ID: "workout", UserID: "owner@example.com", Name: "Private"}, nil

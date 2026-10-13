@@ -23,10 +23,3 @@ func RejectCrossSiteWrites(logger *slog.Logger) Middleware {
 		response.Problem(w, http.StatusForbidden, "Forbidden.")
 	})
 }
-
-func safeMethod(method string) bool {
-	return httpkitmiddleware.IsSafeMethod(method)
-}
-func crossSiteWrite(r *http.Request) bool {
-	return httpkitmiddleware.IsCrossOriginWrite(r)
-}
