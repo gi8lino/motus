@@ -1,10 +1,15 @@
 package db
 
-import "time"
+import (
+	"time"
+
+	"github.com/gi8lino/motus/pkg/domain"
+)
 
 // AuthenticationSettings is the persisted, non-secret browser authentication configuration.
 type AuthenticationSettings struct {
-	Mode                      string
+	// Mode selects the browser authentication strategy.
+	Mode                      domain.AuthMode
 	AllowRegistration         bool
 	TrustedUsernameHeaders    []string
 	TrustedEmailHeaders       []string

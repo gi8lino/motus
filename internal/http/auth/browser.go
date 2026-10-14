@@ -10,16 +10,17 @@ import (
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
+	"github.com/gi8lino/motus/pkg/domain"
 )
 
-// Mode selects the primary browser authentication strategy.
-type Mode string
+// Mode is the HTTP authentication alias for the transport-independent authentication mode.
+type Mode = domain.AuthMode
 
 const (
-	ModeLocal        Mode = "local"
-	ModeTrustedProxy Mode = "trusted-proxy"
-	ModeOIDC         Mode = "oidc"
-	ModeNone         Mode = "none"
+	ModeLocal        = domain.AuthModeLocal
+	ModeTrustedProxy = domain.AuthModeTrustedProxy
+	ModeOIDC         = domain.AuthModeOIDC
+	ModeNone         = domain.AuthModeNone
 )
 
 // ValidateConfig verifies deployment-managed browser authentication settings.
@@ -118,7 +119,7 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 
 // configure creates one complete browser authentication runtime without publishing it.
 func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) (configuredAuthenticator, error) {
-	mode := Mode(settings.Mode)
+	mode := settings.Mode
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
 	}

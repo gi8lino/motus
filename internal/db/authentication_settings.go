@@ -3,11 +3,14 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/gi8lino/motus/pkg/domain"
 )
 
 // AuthenticationSettings returns the persisted browser authentication configuration.
 func (s *Store) AuthenticationSettings(ctx context.Context) (AuthenticationSettings, error) {
 	var settings AuthenticationSettings
+	var mode string
 	var usernames, emails, names, groups string
 	err := s.pool.QueryRow(ctx, `
 		SELECT mode, allow_registration, trusted_username_headers, trusted_email_headers,
@@ -15,13 +18,14 @@ func (s *Store) AuthenticationSettings(ctx context.Context) (AuthenticationSetti
 		oidc_issuer, oidc_client_id, oidc_group_claim, oidc_group_sync,
 		oidc_groups_authoritative, oidc_admin_group
 		FROM authentication_settings WHERE singleton=TRUE
-	`).Scan(&settings.Mode, &settings.AllowRegistration, &usernames, &emails, &names, &groups,
+	`).Scan(&mode, &settings.AllowRegistration, &usernames, &emails, &names, &groups,
 		&settings.TrustedAdminGroup, &settings.OIDCIssuer, &settings.OIDCClientID,
 		&settings.OIDCGroupClaim, &settings.OIDCGroupSync, &settings.OIDCGroupsAuthoritative,
 		&settings.OIDCAdminGroup)
 	if err != nil {
 		return AuthenticationSettings{}, err
 	}
+	settings.Mode = domain.AuthMode(mode)
 	settings.TrustedUsernameHeaders = headerList(usernames)
 	settings.TrustedEmailHeaders = headerList(emails)
 	settings.TrustedDisplayNameHeaders = headerList(names)
@@ -37,7 +41,7 @@ func (s *Store) SaveAuthenticationSettings(ctx context.Context, settings Authent
 		trusted_group_headers=$6, trusted_admin_group=$7, oidc_issuer=$8, oidc_client_id=$9,
 		oidc_group_claim=$10, oidc_group_sync=$11, oidc_groups_authoritative=$12,
 		oidc_admin_group=$13, updated_at=NOW() WHERE singleton=TRUE
-	`, settings.Mode, settings.AllowRegistration, strings.Join(settings.TrustedUsernameHeaders, ","),
+	`, string(settings.Mode), settings.AllowRegistration, strings.Join(settings.TrustedUsernameHeaders, ","),
 		strings.Join(settings.TrustedEmailHeaders, ","), strings.Join(settings.TrustedDisplayNameHeaders, ","),
 		strings.Join(settings.TrustedGroupHeaders, ","), settings.TrustedAdminGroup, settings.OIDCIssuer,
 		settings.OIDCClientID, settings.OIDCGroupClaim, settings.OIDCGroupSync,

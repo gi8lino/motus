@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/pkg/domain"
 )
 
 // SettingsRepository persists browser authentication configuration.
@@ -30,12 +31,12 @@ func (s *Configuration) Current(ctx context.Context) (Settings, error) {
 // Save validates and persists browser authentication configuration.
 func (s *Configuration) Save(ctx context.Context, settings Settings) error {
 	switch settings.Mode {
-	case "local", "none":
-	case "trusted-proxy":
+	case domain.AuthModeLocal, domain.AuthModeNone:
+	case domain.AuthModeTrustedProxy:
 		if len(settings.TrustedUsernameHeaders) == 0 {
 			return fmt.Errorf("trusted-proxy authentication requires a username header")
 		}
-	case "oidc":
+	case domain.AuthModeOIDC:
 		if strings.TrimSpace(settings.OIDCIssuer) == "" || strings.TrimSpace(settings.OIDCClientID) == "" {
 			return fmt.Errorf("oidc issuer and client ID are required")
 		}
