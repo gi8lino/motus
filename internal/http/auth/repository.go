@@ -22,12 +22,16 @@ type noneRepository interface {
 	EnsureAdministrator(context.Context) (*db.User, error)
 }
 type identityRepository interface {
+	GetIdentityUser(context.Context, string, string) (*db.User, error)
 	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
 
 // externalLoginService resolves a verified external identity through application policy.
-type externalLoginService interface {
-	Login(context.Context, string, string, string, string) (*db.User, error)
+type oidcLoginService interface {
+	Login(context.Context, string, string, string, string, string) (*db.User, error)
+}
+type trustedProxyLoginService interface {
+	Login(context.Context, string, string, string, bool, bool) (*db.User, error)
 }
 type settingsRepository interface {
 	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)

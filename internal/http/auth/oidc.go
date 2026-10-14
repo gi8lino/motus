@@ -40,7 +40,7 @@ type OIDCConfig struct {
 // OIDC implements a browser authorization-code flow with PKCE and nonce binding.
 type OIDC struct {
 	// loginService resolves verified OIDC identities through application policy.
-	loginService externalLoginService
+	loginService oidcLoginService
 	local        *Local
 	// verifier validates provider identity tokens.
 	verifier *oidc.IDTokenVerifier
@@ -66,6 +66,7 @@ type oidcLoginState struct {
 
 // oidcClaims contains the provider claims Motus uses for account creation.
 type oidcClaims struct {
+	PreferredUsername string `json:"preferred_username"`
 	// Email identifies the external user.
 	Email string `json:"email"`
 	// Name is the optional provider display name.
@@ -73,7 +74,7 @@ type oidcClaims struct {
 }
 
 // NewOIDC discovers the provider and constructs the verified login flow.
-func NewOIDC(ctx context.Context, config OIDCConfig, loginService externalLoginService, local *Local) (*OIDC, error) {
+func NewOIDC(ctx context.Context, config OIDCConfig, loginService oidcLoginService, local *Local) (*OIDC, error) {
 	provider, err := oidc.NewProvider(ctx, config.Issuer)
 	if err != nil {
 		return nil, err
@@ -137,7 +138,7 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 		response.Problem(w, http.StatusUnauthorized, "Invalid identity claims.")
 		return
 	}
-	user, err := o.loginService.Login(r.Context(), "oidc:"+idToken.Issuer, idToken.Subject, claims.Email, claims.Name)
+	user, err := o.loginService.Login(r.Context(), idToken.Issuer, idToken.Subject, claims.PreferredUsername, claims.Email, claims.Name)
 	if err != nil {
 		response.Problem(w, http.StatusForbidden, "Login is not permitted.")
 		return

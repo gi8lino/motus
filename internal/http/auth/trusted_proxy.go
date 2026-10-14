@@ -10,12 +10,12 @@ import (
 
 // TrustedProxy accepts identities supplied by a reverse proxy that strips and sets Header.
 type TrustedProxy struct {
-	loginService externalLoginService
+	loginService trustedProxyLoginService
 	header       string
 }
 
 // NewTrustedProxy creates a trusted-proxy authenticator backed by provider mappings.
-func NewTrustedProxy(loginService externalLoginService, header string) *TrustedProxy {
+func NewTrustedProxy(loginService trustedProxyLoginService, header string) *TrustedProxy {
 	return &TrustedProxy{loginService: loginService, header: header}
 }
 
@@ -25,7 +25,7 @@ func (a *TrustedProxy) Authenticate(r *http.Request) (db.User, error) {
 	if err != nil {
 		return db.User{}, ErrUnauthenticated
 	}
-	user, err := a.loginService.Login(r.Context(), "trusted-proxy", email, email, email)
+	user, err := a.loginService.Login(r.Context(), email, email, email, false, false)
 	if err != nil || user == nil {
 		return db.User{}, ErrUnauthenticated
 	}

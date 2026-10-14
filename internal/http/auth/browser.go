@@ -162,7 +162,8 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	if config.AllowUserRegistrationOverride != nil {
 		allowRegistration = *config.AllowUserRegistrationOverride
 	}
-	externalIdentity := appauth.NewExternalIdentity(repository, allowRegistration)
+	oidcLogin := appauth.NewOIDC(repository, config.AllowUserRegistrationOverride)
+	trustedProxyLogin := appauth.NewTrustedProxy(repository, config.AllowUserRegistrationOverride)
 	var primary Authenticator
 	var oidcAuth *OIDC
 	switch mode {
@@ -171,12 +172,12 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeTrustedProxy:
-		primary = NewTrustedProxy(externalIdentity, settings.TrustedUsernameHeaders[0])
+		primary = NewTrustedProxy(trustedProxyLogin, settings.TrustedUsernameHeaders[0])
 	case ModeOIDC:
 		oidcConfig := config.OIDC
 		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
 		var err error
-		oidcAuth, err = NewOIDC(ctx, oidcConfig, externalIdentity, b.local)
+		oidcAuth, err = NewOIDC(ctx, oidcConfig, oidcLogin, b.local)
 		if err != nil {
 			return configuredAuthenticator{}, err
 		}
