@@ -58,6 +58,8 @@ type browserAuthenticator struct {
 	allowRegistration bool
 	// localLoginEnabled exposes local recovery login outside local mode.
 	localLoginEnabled bool
+	// prepared holds the runtime validated for the next matching persisted settings update.
+	prepared *preparedAuthenticator
 }
 
 // configuredAuthenticator is one complete, not-yet-published browser authentication runtime.
@@ -72,6 +74,14 @@ type configuredAuthenticator struct {
 	allowRegistration bool
 }
 
+// preparedAuthenticator binds a validated runtime to the exact settings it can safely publish.
+type preparedAuthenticator struct {
+	// settings are the persisted values accepted during validation.
+	settings db.AuthenticationSettings
+	// configured is the runtime built from settings.
+	configured configuredAuthenticator
+}
+
 // ConfigureBrowserAuth composes the complete browser authentication boundary.
 func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository browserRepository) (BrowserAuth, error) {
 	if err := ValidateConfig(config); err != nil {
@@ -83,38 +93,60 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	}
 	local := NewLocal(repository, config.SessionLifetime)
 	browser := &browserAuthenticator{local: local, localLoginEnabled: config.LocalLoginEnabled}
-	if err := browser.applySettings(ctx, config, repository, settings); err != nil {
+	configured, err := browser.configure(ctx, config, repository, settings)
+	if err != nil {
 		return BrowserAuth{}, err
 	}
+	browser.publish(configured)
 	return BrowserAuth{
 		Authenticator: browser,
 		Local:         local,
 		Current:       browser.current,
 		Validate: func(ctx context.Context, settings db.AuthenticationSettings) error {
-			_, err := browser.configure(ctx, config, repository, settings)
-			return err
+			return browser.validate(ctx, config, repository, settings)
 		},
-		ApplySettings: func(ctx context.Context, settings db.AuthenticationSettings) error {
-			return browser.applySettings(ctx, config, repository, settings)
-		},
-		Login:    http.HandlerFunc(browser.login),
-		Callback: http.HandlerFunc(browser.callback),
+		ApplySettings: browser.applySettings,
+		Login:         http.HandlerFunc(browser.login),
+		Callback:      http.HandlerFunc(browser.callback),
 	}, nil
 }
 
-// applySettings rebuilds the effective authenticator from persisted configuration.
-func (b *browserAuthenticator) applySettings(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) error {
+// validate prepares the exact runtime that can be published after settings persistence succeeds.
+func (b *browserAuthenticator) validate(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) error {
 	configured, err := b.configure(ctx, config, repository, settings)
 	if err != nil {
 		return err
 	}
 	b.mu.Lock()
+	b.prepared = &preparedAuthenticator{settings: settings, configured: configured}
+	b.mu.Unlock()
+	return nil
+}
+
+// applySettings publishes a runtime previously accepted by Validate.
+func (b *browserAuthenticator) applySettings(settings db.AuthenticationSettings) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.prepared == nil || !authenticationSettingsEqual(b.prepared.settings, settings) {
+		return
+	}
+	b.publishLocked(b.prepared.configured)
+	b.prepared = nil
+}
+
+// publish replaces the effective runtime with a fully configured authentication boundary.
+func (b *browserAuthenticator) publish(configured configuredAuthenticator) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.publishLocked(configured)
+}
+
+// publishLocked publishes configured while b.mu is held.
+func (b *browserAuthenticator) publishLocked(configured configuredAuthenticator) {
 	b.mode = configured.mode
 	b.primary = configured.primary
 	b.oidc = configured.oidc
 	b.allowRegistration = configured.allowRegistration
-	b.mu.Unlock()
-	return nil
 }
 
 // configure creates one complete browser authentication runtime without publishing it.
@@ -225,6 +257,34 @@ func validateSettings(mode Mode, config BrowserConfig, settings db.Authenticatio
 	default:
 		return errors.New("unknown authentication mode")
 	}
+}
+
+// authenticationSettingsEqual compares every persisted value used to configure browser authentication.
+func authenticationSettingsEqual(left, right db.AuthenticationSettings) bool {
+	if left.Mode != right.Mode || left.AllowRegistration != right.AllowRegistration ||
+		left.TrustedAdminGroup != right.TrustedAdminGroup || left.OIDCIssuer != right.OIDCIssuer ||
+		left.OIDCClientID != right.OIDCClientID || left.OIDCGroupClaim != right.OIDCGroupClaim ||
+		left.OIDCGroupSync != right.OIDCGroupSync || left.OIDCGroupsAuthoritative != right.OIDCGroupsAuthoritative ||
+		left.OIDCAdminGroup != right.OIDCAdminGroup {
+		return false
+	}
+	return stringSlicesEqual(left.TrustedUsernameHeaders, right.TrustedUsernameHeaders) &&
+		stringSlicesEqual(left.TrustedEmailHeaders, right.TrustedEmailHeaders) &&
+		stringSlicesEqual(left.TrustedDisplayNameHeaders, right.TrustedDisplayNameHeaders) &&
+		stringSlicesEqual(left.TrustedGroupHeaders, right.TrustedGroupHeaders)
+}
+
+// stringSlicesEqual reports whether two ordered string slices contain the same values.
+func stringSlicesEqual(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }
 
 var _ Authenticator = (*browserAuthenticator)(nil)

@@ -37,10 +37,7 @@ func AuthenticationSettings(service *appauth.Configuration, browser httpauth.Bro
 				return
 			}
 			if browser.ApplySettings != nil {
-				if err := browser.ApplySettings(r.Context(), settings); err != nil {
-					response.InternalServerError(nil, w, err)
-					return
-				}
+				browser.ApplySettings(settings)
 			}
 			response.Respond(w, http.StatusNoContent, nil)
 		default:

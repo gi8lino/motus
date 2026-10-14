@@ -64,9 +64,8 @@ func TestAuthenticationSettings(t *testing.T) {
 			appauth.NewConfiguration(store),
 			httpauth.BrowserAuth{
 				Validate: func(context.Context, db.AuthenticationSettings) error { return nil },
-				ApplySettings: func(context.Context, db.AuthenticationSettings) error {
+				ApplySettings: func(db.AuthenticationSettings) {
 					applied = true
-					return nil
 				},
 			},
 		)

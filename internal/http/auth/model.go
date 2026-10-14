@@ -36,8 +36,8 @@ type BrowserAuth struct {
 	Current func() BrowserState
 	// Validate checks whether proposed persisted settings can become the effective runtime configuration.
 	Validate func(context.Context, db.AuthenticationSettings) error
-	// ApplySettings validates and immediately activates persisted authentication settings.
-	ApplySettings func(context.Context, db.AuthenticationSettings) error
+	// ApplySettings publishes settings that Validate has accepted after persistence succeeds.
+	ApplySettings func(db.AuthenticationSettings)
 }
 
 // BrowserState is the process-resident authentication state exposed to browser routes.
