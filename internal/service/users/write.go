@@ -13,30 +13,32 @@ import (
 
 // Create registers a new local user.
 func (s *Service) Create(ctx context.Context, email, avatarURL, password string) (*User, error) {
+	return s.create(ctx, email, avatarURL, password, true)
+}
+
+// CreateManaged creates a local user through administrator-managed user administration.
+func (s *Service) CreateManaged(ctx context.Context, email, avatarURL, password string) (*User, error) {
+	return s.create(ctx, email, avatarURL, password, false)
+}
+
+// create validates and persists a local user, optionally enforcing self-registration policy.
+func (s *Service) create(ctx context.Context, email, avatarURL, password string, enforceRegistration bool) (*User, error) {
 	normalized, err := utils.NormalizeEmail(email)
 	if err != nil {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
-
-	if !s.allowRegistration {
+	if enforceRegistration && !s.allowRegistration {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "registration is disabled", errorScope)
 	}
-
 	password = strings.TrimSpace(password)
 	if password == "" {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, "email and password are required", errorScope)
 	}
-
-	var passwordHash string
-	if password != "" {
-		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
-		}
-		passwordHash = string(hash)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
-
-	user, err := s.store.CreateUser(ctx, normalized, avatarURL, passwordHash)
+	user, err := s.store.CreateUser(ctx, normalized, avatarURL, string(hash))
 	if err != nil {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
