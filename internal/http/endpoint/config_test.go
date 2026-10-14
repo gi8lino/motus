@@ -25,10 +25,11 @@ func TestConfig(t *testing.T) {
 		}
 
 		h := ClientConfiguration{
-			Mode:              httpauth.ModeLocal,
-			AllowRegistration: api.AllowRegistration,
-			Version:           api.Version,
-			Commit:            api.Commit,
+			Current: func() httpauth.BrowserState {
+				return httpauth.BrowserState{Mode: httpauth.ModeLocal, AllowRegistration: api.AllowRegistration, LocalLoginEnabled: true}
+			},
+			Version: api.Version,
+			Commit:  api.Commit,
 		}.Handler()
 		req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
 		rec := httptest.NewRecorder()

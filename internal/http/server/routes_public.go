@@ -3,7 +3,6 @@ package server
 import (
 	"net/http"
 
-	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/http/endpoint"
 )
 
@@ -24,26 +23,20 @@ func registerPublicRoutes(mux *http.ServeMux, config Config) {
 	mux.Handle("GET /favicon-64x64.png", assets)
 	mux.Handle("GET /apple-touch-icon.png", assets)
 	mux.Handle("GET /index.html", endpoint.SPA(config.Assets, config.RoutePrefix))
-	if config.Browser.LocalLoginEnabled {
-		mux.Handle("GET /auth/local", endpoint.SPA(config.Assets, config.RoutePrefix))
-	}
+	mux.Handle("GET /auth/local", endpoint.SPA(config.Assets, config.RoutePrefix))
 	// The SPA must discover the selected login mode before it can authenticate.
 	mux.Handle("GET /api/config", endpoint.ClientConfiguration{
-		Mode:              config.Browser.Mode,
-		Local:             config.Browser.Local,
-		AllowRegistration: config.AllowRegistration,
-		LocalLoginEnabled: config.Browser.LocalLoginEnabled,
-		Version:           config.Version,
-		Commit:            config.Commit,
+		Current: config.Browser.Current,
+		Local:   config.Browser.Local,
+		Version: config.Version,
+		Commit:  config.Commit,
 	}.Handler())
 	mux.Handle("POST /api/setup", endpoint.Setup(config.Browser.Local, config.Logger))
-	if config.Browser.LocalLoginEnabled {
-		mux.Handle("POST /api/login", endpoint.Login(config.Browser.Local, config.Logger))
-	}
-	if config.Browser.Mode == httpauth.ModeLocal {
-		mux.Handle("POST /api/users", endpoint.CreateUser(config.Users, config.Browser.Local, config.Logger))
-	}
-	if config.Browser.Callback != nil {
+	mux.Handle("POST /api/login", endpoint.Login(config.Browser.Local, func() bool {
+		return config.Browser.Current().LocalLoginEnabled
+	}, config.Logger))
+	mux.Handle("POST /api/users", endpoint.CreateUser(config.Users, config.Browser.Local, config.Logger))
+	if config.Browser.Login != nil && config.Browser.Callback != nil {
 		mux.Handle("GET /auth/oidc/login", config.Browser.Login)
 		mux.Handle("GET /auth/oidc/callback", config.Browser.Callback)
 	}

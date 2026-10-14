@@ -173,13 +173,17 @@ func UpdateUserRole(service *users.Service, logger *slog.Logger) http.HandlerFun
 	}
 }
 
-// Login validates credentials when using local authentication.
-func Login(local *httpauth.Local, logger *slog.Logger) http.HandlerFunc {
+// Login validates credentials when local sign-in is currently enabled.
+func Login(local *httpauth.Local, allowed func() bool, logger *slog.Logger) http.HandlerFunc {
 	type loginRequest struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if allowed == nil || !allowed() {
+			response.Problem(w, http.StatusNotFound, "Local login is unavailable.")
+			return
+		}
 		req, err := decode[loginRequest](r)
 		if err != nil {
 			logger.Error("decode request failed", "event", "decode_request_failed", "err", err)

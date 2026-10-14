@@ -25,8 +25,7 @@ type InfrastructureConfig struct {
 
 // AuthenticationConfig contains the configured browser authentication boundary.
 type AuthenticationConfig struct {
-	Browser           httpauth.BrowserAuth
-	AllowRegistration bool
+	Browser httpauth.BrowserAuth
 }
 
 // ApplicationConfig contains Motus use cases exposed by HTTP routes.

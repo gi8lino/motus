@@ -84,7 +84,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Registration disabled", func(t *testing.T) {
 		t.Parallel()
 
-		svc := New(&fakeStore{}, false)
+		svc := New(&fakeStore{}, func() bool { return false })
 		_, err := svc.Create(context.Background(), "user@example.com", "", "secret")
 		require.Error(t, err)
 		assert.True(t, errpkg.IsKind(err, errpkg.ErrorForbidden))
@@ -93,7 +93,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Password required", func(t *testing.T) {
 		t.Parallel()
 
-		svc := New(&fakeStore{}, true)
+		svc := New(&fakeStore{}, func() bool { return true })
 		_, err := svc.Create(context.Background(), "user@example.com", "", " ")
 		require.Error(t, err)
 		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))
@@ -113,7 +113,7 @@ func TestUpdateRole(t *testing.T) {
 				called = true
 				return nil
 			},
-		}, false)
+		}, func() bool { return false })
 		if err := svc.UpdateRole(context.Background(), "user", true); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -135,7 +135,7 @@ func TestUpdateName(t *testing.T) {
 				called = true
 				return nil
 			},
-		}, false)
+		}, func() bool { return false })
 		if err := svc.UpdateName(context.Background(), "user", "New"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

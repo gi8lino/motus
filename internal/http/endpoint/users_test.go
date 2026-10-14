@@ -99,7 +99,7 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{listUsersFn: func(context.Context) ([]db.User, error) {
 			return []db.User{{ID: "user@example.com"}}, nil
 		}}
-		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, false)}
+		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, func() bool { return false })}
 		h := GetUsers(api.Users, api.Logger)
 		req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		rec := httptest.NewRecorder()
@@ -117,7 +117,7 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{createUserFn: func(context.Context, string, string, string) (*db.User, error) {
 			return &db.User{ID: "user@example.com"}, nil
 		}}
-		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, true), AllowRegistration: true}
+		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, func() bool { return true }), AllowRegistration: true}
 		h := CreateUser(api.Users, httpauth.NewLocal(store, time.Hour), api.Logger)
 		body := strings.NewReader(`{"email":"user@example.com","avatarUrl":"","password":"secret"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/users", body)
@@ -133,7 +133,7 @@ func TestUsersHandlers(t *testing.T) {
 
 	t.Run("Update user role", func(t *testing.T) {
 		store := &fakeUserStore{updateUserAdminFn: func(context.Context, string, bool) error { return nil }}
-		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, false)}
+		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, func() bool { return false })}
 		h := UpdateUserRole(api.Users, api.Logger)
 		body := strings.NewReader(`{"isAdmin":true}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/users/user@example.com/admin", body)
@@ -152,8 +152,8 @@ func TestUsersHandlers(t *testing.T) {
 		store := &fakeUserStore{getUserWithPasswordFn: func(context.Context, string) (*db.User, string, error) {
 			return &db.User{ID: "user@example.com"}, string(hash), nil
 		}}
-		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, false)}
-		h := Login(httpauth.NewLocal(store, time.Hour), api.Logger)
+		api := &testEndpoints{Logger: slog.Default(), Users: users.New(store, func() bool { return false })}
+		h := Login(httpauth.NewLocal(store, time.Hour), func() bool { return true }, api.Logger)
 		body := strings.NewReader(`{"email":"user@example.com","password":"secret"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/login", body)
 		rec := httptest.NewRecorder()

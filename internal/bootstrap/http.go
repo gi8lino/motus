@@ -28,8 +28,7 @@ func NewHTTPConfig(
 			Commit:      commit,
 		},
 		AuthenticationConfig: httpserver.AuthenticationConfig{
-			Browser:           application.browser,
-			AllowRegistration: cfg.AllowUserRegistrationOverride != nil && *cfg.AllowUserRegistrationOverride,
+			Browser: application.browser,
 		},
 		ApplicationConfig: httpserver.ApplicationConfig{
 			Authentication: application.authentication,

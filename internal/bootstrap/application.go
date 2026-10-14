@@ -78,8 +78,11 @@ func NewApplication(
 	}
 
 	return &Application{
-		browser:        browser,
-		users:          users.New(store, cfg.AllowUserRegistrationOverride != nil && *cfg.AllowUserRegistrationOverride),
+		browser: browser,
+		users: users.New(store, func() bool {
+			state := browser.Current()
+			return state.Mode == httpauth.ModeLocal && state.AllowRegistration
+		}),
 		exercises:      exercises.New(store),
 		workouts:       workouts.New(store),
 		trainings:      trainings.New(store, sounds.URLByKey),

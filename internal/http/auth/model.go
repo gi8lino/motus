@@ -32,10 +32,18 @@ type BrowserAuth struct {
 	Callback http.Handler
 	// Local owns local-password login and browser sessions.
 	Local *Local
-	// Mode is the configured primary browser authentication mode.
-	Mode Mode
-	// LocalLoginEnabled reports whether recovery local login is available.
-	LocalLoginEnabled bool
+	// Current reports the effective browser authentication state without another database read.
+	Current func() BrowserState
 	// ApplySettings validates and immediately activates persisted authentication settings.
 	ApplySettings func(context.Context, db.AuthenticationSettings) error
+}
+
+// BrowserState is the process-resident authentication state exposed to browser routes.
+type BrowserState struct {
+	// Mode is the configured primary browser authentication mode.
+	Mode Mode
+	// AllowRegistration reports whether the effective settings permit account provisioning.
+	AllowRegistration bool
+	// LocalLoginEnabled reports whether local sign-in is currently available.
+	LocalLoginEnabled bool
 }

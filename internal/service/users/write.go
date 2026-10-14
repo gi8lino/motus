@@ -27,7 +27,7 @@ func (s *Service) create(ctx context.Context, email, avatarURL, password string,
 	if err != nil {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorValidation, err.Error(), errorScope)
 	}
-	if enforceRegistration && !s.allowRegistration {
+	if enforceRegistration && !s.AllowRegistration() {
 		return nil, errpkg.NewErrorWithScope(errpkg.ErrorForbidden, "registration is disabled", errorScope)
 	}
 	password = strings.TrimSpace(password)

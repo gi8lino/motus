@@ -20,7 +20,7 @@ func TestList(t *testing.T) {
 			listUsersFn: func(context.Context) ([]User, error) {
 				return []User{{ID: "u1"}}, nil
 			},
-		}, false)
+		}, func() bool { return false })
 		users, err := svc.List(context.Background())
 		require.NoError(t, err)
 		assert.Len(t, users, 1)
@@ -33,7 +33,7 @@ func TestGet(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		t.Parallel()
 
-		svc := New(&fakeStore{}, false)
+		svc := New(&fakeStore{}, func() bool { return false })
 		_, err := svc.Get(context.Background(), " ")
 		require.Error(t, err)
 		assert.True(t, errpkg.IsKind(err, errpkg.ErrorValidation))

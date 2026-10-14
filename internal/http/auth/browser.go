@@ -53,6 +53,8 @@ type browserAuthenticator struct {
 	oidc *OIDC
 	// mode identifies the configured primary browser authentication mode.
 	mode Mode
+	// allowRegistration reports the effective external identity provisioning policy.
+	allowRegistration bool
 	// localLoginEnabled exposes local recovery login outside local mode.
 	localLoginEnabled bool
 }
@@ -72,10 +74,9 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 		return BrowserAuth{}, err
 	}
 	return BrowserAuth{
-		Authenticator:     browser,
-		Local:             local,
-		Mode:              browser.mode,
-		LocalLoginEnabled: browser.mode == ModeLocal || config.LocalLoginEnabled,
+		Authenticator: browser,
+		Local:         local,
+		Current:       browser.current,
 		ApplySettings: func(ctx context.Context, settings db.AuthenticationSettings) error {
 			return browser.applySettings(ctx, config, repository, settings)
 		},
@@ -123,9 +124,20 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 		return errors.New("unknown authentication mode")
 	}
 	b.mu.Lock()
-	b.mode, b.primary, b.oidc = mode, primary, oidcAuth
+	b.mode, b.primary, b.oidc, b.allowRegistration = mode, primary, oidcAuth, allowRegistration
 	b.mu.Unlock()
 	return nil
+}
+
+// current returns a consistent snapshot of browser-facing authentication state.
+func (b *browserAuthenticator) current() BrowserState {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return BrowserState{
+		Mode:              b.mode,
+		AllowRegistration: b.allowRegistration,
+		LocalLoginEnabled: b.mode == ModeLocal || b.localLoginEnabled,
+	}
 }
 
 func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {

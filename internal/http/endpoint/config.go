@@ -10,14 +10,10 @@ import (
 // ClientConfiguration describes the runtime settings exposed to the SPA.
 // It keeps the browser-facing contract together at the HTTP boundary.
 type ClientConfiguration struct {
-	// Mode selects the configured primary browser authentication mode.
-	Mode httpauth.Mode
+	// Current returns the process-resident browser authentication state.
+	Current func() httpauth.BrowserState
 	// Local resolves whether initial setup is required.
 	Local *httpauth.Local
-	// AllowRegistration enables supported self-registration flows.
-	AllowRegistration bool
-	// LocalLoginEnabled exposes the recovery local-login option to the SPA.
-	LocalLoginEnabled bool
 	// Version identifies the current application build.
 	Version string
 	// Commit identifies the source commit of the current build.
@@ -38,15 +34,19 @@ type configResponse struct {
 // Handler returns the client-configuration endpoint.
 func (config ClientConfiguration) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		state := httpauth.BrowserState{}
+		if config.Current != nil {
+			state = config.Current()
+		}
 		setupRequired := false
 		if config.Local != nil {
 			setupRequired, _ = config.Local.SetupRequired(r.Context())
 		}
 		response.Respond(w, http.StatusOK, configResponse{
-			AuthHeaderEnabled: config.Mode == httpauth.ModeTrustedProxy,
-			AllowRegistration: config.AllowRegistration,
-			OIDCEnabled:       config.Mode == httpauth.ModeOIDC,
-			LocalLoginEnabled: config.LocalLoginEnabled,
+			AuthHeaderEnabled: state.Mode == httpauth.ModeTrustedProxy,
+			AllowRegistration: state.Mode == httpauth.ModeLocal && state.AllowRegistration,
+			OIDCEnabled:       state.Mode == httpauth.ModeOIDC,
+			LocalLoginEnabled: state.LocalLoginEnabled,
 			SetupRequired:     setupRequired,
 			Version:           config.Version,
 			Commit:            config.Commit,
