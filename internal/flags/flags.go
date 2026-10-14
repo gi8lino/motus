@@ -40,6 +40,8 @@ type Config struct {
 	TrustedProxyUserHeader string
 	// AllowRegistration allows unknown users to create local or OIDC-backed accounts.
 	AllowRegistration bool
+	// LocalLogin enables local password sign-in alongside external authentication.
+	LocalLogin bool
 	// SessionLifetime controls local and OIDC session expiry.
 	SessionLifetime time.Duration
 	// OIDCIssuer is the OpenID Connect issuer URL.
@@ -164,6 +166,10 @@ func registerAuthenticationFlags(tf *tinyflags.FlagSet, cfg *Config) {
 		Value()
 
 	tf.BoolVar(&cfg.AllowRegistration, "allow-registration", false, "Allow user self-registration").
+		Section(sectionAuthentication).
+		Value()
+
+	tf.BoolVar(&cfg.LocalLogin, "local-login", false, "Enable local recovery login alongside external authentication").
 		Section(sectionAuthentication).
 		Value()
 

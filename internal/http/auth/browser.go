@@ -10,7 +10,7 @@ import (
 	"github.com/gi8lino/motus/internal/http/response"
 )
 
-// Mode selects one complete browser authentication strategy.
+// Mode selects the primary browser authentication strategy.
 type Mode string
 
 const (
@@ -20,6 +20,7 @@ const (
 	ModeNone         Mode = "none"
 )
 
+// ValidateConfig verifies deployment-managed browser authentication settings.
 func ValidateConfig(config BrowserConfig) error {
 	switch config.Mode {
 	case ModeLocal, ModeNone:
@@ -43,10 +44,16 @@ func ValidateConfig(config BrowserConfig) error {
 
 // browserAuthenticator owns effective mode selection and interactive flow routing.
 type browserAuthenticator struct {
-	authenticator Authenticator
-	local         *Local
-	oidc          *OIDC
-	mode          Mode
+	// primary authenticates the configured browser authentication mode.
+	primary Authenticator
+	// local authenticates recovery local browser sessions.
+	local *Local
+	// oidc starts and completes the configured OIDC browser flow.
+	oidc *OIDC
+	// mode identifies the configured primary browser authentication mode.
+	mode Mode
+	// localLoginEnabled exposes local recovery login outside local mode.
+	localLoginEnabled bool
 }
 
 // ConfigureBrowserAuth composes the complete browser authentication boundary.
@@ -55,22 +62,28 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 		return BrowserAuth{}, err
 	}
 	local := NewLocal(repository, config.SessionLifetime)
-	browser := &browserAuthenticator{local: local, mode: config.Mode}
+	browser := &browserAuthenticator{local: local, mode: config.Mode, localLoginEnabled: config.LocalLoginEnabled}
 	switch config.Mode {
 	case ModeLocal:
-		browser.authenticator = local
+		browser.primary = local
 	case ModeTrustedProxy:
-		browser.authenticator = NewTrustedProxy(repository, config.TrustedProxyUserHeader, config.AllowRegistration)
+		browser.primary = NewTrustedProxy(repository, config.TrustedProxyUserHeader, config.AllowRegistration)
 	case ModeNone:
-		browser.authenticator = NewNone(repository)
+		browser.primary = NewNone(repository)
 	case ModeOIDC:
 		oidc, err := NewOIDC(ctx, config.OIDC, repository, config.AllowRegistration, local)
 		if err != nil {
 			return BrowserAuth{}, err
 		}
-		browser.oidc, browser.authenticator = oidc, local
+		browser.oidc, browser.primary = oidc, local
 	}
-	result := BrowserAuth{Authenticator: browser, Local: local, Mode: config.Mode, Login: http.HandlerFunc(browser.login)}
+	result := BrowserAuth{
+		Authenticator:     browser,
+		Local:             local,
+		Mode:              config.Mode,
+		LocalLoginEnabled: config.Mode == ModeLocal || config.LocalLoginEnabled,
+		Login:             http.HandlerFunc(browser.login),
+	}
 	if browser.oidc != nil {
 		result.Callback = http.HandlerFunc(browser.callback)
 	}
@@ -78,7 +91,16 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 }
 
 func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
-	return b.authenticator.Authenticate(r)
+	if b.mode == ModeLocal || b.localLoginEnabled {
+		user, err := b.local.Authenticate(r)
+		if err == nil {
+			return user, nil
+		}
+		if !errors.Is(err, ErrUnauthenticated) {
+			return db.User{}, err
+		}
+	}
+	return b.primary.Authenticate(r)
 }
 
 func (b *browserAuthenticator) login(w http.ResponseWriter, r *http.Request) {

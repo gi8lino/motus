@@ -5,6 +5,8 @@ import { withBasePath } from "../../utils/basePath";
 export type LoginViewData = {
   allowRegistration: boolean;
   oidcEnabled: boolean;
+  localLoginEnabled: boolean;
+  localLoginRequested: boolean;
   setupRequired: boolean;
   loginError: string | null;
 };
@@ -28,11 +30,18 @@ export function LoginView({
   data: LoginViewData;
   actions: LoginViewActions;
 }) {
-  const { allowRegistration, oidcEnabled, setupRequired, loginError } = data;
+  const {
+    allowRegistration,
+    oidcEnabled,
+    localLoginEnabled,
+    localLoginRequested,
+    setupRequired,
+    loginError,
+  } = data;
   const { onLogin, onCreateUser, onClearError } = actions;
   const eyebrow = setupRequired
     ? "First-time setup"
-    : oidcEnabled
+    : oidcEnabled && !localLoginRequested
       ? "External access"
       : "Local access";
   const title = setupRequired
@@ -40,7 +49,7 @@ export function LoginView({
     : "Sign in to Motus";
   const description = setupRequired
     ? "Create Motus’s first administrator. This page disappears after the first account is created."
-    : oidcEnabled
+    : oidcEnabled && !localLoginRequested
       ? "Continue with the identity provider configured for this Motus instance."
       : "Use a Motus-managed account.";
 
@@ -72,15 +81,26 @@ export function LoginView({
               onCreate={onCreateUser}
               submitLabel="Create administrator"
             />
-          ) : oidcEnabled ? (
-            <Button
-              fullWidth
-              size="large"
-              variant="contained"
-              href={withBasePath("/auth/oidc/login")}
-            >
-              Continue with identity provider
-            </Button>
+          ) : oidcEnabled && !localLoginRequested ? (
+            <Stack spacing={1.5}>
+              <Button
+                fullWidth
+                size="large"
+                variant="contained"
+                href={withBasePath("/auth/oidc/login")}
+              >
+                Continue with identity provider
+              </Button>
+              {localLoginEnabled ? (
+                <Button
+                  fullWidth
+                  size="small"
+                  href={withBasePath("/auth/local")}
+                >
+                  Sign in with local password
+                </Button>
+              ) : null}
+            </Stack>
           ) : (
             <LoginForm
               onLogin={onLogin}
@@ -91,7 +111,7 @@ export function LoginView({
         </CardContent>
       </Card>
 
-      {allowRegistration && !oidcEnabled && !setupRequired ? (
+      {allowRegistration && (!oidcEnabled || localLoginRequested) && !setupRequired ? (
         <Card sx={authCardSx}>
           <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
             <Stack spacing={0.5} sx={{ mb: 2.25 }}>
@@ -119,7 +139,7 @@ export function LoginView({
             <UserForm onCreate={onCreateUser} />
           </CardContent>
         </Card>
-      ) : !setupRequired && !oidcEnabled ? (
+      ) : !setupRequired && (!oidcEnabled || localLoginRequested) ? (
         <Typography
           variant="body2"
           color="text.secondary"

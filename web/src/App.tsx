@@ -488,6 +488,10 @@ export default function App() {
               data={{
                 allowRegistration,
                 oidcEnabled,
+                localLoginEnabled: config?.localLoginEnabled ?? false,
+                localLoginRequested:
+                  typeof window !== "undefined" &&
+                  window.location.pathname.endsWith("/auth/local"),
                 setupRequired,
                 loginError,
               }}

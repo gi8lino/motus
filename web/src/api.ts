@@ -18,6 +18,7 @@ type AppConfig = {
   authHeaderEnabled: boolean;
   allowRegistration: boolean;
   oidcEnabled: boolean;
+  localLoginEnabled: boolean;
   setupRequired: boolean;
   version: string;
   commit: string;

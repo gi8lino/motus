@@ -84,6 +84,7 @@ func TestParse(t *testing.T) {
 			"--auth-mode", "trusted-proxy",
 			"--trusted-proxy-user-header", "X-User-Email",
 			"--allow-registration",
+			"--local-login",
 			"--debug",
 			"--access-log",
 			"--log-format", "text",
@@ -96,6 +97,7 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, httpauth.ModeTrustedProxy, cfg.AuthMode)
 		assert.Equal(t, "X-User-Email", cfg.TrustedProxyUserHeader)
 		assert.True(t, cfg.AllowRegistration)
+		assert.True(t, cfg.LocalLogin)
 		assert.True(t, cfg.Debug)
 		assert.True(t, cfg.AccessLog)
 		assert.Equal(t, logging.LogFormatText, cfg.LogFormat)

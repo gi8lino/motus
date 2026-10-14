@@ -52,6 +52,7 @@ func NewApplication(
 				PublicURL:     cfg.PublicURL,
 			},
 			AllowRegistration: cfg.AllowRegistration,
+			LocalLoginEnabled: cfg.LocalLogin,
 			SessionLifetime:   cfg.SessionLifetime,
 		}); err != nil {
 		return nil, fmt.Errorf("validate browser authentication: %w", err)
@@ -61,7 +62,7 @@ func NewApplication(
 		return nil, fmt.Errorf("load core exercises: %w", err)
 	}
 
-	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{Mode: cfg.AuthMode, TrustedProxyUserHeader: cfg.TrustedProxyUserHeader, AllowRegistration: cfg.AllowRegistration, SessionLifetime: cfg.SessionLifetime, OIDC: httpauth.OIDCConfig{Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret, SessionSecret: cfg.OIDCSessionSecret, PublicURL: cfg.PublicURL}}, store)
+	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{Mode: cfg.AuthMode, TrustedProxyUserHeader: cfg.TrustedProxyUserHeader, AllowRegistration: cfg.AllowRegistration, LocalLoginEnabled: cfg.LocalLogin, SessionLifetime: cfg.SessionLifetime, OIDC: httpauth.OIDCConfig{Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret, SessionSecret: cfg.OIDCSessionSecret, PublicURL: cfg.PublicURL}}, store)
 	if err != nil {
 		return nil, fmt.Errorf("configure browser authentication: %w", err)
 	}
