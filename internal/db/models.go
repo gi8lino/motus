@@ -4,11 +4,21 @@ import "time"
 
 // User represents an account owner.
 type User struct {
-	ID        string    `json:"id"`        // ID is the unique user identifier.
-	Name      string    `json:"name"`      // Name is the display name.
-	IsAdmin   bool      `json:"isAdmin"`   // IsAdmin marks admin privileges.
-	AvatarURL string    `json:"avatarUrl"` // AvatarURL is the optional avatar image.
-	CreatedAt time.Time `json:"createdAt"` // CreatedAt records when the user was created.
+	ID               string         `json:"id"`                   // ID is the unique user identifier.
+	Name             string         `json:"name"`                 // Name is the display name.
+	IsAdmin          bool           `json:"isAdmin"`              // IsAdmin marks admin privileges.
+	AvatarURL        string         `json:"avatarUrl"`            // AvatarURL is the optional avatar image.
+	HasLocalPassword bool           `json:"hasLocalPassword"`     // HasLocalPassword reports whether local sign-in is configured.
+	Identities       []AuthIdentity `json:"identities,omitempty"` // Identities lists external provider mappings.
+	CreatedAt        time.Time      `json:"createdAt"`            // CreatedAt records when the user was created.
+}
+
+// AuthIdentity is one provider-owned identity linked to a Motus user.
+type AuthIdentity struct {
+	Provider string `json:"provider"` // Provider identifies the external authentication provider.
+	Subject  string `json:"subject"`  // Subject is the provider's stable user identifier.
+	Email    string `json:"email"`    // Email is the provider's most recently asserted email.
+	Name     string `json:"name"`     // Name is the provider's most recently asserted display name.
 }
 
 // Workout groups stopwatch steps.

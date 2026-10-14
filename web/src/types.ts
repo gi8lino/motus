@@ -89,7 +89,17 @@ export type User = {
   id: string;
   name: string;
   isAdmin?: boolean;
+  hasLocalPassword?: boolean;
+  identities?: AuthIdentity[];
   createdAt: string;
+};
+
+// AuthIdentity identifies an external provider account linked to a Motus user.
+export type AuthIdentity = {
+  provider: string;
+  subject: string;
+  email: string;
+  name: string;
 };
 
 // TrainingStepState captures a live training step.

@@ -11,6 +11,30 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
+// listAuthIdentities loads provider mappings keyed by their native Motus user.
+func (s *Store) listAuthIdentities(ctx context.Context) (map[string][]AuthIdentity, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT user_id, provider, subject, email, display_name
+		FROM auth_identities
+		ORDER BY provider, subject
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	identities := make(map[string][]AuthIdentity)
+	for rows.Next() {
+		var userID string
+		var identity AuthIdentity
+		if err := rows.Scan(&userID, &identity.Provider, &identity.Subject, &identity.Email, &identity.Name); err != nil {
+			return nil, err
+		}
+		identities[userID] = append(identities[userID], identity)
+	}
+	return identities, rows.Err()
+}
+
 // GetIdentityUser resolves a Motus user from a stable external identity.
 func (s *Store) GetIdentityUser(ctx context.Context, provider, subject string) (*User, error) {
 	row := s.pool.QueryRow(ctx, `

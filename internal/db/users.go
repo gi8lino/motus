@@ -97,7 +97,7 @@ func (s *Store) CreateInitialAdministrator(ctx context.Context, email, passwordH
 func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
 	// Query all users ordered by creation time.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, name, is_admin, avatar_url, created_at
+		SELECT id, name, is_admin, avatar_url, password_hash <> '', created_at
 		FROM users
 		ORDER BY created_at ASC
 	`)
@@ -110,12 +110,22 @@ func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
 	// Collect each user row into the result slice.
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Name, &u.IsAdmin, &u.AvatarURL, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.IsAdmin, &u.AvatarURL, &u.HasLocalPassword, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
 	}
-	return users, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	identities, err := s.listAuthIdentities(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for index := range users {
+		users[index].Identities = identities[users[index].ID]
+	}
+	return users, nil
 }
 
 // GetUser fetches a single user by id.

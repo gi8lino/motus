@@ -86,6 +86,14 @@ export function AdminView({
                               : UI_TEXT.roles.user}{" "}
                             • {new Date(u.createdAt).toLocaleDateString()}
                           </div>
+						  <div className="muted small">
+							{u.hasLocalPassword ? "Local password" : "No local password"}
+							{u.identities?.map((identity) => (
+								<span key={`${identity.provider}:${identity.subject}`}>
+									{" · "}{identity.provider}
+								</span>
+							))}
+						  </div>
                         </div>
                         <div className="btn-group">
                           <button
