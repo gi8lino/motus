@@ -45,10 +45,9 @@ func NewApplication(
 	}
 	if err := httpauth.ValidateConfig(
 		httpauth.BrowserConfig{
-			ModeOverride: cfg.AuthMode,
+			ModeOverride:                  cfg.AuthModeOverride,
+			AllowUserRegistrationOverride: cfg.AllowUserRegistrationOverride,
 			OIDC: httpauth.OIDCConfig{
-				Issuer:        cfg.OIDCIssuer,
-				ClientID:      cfg.OIDCClientID,
 				ClientSecret:  cfg.OIDCClientSecret,
 				SessionSecret: cfg.OIDCSessionSecret,
 				PublicURL:     cfg.PublicURL,
@@ -64,12 +63,11 @@ func NewApplication(
 	}
 
 	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{
-		ModeOverride:      cfg.AuthMode,
-		LocalLoginEnabled: cfg.LocalLogin,
-		SessionLifetime:   cfg.SessionLifetime,
+		ModeOverride:                  cfg.AuthModeOverride,
+		LocalLoginEnabled:             cfg.LocalLogin,
+		AllowUserRegistrationOverride: cfg.AllowUserRegistrationOverride,
+		SessionLifetime:               cfg.SessionLifetime,
 		OIDC: httpauth.OIDCConfig{
-			Issuer:        cfg.OIDCIssuer,
-			ClientID:      cfg.OIDCClientID,
 			ClientSecret:  cfg.OIDCClientSecret,
 			SessionSecret: cfg.OIDCSessionSecret,
 			PublicURL:     cfg.PublicURL,
@@ -81,7 +79,7 @@ func NewApplication(
 
 	return &Application{
 		browser:        browser,
-		users:          users.New(store, cfg.AllowRegistration),
+		users:          users.New(store, cfg.AllowUserRegistrationOverride != nil && *cfg.AllowUserRegistrationOverride),
 		exercises:      exercises.New(store),
 		workouts:       workouts.New(store),
 		trainings:      trainings.New(store, sounds.URLByKey),

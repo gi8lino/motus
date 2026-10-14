@@ -46,6 +46,8 @@ func TestParse(t *testing.T) {
 		assert.False(t, cfg.Debug)
 		assert.False(t, cfg.AccessLog)
 		assert.Equal(t, testDatabaseURL, cfg.DatabaseURL)
+		assert.Nil(t, cfg.AllowUserRegistrationOverride)
+		assert.Empty(t, cfg.AuthModeOverride)
 	})
 
 	t.Run("version", func(t *testing.T) {
@@ -82,8 +84,7 @@ func TestParse(t *testing.T) {
 			"--route-prefix", "/motus/",
 			"--public-url", "https://example.com",
 			"--auth-mode", "trusted-proxy",
-			"--trusted-proxy-user-header", "X-User-Email",
-			"--allow-registration",
+			"--allow-user-registration=true",
 			"--local-login",
 			"--debug",
 			"--access-log",
@@ -94,14 +95,25 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, "127.0.0.1:9001", cfg.ManagementListenAddress)
 		assert.Equal(t, "/motus", cfg.RoutePrefix)
 		assert.Equal(t, "https://example.com/motus", cfg.PublicURL)
-		assert.Equal(t, httpauth.ModeTrustedProxy, cfg.AuthMode)
-		assert.Equal(t, "X-User-Email", cfg.TrustedProxyUserHeader)
-		assert.True(t, cfg.AllowRegistration)
+		assert.Equal(t, httpauth.ModeTrustedProxy, cfg.AuthModeOverride)
+		require.NotNil(t, cfg.AllowUserRegistrationOverride)
+		assert.True(t, *cfg.AllowUserRegistrationOverride)
 		assert.True(t, cfg.LocalLogin)
 		assert.True(t, cfg.Debug)
 		assert.True(t, cfg.AccessLog)
 		assert.Equal(t, logging.LogFormatText, cfg.LogFormat)
 		assert.NotEmpty(t, cfg.Overrides)
+	})
+
+	t.Run("registration override can disable", func(t *testing.T) {
+		clearEnv(t)
+		cfg, err := Parse([]string{
+			"--database-url", testDatabaseURL,
+			"--allow-user-registration=false",
+		}, "")
+		require.NoError(t, err)
+		require.NotNil(t, cfg.AllowUserRegistrationOverride)
+		assert.False(t, *cfg.AllowUserRegistrationOverride)
 	})
 
 	t.Run("invalid route prefix", func(t *testing.T) {
@@ -110,21 +122,18 @@ func TestParse(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("OIDC requires complete configuration", func(t *testing.T) {
+	t.Run("OIDC settings belong to the database", func(t *testing.T) {
 		clearEnv(t)
-		_, err := Parse([]string{"--database-url", testDatabaseURL, "--auth-mode", "oidc", "--oidc-issuer", "https://issuer.example", "--oidc-client-id", "motus"}, "")
+		_, err := Parse([]string{"--database-url", testDatabaseURL, "--auth-mode", "oidc"}, "")
 		require.NoError(t, err)
 	})
 
-	t.Run("OIDC conflicts with trusted header auth", func(t *testing.T) {
+	t.Run("OIDC secrets remain deployment-managed", func(t *testing.T) {
 		clearEnv(t)
 		_, err := Parse([]string{
 			"--database-url", testDatabaseURL,
-			"--oidc-issuer", "https://issuer.example",
-			"--oidc-client-id", "motus",
 			"--oidc-client-secret", "secret",
 			"--oidc-session-secret", strings.Repeat("x", 32),
-			"--trusted-proxy-user-header", "X-User",
 		}, "")
 		require.NoError(t, err)
 	})

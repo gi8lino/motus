@@ -14,6 +14,8 @@ type BrowserConfig struct {
 	ModeOverride Mode
 	// LocalLoginEnabled permits recovery sign-in with a Motus password.
 	LocalLoginEnabled bool
+	// AllowUserRegistrationOverride overrides persisted external-user registration when non-nil.
+	AllowUserRegistrationOverride *bool
 	// SessionLifetime controls the lifespan of Motus browser sessions.
 	SessionLifetime time.Duration
 	// OIDC configures the OpenID Connect browser flow.

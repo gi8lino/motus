@@ -29,7 +29,7 @@ func NewHTTPConfig(
 		},
 		AuthenticationConfig: httpserver.AuthenticationConfig{
 			Browser:           application.browser,
-			AllowRegistration: cfg.AllowRegistration,
+			AllowRegistration: cfg.AllowUserRegistrationOverride != nil && *cfg.AllowUserRegistrationOverride,
 		},
 		ApplicationConfig: httpserver.ApplicationConfig{
 			Authentication: application.authentication,

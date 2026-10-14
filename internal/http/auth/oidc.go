@@ -83,9 +83,18 @@ func NewOIDC(ctx context.Context, config OIDCConfig, repository *appauth.Externa
 		return nil, err
 	}
 	return &OIDC{
-		repository: repository, local: local, verifier: provider.Verifier(&oidc.Config{ClientID: config.ClientID}), issuer: strings.TrimSpace(config.Issuer),
-		secret: []byte(config.SessionSecret),
-		oauth:  &oauth2.Config{ClientID: config.ClientID, ClientSecret: config.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimRight(config.PublicURL, "/") + "/auth/oidc/callback", Scopes: []string{oidc.ScopeOpenID, "profile", "email"}},
+		repository: repository,
+		local:      local,
+		verifier:   provider.Verifier(&oidc.Config{ClientID: config.ClientID}),
+		issuer:     strings.TrimSpace(config.Issuer),
+		secret:     []byte(config.SessionSecret),
+		oauth: &oauth2.Config{
+			ClientID:     config.ClientID,
+			ClientSecret: config.ClientSecret,
+			Endpoint:     provider.Endpoint(),
+			RedirectURL:  strings.TrimRight(config.PublicURL, "/") + "/auth/oidc/callback",
+			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+		},
 	}, nil
 }
 
@@ -169,7 +178,15 @@ func (o *OIDC) setState(w http.ResponseWriter, state oidcLoginState) error {
 	mac := hmac.New(sha256.New, o.secret)
 	_, _ = mac.Write([]byte(encoded))
 	value := encoded + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-	http.SetCookie(w, &http.Cookie{Name: oidcStateCookie, Value: value, Path: "/", MaxAge: int(oidcStateTTL.Seconds()), HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(o.oauth.RedirectURL, "https://")})
+	http.SetCookie(w, &http.Cookie{
+		Name:     oidcStateCookie,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   int(oidcStateTTL.Seconds()),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   strings.HasPrefix(o.oauth.RedirectURL, "https://"),
+	})
 	return nil
 }
 

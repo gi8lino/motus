@@ -30,8 +30,8 @@ func ValidateConfig(config BrowserConfig) error {
 	case ModeTrustedProxy:
 		return nil
 	case ModeOIDC:
-		if strings.TrimSpace(config.OIDC.Issuer) == "" || strings.TrimSpace(config.OIDC.ClientID) == "" || strings.TrimSpace(config.OIDC.ClientSecret) == "" {
-			return errors.New("oidc issuer, client ID, and client secret are required")
+		if strings.TrimSpace(config.OIDC.ClientSecret) == "" {
+			return errors.New("oidc client secret is required")
 		}
 		if len(config.OIDC.SessionSecret) < 32 {
 			return errors.New("oidc session secret must be at least 32 bytes")
@@ -93,7 +93,11 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
 	}
-	externalIdentity := appauth.NewExternalIdentity(repository, settings.AllowRegistration)
+	allowRegistration := settings.AllowRegistration
+	if config.AllowUserRegistrationOverride != nil {
+		allowRegistration = *config.AllowUserRegistrationOverride
+	}
+	externalIdentity := appauth.NewExternalIdentity(repository, allowRegistration)
 	var primary Authenticator
 	var oidcAuth *OIDC
 	switch mode {

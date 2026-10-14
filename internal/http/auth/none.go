@@ -1,9 +1,12 @@
 package httpauth
 
 import (
-	"github.com/gi8lino/motus/internal/db"
 	"net/http"
+
+	"github.com/gi8lino/motus/internal/db"
 )
+
+var _ Authenticator = (*None)(nil)
 
 // None deliberately disables authentication for a deployment behind a trusted boundary.
 type None struct{ repository noneRepository }
@@ -16,5 +19,3 @@ func (a *None) Authenticate(r *http.Request) (db.User, error) {
 	}
 	return *user, nil
 }
-
-var _ Authenticator = (*None)(nil)
