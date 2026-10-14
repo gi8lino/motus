@@ -14,6 +14,7 @@ export type AdminViewData = {
 
 export type AdminViewActions = {
   onToggleAdmin: (user: User) => void | Promise<void>;
+  onRevokeSessions: (user: User) => void | Promise<void>;
   onCreateUser: (email: string, password: string) => void | Promise<void>;
   onBackfill: () => void | Promise<void>;
 };
@@ -27,7 +28,7 @@ export function AdminView({
   actions: AdminViewActions;
 }) {
   const { users, loading, currentUserId, allowRegistration } = data;
-  const { onToggleAdmin, onCreateUser, onBackfill } = actions;
+  const { onToggleAdmin, onRevokeSessions, onCreateUser, onBackfill } = actions;
   // tab tracks the active admin section.
   const [tab, setTab] = useState<AdminTab>("users");
   // backfilling controls the backfill button state.
@@ -104,6 +105,9 @@ export function AdminView({
                               ? UI_TEXT.admin.revokeAdmin
                               : UI_TEXT.admin.makeAdmin}
                           </button>
+						  <button className="btn subtle" onClick={() => onRevokeSessions(u)}>
+							Revoke sessions
+						  </button>
                         </div>
                       </div>
                     </li>

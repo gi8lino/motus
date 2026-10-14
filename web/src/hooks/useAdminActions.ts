@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { backfillExercises, updateUserAdmin } from "../api";
+import { backfillExercises, revokeUserSessions, updateUserAdmin } from "../api";
 import type { User, View } from "../types";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import { UI_TEXT } from "../utils/uiText";
@@ -52,5 +52,15 @@ export function useAdminActions({
     }
   }, [notify]);
 
-  return { toggleAdmin, backfillCatalog };
+  // revokeSessions invalidates local sessions for a selected account.
+  const revokeSessions = useCallback(async (user: User) => {
+    try {
+      await revokeUserSessions(user.id);
+      await notify(`Sessions revoked for ${user.name}.`);
+    } catch (err) {
+      await notify(toErrorMessage(err, "Unable to revoke sessions"));
+    }
+  }, [notify]);
+
+  return { toggleAdmin, backfillCatalog, revokeSessions };
 }

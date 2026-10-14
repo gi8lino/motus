@@ -153,6 +153,13 @@ export async function updateUserAdmin(
   });
 }
 
+// revokeUserSessions signs a selected user out of every local browser session.
+export async function revokeUserSessions(userId: string): Promise<void> {
+  return requestVoid(`/api/users/${encodeURIComponent(userId)}/sessions/revoke`, {
+    method: "POST",
+  });
+}
+
 // listWorkouts returns all workouts for a user.
 export async function listWorkouts(userId: string): Promise<Workout[]> {
   return requestJSON(`/api/users/${encodeURIComponent(userId)}/workouts`);
