@@ -2,6 +2,23 @@ package db
 
 import "time"
 
+// AuthenticationSettings is the persisted, non-secret browser authentication configuration.
+type AuthenticationSettings struct {
+	Mode                      string
+	AllowRegistration         bool
+	TrustedUsernameHeaders    []string
+	TrustedEmailHeaders       []string
+	TrustedDisplayNameHeaders []string
+	TrustedGroupHeaders       []string
+	TrustedAdminGroup         string
+	OIDCIssuer                string
+	OIDCClientID              string
+	OIDCGroupClaim            string
+	OIDCGroupSync             bool
+	OIDCGroupsAuthoritative   bool
+	OIDCAdminGroup            string
+}
+
 // User represents an account owner.
 type User struct {
 	ID               string         `json:"id"`                   // ID is the unique user identifier.
