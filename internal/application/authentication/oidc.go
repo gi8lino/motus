@@ -3,54 +3,53 @@ package authentication
 import (
 	"context"
 	"errors"
-	"strings"
 
+	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/jackc/pgx/v5"
 )
 
 // oidcRepository contains persistence required for OIDC login resolution.
 type oidcRepository interface {
-	registrationSettingsRepository
+	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
 	GetIdentityUser(context.Context, string, string) (*db.User, error)
 	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
 
 // OIDC coordinates verified OIDC identity login policy with persistence.
 type OIDC struct {
-	repository   oidcRepository
-	registration registrationPolicy
+	resolver provisioning.Resolver[*db.User]
 }
 
 // NewOIDC constructs the OIDC login application service.
 func NewOIDC(repository oidcRepository, registrationOverride *bool) *OIDC {
 	return &OIDC{
-		repository:   repository,
-		registration: newRegistrationPolicy(repository, registrationOverride),
+		resolver: provisioning.Resolver[*db.User]{
+			Registration: provisioning.RegistrationPolicy{
+				Override: registrationOverride,
+				Load: func(ctx context.Context) (bool, error) {
+					settings, err := repository.AuthenticationSettings(ctx)
+					return settings.AllowRegistration, err
+				},
+			},
+			IsMissing: func(err error) bool { return errors.Is(err, pgx.ErrNoRows) },
+			Lookup: func(ctx context.Context, identity provisioning.Identity) (*db.User, error) {
+				return repository.GetIdentityUser(ctx, "oidc:"+identity.Issuer, identity.Subject)
+			},
+			Resolve: func(ctx context.Context, identity provisioning.Identity, registrationEnabled bool) (*db.User, error) {
+				return repository.ResolveExternalIdentity(ctx, "oidc:"+identity.Issuer, identity.Subject, identity.Email, identity.DisplayName, registrationEnabled)
+			},
+		},
 	}
 }
 
 // Login normalizes a verified OIDC identity and resolves registration policy before persistence.
 func (s *OIDC) Login(ctx context.Context, issuer, subject, username, email, displayName string) (*db.User, error) {
-	issuer = strings.TrimSpace(issuer)
-	subject = strings.TrimSpace(subject)
-	username = strings.TrimSpace(username)
-	email = strings.TrimSpace(email)
-	displayName = strings.TrimSpace(displayName)
-	if issuer == "" || subject == "" || username == "" {
+	user, err := s.resolver.Login(ctx, provisioning.Identity{
+		Issuer: issuer, Subject: subject, Username: username, Email: email, DisplayName: displayName,
+	})
+	if errors.Is(err, provisioning.ErrIncompleteIdentity) {
 		return nil, errors.New("the identity provider must supply issuer, subject, and username")
 	}
-	provider := "oidc:" + issuer
-	allow := false
-	if _, err := s.repository.GetIdentityUser(ctx, provider, subject); err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
-		}
-		var policyErr error
-		allow, policyErr = s.registration.enabled(ctx)
-		if policyErr != nil {
-			return nil, policyErr
-		}
-	}
-	return s.repository.ResolveExternalIdentity(ctx, provider, subject, email, displayName, allow)
+	return user, err
 }

@@ -5,13 +5,14 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/jackc/pgx/v5"
 )
 
 // trustedProxyRepository contains persistence required for trusted-proxy login resolution.
 type trustedProxyRepository interface {
-	registrationSettingsRepository
+	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
 	GetIdentityUser(context.Context, string, string) (*db.User, error)
 	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
@@ -19,12 +20,18 @@ type trustedProxyRepository interface {
 // TrustedProxy owns trusted-proxy identity normalization and registration policy.
 type TrustedProxy struct {
 	repository   trustedProxyRepository
-	registration registrationPolicy
+	registration provisioning.RegistrationPolicy
 }
 
 // NewTrustedProxy constructs the trusted-proxy login application service.
 func NewTrustedProxy(repository trustedProxyRepository, registrationOverride *bool) *TrustedProxy {
-	return &TrustedProxy{repository: repository, registration: newRegistrationPolicy(repository, registrationOverride)}
+	return &TrustedProxy{repository: repository, registration: provisioning.RegistrationPolicy{
+		Override: registrationOverride,
+		Load: func(ctx context.Context) (bool, error) {
+			settings, err := repository.AuthenticationSettings(ctx)
+			return settings.AllowRegistration, err
+		},
+	}}
 }
 
 // Login resolves a trusted-proxy identity and provisions unknown identities only when allowed.
@@ -39,7 +46,7 @@ func (s *TrustedProxy) Login(ctx context.Context, username, email, displayName s
 			return nil, err
 		}
 		var policyErr error
-		allow, policyErr = s.registration.enabled(ctx)
+		allow, policyErr = s.registration.Enabled(ctx)
 		if policyErr != nil {
 			return nil, policyErr
 		}

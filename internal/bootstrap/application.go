@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	appkitsecrets "github.com/containeroo/appkit/secrets"
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/flags"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
-	"github.com/gi8lino/motus/internal/secrets"
 	"github.com/gi8lino/motus/internal/service/exercises"
 	"github.com/gi8lino/motus/internal/service/sounds"
 	"github.com/gi8lino/motus/internal/service/trainings"
@@ -40,20 +40,19 @@ func NewApplication(
 	logger *slog.Logger,
 ) (*Application, error) {
 	store := infrastructure.store
-	if _, err := secrets.New(cfg.EncryptionKey); err != nil {
+	if _, err := appkitsecrets.New(cfg.Authentication.EncryptionKey); err != nil {
 		return nil, fmt.Errorf("configure secrets: %w", err)
 	}
 	if err := httpauth.ValidateConfig(
 		httpauth.BrowserConfig{
-			ModeOverride:                  cfg.AuthModeOverride,
-			AllowUserRegistrationOverride: cfg.AllowUserRegistrationOverride,
+			ModeOverride:                  httpauth.Mode(*cfg.Authentication.ModeOverride),
+			AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
 			OIDC: httpauth.OIDCConfig{
-				ClientSecret:  cfg.OIDCClientSecret,
-				SessionSecret: cfg.OIDCSessionSecret,
-				PublicURL:     cfg.PublicURL,
+				Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID, ClientSecret: cfg.OIDC.ClientSecret, SessionSecret: cfg.OIDC.SessionSecret,
+				PublicURL: cfg.Server.PublicURL,
 			},
-			LocalLoginEnabled: cfg.LocalLogin,
-			SessionLifetime:   cfg.SessionLifetime,
+			LocalLoginEnabled: cfg.Authentication.LocalLogin,
+			SessionLifetime:   cfg.Authentication.SessionLifetime,
 		}); err != nil {
 		return nil, fmt.Errorf("validate browser authentication: %w", err)
 	}
@@ -63,14 +62,16 @@ func NewApplication(
 	}
 
 	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{
-		ModeOverride:                  cfg.AuthModeOverride,
-		LocalLoginEnabled:             cfg.LocalLogin,
-		AllowUserRegistrationOverride: cfg.AllowUserRegistrationOverride,
-		SessionLifetime:               cfg.SessionLifetime,
+		ModeOverride:                  httpauth.Mode(*cfg.Authentication.ModeOverride),
+		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
+		AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
+		SessionLifetime:               cfg.Authentication.SessionLifetime,
 		OIDC: httpauth.OIDCConfig{
-			ClientSecret:  cfg.OIDCClientSecret,
-			SessionSecret: cfg.OIDCSessionSecret,
-			PublicURL:     cfg.PublicURL,
+			Issuer:        cfg.OIDC.Issuer,
+			ClientID:      cfg.OIDC.ClientID,
+			ClientSecret:  cfg.OIDC.ClientSecret,
+			SessionSecret: cfg.OIDC.SessionSecret,
+			PublicURL:     cfg.Server.PublicURL,
 		},
 	}, store)
 	if err != nil {

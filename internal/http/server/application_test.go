@@ -10,14 +10,14 @@ import (
 )
 
 func TestApplicationMountsRoutePrefix(t *testing.T) {
-	handler := newApplication(Config{
+	handler := New(Config{
 		InfrastructureConfig: InfrastructureConfig{
 			RoutePrefix: "/motus",
 			Assets: fstest.MapFS{
 				"index.html": {Data: []byte(`<base href="{{.BaseHref}}">`)},
 			},
 		},
-	})
+	}).Application
 
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/motus/", nil))
@@ -28,7 +28,7 @@ func TestApplicationMountsRoutePrefix(t *testing.T) {
 
 func TestApplicationServesFaviconSVG(t *testing.T) {
 	const icon = `<svg xmlns="http://www.w3.org/2000/svg"></svg>`
-	handler := newApplication(Config{
+	handler := New(Config{
 		InfrastructureConfig: InfrastructureConfig{
 			RoutePrefix: "/motus",
 			Assets: fstest.MapFS{
@@ -36,7 +36,7 @@ func TestApplicationServesFaviconSVG(t *testing.T) {
 				"motus.svg":  {Data: []byte(icon)},
 			},
 		},
-	})
+	}).Application
 
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/motus/motus.svg", nil))

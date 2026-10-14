@@ -19,10 +19,10 @@ func NewHTTPConfig(
 ) httpserver.Config {
 	return httpserver.Config{
 		InfrastructureConfig: httpserver.InfrastructureConfig{
-			RoutePrefix: cfg.RoutePrefix,
+			RoutePrefix: cfg.Server.RoutePrefix,
 			Assets:      assets,
 			Logger:      logger,
-			AccessLog:   cfg.AccessLog,
+			AccessLog:   cfg.Logging.AccessLog,
 			HealthStore: infrastructure.store,
 			Version:     version,
 			Commit:      commit,

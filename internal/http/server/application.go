@@ -3,7 +3,6 @@ package server
 import (
 	"net/http"
 
-	"github.com/containeroo/httpkit/prefix"
 	"github.com/gi8lino/motus/internal/http/middleware"
 	"github.com/gi8lino/motus/internal/http/response"
 )
@@ -29,11 +28,6 @@ func newApplication(config Config) http.Handler {
 	)
 
 	application := middleware.Chain(applicationMux, middlewares...)
-	application = prefix.MountUnderPrefixWithOptions(
-		application,
-		config.RoutePrefix,
-		prefix.WithRedirectRewriting(),
-	)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		application.ServeHTTP(response.NewRequestWriter(w, r), r)
 	})

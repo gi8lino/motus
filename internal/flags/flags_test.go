@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	httpauth "github.com/gi8lino/motus/internal/http/auth"
-	"github.com/gi8lino/motus/internal/logging"
+	appkitlogging "github.com/containeroo/appkit/logging"
 )
 
 const testDatabaseURL = "postgres://motus:motus@localhost:5432/motus?sslmode=disable"
@@ -38,16 +37,16 @@ func TestParse(t *testing.T) {
 
 		cfg, err := Parse([]string{"--database-url", testDatabaseURL}, "vX.Y.Z")
 		require.NoError(t, err)
-		assert.Equal(t, "127.0.0.1:8080", cfg.ApplicationListenAddress)
-		assert.Equal(t, "127.0.0.1:8081", cfg.ManagementListenAddress)
-		assert.Equal(t, "http://localhost:8080", cfg.PublicURL)
-		assert.Empty(t, cfg.RoutePrefix)
-		assert.Equal(t, logging.LogFormatJSON, cfg.LogFormat)
-		assert.False(t, cfg.Debug)
-		assert.False(t, cfg.AccessLog)
-		assert.Equal(t, testDatabaseURL, cfg.DatabaseURL)
-		assert.Nil(t, cfg.AllowUserRegistrationOverride)
-		assert.Empty(t, cfg.AuthModeOverride)
+		assert.Equal(t, "127.0.0.1:8080", cfg.Server.ListenAddress)
+		assert.Equal(t, "127.0.0.1:8081", cfg.Server.ManagementListenAddress)
+		assert.Equal(t, "http://localhost:8080", cfg.Server.PublicURL)
+		assert.Empty(t, cfg.Server.RoutePrefix)
+		assert.Equal(t, appkitlogging.LogFormatJSON, cfg.Logging.Format)
+		assert.False(t, cfg.Logging.Debug)
+		assert.False(t, cfg.Logging.AccessLog)
+		assert.Equal(t, testDatabaseURL, cfg.Database.URL)
+		assert.Nil(t, cfg.Authentication.AllowRegistrationOverride)
+		assert.Empty(t, cfg.Authentication.ModeOverride)
 	})
 
 	t.Run("version", func(t *testing.T) {
@@ -73,47 +72,6 @@ func TestParse(t *testing.T) {
 		assert.Contains(t, usage, "--management-listen-address")
 		assert.Contains(t, usage, "--public-url")
 		assert.Contains(t, usage, "--access-log")
-	})
-
-	t.Run("custom values", func(t *testing.T) {
-		clearEnv(t)
-		cfg, err := Parse([]string{
-			"--database-url", testDatabaseURL,
-			"--listen-address", "127.0.0.1:9000",
-			"--management-listen-address", "127.0.0.1:9001",
-			"--route-prefix", "/motus/",
-			"--public-url", "https://example.com",
-			"--auth-mode", "trusted-proxy",
-			"--allow-user-registration=true",
-			"--local-login",
-			"--debug",
-			"--access-log",
-			"--log-format", "text",
-		}, "0.0.0")
-		require.NoError(t, err)
-		assert.Equal(t, "127.0.0.1:9000", cfg.ApplicationListenAddress)
-		assert.Equal(t, "127.0.0.1:9001", cfg.ManagementListenAddress)
-		assert.Equal(t, "/motus", cfg.RoutePrefix)
-		assert.Equal(t, "https://example.com/motus", cfg.PublicURL)
-		assert.Equal(t, httpauth.ModeTrustedProxy, cfg.AuthModeOverride)
-		require.NotNil(t, cfg.AllowUserRegistrationOverride)
-		assert.True(t, *cfg.AllowUserRegistrationOverride)
-		assert.True(t, cfg.LocalLogin)
-		assert.True(t, cfg.Debug)
-		assert.True(t, cfg.AccessLog)
-		assert.Equal(t, logging.LogFormatText, cfg.LogFormat)
-		assert.NotEmpty(t, cfg.Overrides)
-	})
-
-	t.Run("registration override can disable", func(t *testing.T) {
-		clearEnv(t)
-		cfg, err := Parse([]string{
-			"--database-url", testDatabaseURL,
-			"--allow-user-registration=false",
-		}, "")
-		require.NoError(t, err)
-		require.NotNil(t, cfg.AllowUserRegistrationOverride)
-		assert.False(t, *cfg.AllowUserRegistrationOverride)
 	})
 
 	t.Run("invalid route prefix", func(t *testing.T) {

@@ -6,13 +6,14 @@ import (
 	"io"
 	"io/fs"
 
+	appkithttpserver "github.com/containeroo/appkit/httpserver"
+	appkitlogging "github.com/containeroo/appkit/logging"
 	server "github.com/containeroo/httpkit/grace"
 	"github.com/containeroo/tinyflags"
 
 	"github.com/gi8lino/motus/internal/bootstrap"
 	"github.com/gi8lino/motus/internal/flags"
 	httpserver "github.com/gi8lino/motus/internal/http/server"
-	"github.com/gi8lino/motus/internal/logging"
 )
 
 // Run composes and runs the Motus process.
@@ -35,7 +36,7 @@ func Run(
 	}
 
 	// Configure process logging and record the effective application identity.
-	logger := logging.Setup(cfg.LogFormat, cfg.Debug, stdout)
+	logger := appkitlogging.Setup(cfg.Logging.Format, cfg.Logging.Debug, stdout)
 	setupLogger := logger.With("component", "setup")
 	setupLogger.Info(
 		"starting Motus",
@@ -71,7 +72,14 @@ func Run(
 
 	// Construct both HTTP handlers and run their listeners until shutdown.
 	handlers := httpserver.New(serverConfig)
-	if err := httpserver.Run(ctx, cfg.ApplicationListenAddress, cfg.ManagementListenAddress, handlers, logger); err != nil {
+	if err := appkithttpserver.Run(
+		ctx,
+		cfg.Server.ListenAddress,
+		cfg.Server.ManagementListenAddress,
+		handlers,
+		logger.With("server", "application"),
+		logger.With("server", "management"),
+	); err != nil {
 		setupLogger.Error("run server", "event", "server_run_failed", "error", err)
 		return err
 	}

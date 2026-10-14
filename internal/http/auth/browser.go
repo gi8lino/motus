@@ -175,7 +175,12 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 		primary = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup})
 	case ModeOIDC:
 		oidcConfig := config.OIDC
-		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
+		if oidcConfig.Issuer == "" {
+			oidcConfig.Issuer = settings.OIDCIssuer
+		}
+		if oidcConfig.ClientID == "" {
+			oidcConfig.ClientID = settings.OIDCClientID
+		}
 		var err error
 		oidcAuth, err = NewOIDC(ctx, oidcConfig, oidcLogin, b.local)
 		if err != nil {
