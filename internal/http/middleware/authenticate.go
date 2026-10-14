@@ -11,7 +11,7 @@ import (
 )
 
 // Authenticate resolves the principal and distinguishes denial from infrastructure errors.
-func Authenticate(authenticator httpauth.Authenticator) Middleware {
+func Authenticate(authenticator httpauth.Authenticator) func(http.Handler) http.Handler {
 	return appkithttpauth.Require[db.User](func(w http.ResponseWriter, r *http.Request, status int) {
 		switch status {
 		case http.StatusUnauthorized:

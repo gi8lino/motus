@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	httpkitmiddleware "github.com/containeroo/httpkit/middleware"
 	"github.com/gi8lino/motus/internal/http/middleware"
 	"github.com/gi8lino/motus/internal/http/response"
 )
@@ -14,20 +15,19 @@ func newApplication(config Config) http.Handler {
 	registerAPIRoutes(applicationMux, config)
 	registerFallbackRoutes(applicationMux, config)
 
-	middlewares := []middleware.Middleware{
+	middlewares := []httpkitmiddleware.Middleware{
 		middleware.SecurityHeaders(),
 	}
 	if config.AccessLog {
-		middlewares = append(middlewares, middleware.AccessLog(config.Logger))
+		middlewares = append(middlewares, httpkitmiddleware.AccessLogWithErrorReference(config.Logger))
 	}
 	middlewares = append(
 		middlewares,
 		middleware.RecoverPanics(config.Logger),
 		middleware.RejectCrossSiteWrites(config.Logger),
-		middleware.CORS(""),
 	)
 
-	application := middleware.Chain(applicationMux, middlewares...)
+	application := httpkitmiddleware.Chain(applicationMux, middlewares...)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		application.ServeHTTP(response.NewRequestWriter(w, r), r)
 	})

@@ -119,7 +119,7 @@ func TestProxyTrustAndSessionFlags(t *testing.T) {
 		"--auth-mode", "proxy",
 	}, "")
 	require.NoError(t, err)
-	require.Equal(t, []string{"127.0.0.1/32"}, cfg.TrustedProxyCIDRs)
+	require.Equal(t, []string{"127.0.0.1/32"}, cfg.Proxy.TrustedCIDRs)
 	require.Equal(t, 48*time.Hour, cfg.Authentication.SessionLifetime)
 	require.Equal(t, "proxy", string(*cfg.Authentication.ModeOverride))
 }

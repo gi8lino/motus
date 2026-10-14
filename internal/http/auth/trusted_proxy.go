@@ -2,12 +2,7 @@ package httpauth
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"net"
 	"net/http"
-	"net/netip"
-	"strings"
 
 	appkitauth "github.com/containeroo/appkit/auth"
 	appkitproxy "github.com/containeroo/appkit/auth/proxy"
@@ -31,16 +26,9 @@ type TrustedProxy struct {
 
 // NewTrustedProxy creates a fail-closed authenticator for explicitly allowed peers.
 func NewTrustedProxy(loginService trustedProxyLoginService, headers TrustedProxyHeaders, cidrs []string) (*TrustedProxy, error) {
-	if len(cidrs) == 0 {
-		return nil, errors.New("trusted-proxy authentication requires --trusted-proxy-cidrs")
-	}
-	peers := make([]netip.Prefix, 0, len(cidrs))
-	for _, value := range cidrs {
-		parsed, err := netip.ParsePrefix(strings.TrimSpace(value))
-		if err != nil {
-			return nil, fmt.Errorf("invalid trusted proxy CIDR %q: %w", value, err)
-		}
-		peers = append(peers, parsed.Masked())
+	trust, err := appkitproxy.TrustCIDRs(cidrs)
+	if err != nil {
+		return nil, err
 	}
 	// A proxy can supply a username or an email-based stable identity.
 	usernames := append(append([]string{}, headers.Username...), headers.Email...)
@@ -50,23 +38,7 @@ func NewTrustedProxy(loginService trustedProxyLoginService, headers TrustedProxy
 		EmailHeaders:       headers.Email,
 		DisplayNameHeaders: headers.DisplayName,
 		GroupHeaders:       headers.Groups,
-		Trust: func(r *http.Request) bool {
-			host, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				return false
-			}
-			addr, err := netip.ParseAddr(host)
-			if err != nil {
-				return false
-			}
-			addr = addr.Unmap()
-			for _, prefix := range peers {
-				if prefix.Contains(addr) {
-					return true
-				}
-			}
-			return false
-		},
+		Trust:              trust,
 		Resolve: func(ctx context.Context, identity appkitauth.ExternalIdentity) (db.User, error) {
 			email, err := utils.NormalizeEmail(identity.Email)
 			if err != nil {

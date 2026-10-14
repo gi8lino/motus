@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	httpkitmiddleware "github.com/containeroo/httpkit/middleware"
 	"github.com/gi8lino/motus/internal/http/endpoint"
 	"github.com/gi8lino/motus/internal/http/middleware"
 )
@@ -10,7 +11,7 @@ import (
 // registerAdminRoutes registers administrator-only API routes.
 func registerAdminRoutes(mux *http.ServeMux, config Config) {
 	admin := func(handler http.Handler) http.Handler {
-		return middleware.Chain(handler, middleware.RequireAdmin(config.Users))
+		return httpkitmiddleware.Chain(handler, middleware.RequireAdmin(config.Users))
 	}
 	mux.Handle("GET /users", admin(endpoint.GetUsers(config.Users, config.Logger)))
 	mux.Handle("PUT /users/{id}/admin", admin(endpoint.UpdateUserRole(config.Users, config.Logger)))

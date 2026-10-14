@@ -3,27 +3,33 @@ package server
 import (
 	"net/http"
 
+	appkitweb "github.com/containeroo/appkit/web"
+	"github.com/containeroo/httpkit/assets"
 	"github.com/gi8lino/motus/internal/http/endpoint"
 )
 
 // registerPublicRoutes registers unauthenticated assets, setup, and login routes.
 func registerPublicRoutes(mux *http.ServeMux, config Config) {
-	assets := endpoint.Static(config.Assets)
-	mux.Handle("GET /assets/", assets)
-	mux.Handle("GET /fonts/", assets)
-	mux.Handle("GET /sounds/", assets)
+	staticAssets := assets.Static(assets.StaticConfig{
+		Files:           config.Assets,
+		ImmutablePrefix: "/assets/",
+		NoCacheFiles:    []string{"sw.js"},
+	})
+	mux.Handle("GET /assets/", staticAssets)
+	mux.Handle("GET /fonts/", staticAssets)
+	mux.Handle("GET /sounds/", staticAssets)
 	// Root-level PWA and brand files must be served as files, not by the SPA fallback.
-	mux.Handle("GET /brand.svg", assets)
-	mux.Handle("GET /motus.svg", assets)
-	mux.Handle("GET /sw.js", assets)
-	mux.Handle("GET /manifest.webmanifest", assets)
-	mux.Handle("GET /favicon-16x16.png", assets)
-	mux.Handle("GET /favicon-32x32.png", assets)
-	mux.Handle("GET /favicon-48x48.png", assets)
-	mux.Handle("GET /favicon-64x64.png", assets)
-	mux.Handle("GET /apple-touch-icon.png", assets)
-	mux.Handle("GET /index.html", endpoint.SPA(config.Assets, config.RoutePrefix))
-	mux.Handle("GET /auth/local", endpoint.SPA(config.Assets, config.RoutePrefix))
+	mux.Handle("GET /brand.svg", staticAssets)
+	mux.Handle("GET /motus.svg", staticAssets)
+	mux.Handle("GET /sw.js", staticAssets)
+	mux.Handle("GET /manifest.webmanifest", staticAssets)
+	mux.Handle("GET /favicon-16x16.png", staticAssets)
+	mux.Handle("GET /favicon-32x32.png", staticAssets)
+	mux.Handle("GET /favicon-48x48.png", staticAssets)
+	mux.Handle("GET /favicon-64x64.png", staticAssets)
+	mux.Handle("GET /apple-touch-icon.png", staticAssets)
+	mux.Handle("GET /index.html", (appkitweb.SPA{Assets: config.Assets, BasePath: config.RoutePrefix}).Handler())
+	mux.Handle("GET /auth/local", (appkitweb.SPA{Assets: config.Assets, BasePath: config.RoutePrefix}).Handler())
 	// The SPA must discover the selected login mode before it can authenticate.
 	mux.Handle("GET /api/config", endpoint.ClientConfiguration{
 		Current: config.Browser.Current,

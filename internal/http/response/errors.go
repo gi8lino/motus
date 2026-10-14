@@ -1,59 +1,22 @@
 package response
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"log/slog"
 	"net/http"
 
+	httpkitresponse "github.com/containeroo/httpkit/response"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
-// RequestWriter retains diagnostic context for a request and its access log.
-type RequestWriter struct {
-	http.ResponseWriter
-	method         string
-	path           string
-	ErrorReference string
-	Status         int
-}
+// RequestWriter is the shared request diagnostic writer.
+type RequestWriter = httpkitresponse.RequestWriter
 
-// NewRequestWriter wraps a response writer with request and status diagnostics.
+// NewRequestWriter wraps the writer with method, path and status diagnostics.
 func NewRequestWriter(w http.ResponseWriter, r *http.Request) *RequestWriter {
-	return &RequestWriter{ResponseWriter: w, method: r.Method, path: r.URL.Path}
+	return httpkitresponse.NewRequestWriter(w, r)
 }
 
-// Unwrap lets http.ResponseController reach optional transport capabilities.
-func (w *RequestWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
-
-// WriteHeader records the final status without treating informational headers as committed.
-func (w *RequestWriter) WriteHeader(status int) {
-	if w.Status != 0 {
-		return
-	}
-	if status >= http.StatusOK {
-		w.Status = status
-	}
-	w.ResponseWriter.WriteHeader(status)
-}
-
-// Write records an implicit successful status before writing response data.
-func (w *RequestWriter) Write(data []byte) (int, error) {
-	if w.Status == 0 {
-		w.WriteHeader(http.StatusOK)
-	}
-	return w.ResponseWriter.Write(data)
-}
-
-// FlushError flushes the underlying response while preserving recorded status.
-func (w *RequestWriter) FlushError() error {
-	if w.Status == 0 {
-		w.WriteHeader(http.StatusOK)
-	}
-	return http.NewResponseController(w.ResponseWriter).Flush()
-}
-
-// ServiceError translates typed application errors at the HTTP boundary.
+// ServiceError translates domain failures at the HTTP boundary.
 func ServiceError(logger *slog.Logger, w http.ResponseWriter, err error) {
 	switch {
 	case errpkg.IsKind(err, errpkg.ErrorValidation):
@@ -69,29 +32,11 @@ func ServiceError(logger *slog.Logger, w http.ResponseWriter, err error) {
 	}
 }
 
-// InternalServerError logs a failure and writes a safe HTTP 500 response with a reference ID.
+// InternalServerError records the private failure and sends a safe correlated JSON response.
 func InternalServerError(logger *slog.Logger, w http.ResponseWriter, err error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	if request, ok := w.(*RequestWriter); ok {
-		logger = logger.With("method", request.method, "path", request.path)
-	}
-	reference := errorReference()
-	if request, ok := w.(*RequestWriter); ok {
-		request.ErrorReference = reference
-	}
-	logger.Error("request failed", "event", "request_failed", "error_reference", reference, "error", err)
-	if request, ok := w.(*RequestWriter); ok && request.Status != 0 {
+	reference := httpkitresponse.LogFailure(logger, w, err)
+	if request, ok := w.(*httpkitresponse.RequestWriter); ok && request.Status != 0 {
 		return
 	}
 	Problem(w, http.StatusInternalServerError, "The request could not be processed. Reference: "+reference)
-}
-
-func errorReference() string {
-	var data [16]byte
-	if _, err := rand.Read(data[:]); err != nil {
-		return "unavailable"
-	}
-	return hex.EncodeToString(data[:])
 }

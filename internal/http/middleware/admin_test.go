@@ -46,8 +46,8 @@ func TestRequireAdmin(t *testing.T) {
 
 		handler.ServeHTTP(rec, req)
 
-		assert.Equal(t, http.StatusForbidden, rec.Code)
-		assert.JSONEq(t, `{"error":"Forbidden.","problems":{}}`, rec.Body.String())
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		assert.JSONEq(t, `{"error":"Authentication required.","problems":{}}`, rec.Body.String())
 	})
 
 	t.Run("non-admin user", func(t *testing.T) {
@@ -118,4 +118,14 @@ func TestRequireAdmin(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
+}
+
+func TestRequireAdminDatabaseError(t *testing.T) {
+	handler := RequireAdmin(stubAdminStore{err: errors.New("database unavailable")}, "")(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("must not run") }))
+	request := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	request.Header.Set("X-User-ID", "alice")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	require.Equal(t, http.StatusInternalServerError, response.Code)
+	require.NotContains(t, response.Body.String(), "database unavailable")
 }

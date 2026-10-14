@@ -32,8 +32,6 @@ type Config struct {
 	// Logging contains shared logging configuration.
 	Logging appkitconfig.Logging
 
-	// TrustedProxyCIDRs limits accepted identity headers to explicitly trusted upstream peers.
-	TrustedProxyCIDRs []string
 	CoreExercisesFile string
 	// Overrides records configuration values explicitly overridden by flags or environment variables.
 	Overrides tinyflags.Overrides
@@ -64,10 +62,6 @@ func Parse(args []string, version string) (Config, error) {
 	)
 
 	appkitconfig.RegisterProxy(tf, &cfg.Proxy)
-	tf.StringSliceVar(&cfg.TrustedProxyCIDRs, "trusted-proxy-cidrs", nil,
-		"Trusted ingress peer CIDRs (required for proxy authentication)").
-		Section(appkitconfig.SectionProxy).
-		Value()
 
 	appkitconfig.RegisterOIDC(tf, &cfg.OIDC)
 	finalizeLogging := appkitconfig.RegisterLogging(tf, &cfg.Logging)
