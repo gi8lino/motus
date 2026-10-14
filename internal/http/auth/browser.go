@@ -172,7 +172,7 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeTrustedProxy:
-		primary = NewTrustedProxy(trustedProxyLogin, settings.TrustedUsernameHeaders[0])
+		primary = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup})
 	case ModeOIDC:
 		oidcConfig := config.OIDC
 		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
