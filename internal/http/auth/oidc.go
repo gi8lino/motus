@@ -15,6 +15,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 
+	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/http/response"
 )
 
@@ -40,7 +41,7 @@ type OIDCConfig struct {
 // OIDC implements a browser authorization-code flow with PKCE and nonce binding.
 type OIDC struct {
 	// repository persists sessions and external identity mappings.
-	repository identityRepository
+	repository *appauth.ExternalIdentity
 	local      *Local
 	// verifier validates provider identity tokens.
 	verifier *oidc.IDTokenVerifier
@@ -50,8 +51,6 @@ type OIDC struct {
 	issuer string
 	// secret signs transient login state.
 	secret []byte
-	// allowRegistration controls admission of new external identities.
-	allowRegistration bool
 }
 
 // oidcLoginState is signed into the transient browser state cookie.
@@ -75,7 +74,7 @@ type oidcClaims struct {
 }
 
 // NewOIDC discovers the provider and constructs the verified login flow.
-func NewOIDC(ctx context.Context, config OIDCConfig, repository identityRepository, allowRegistration bool, local *Local) (*OIDC, error) {
+func NewOIDC(ctx context.Context, config OIDCConfig, repository *appauth.ExternalIdentity, local *Local) (*OIDC, error) {
 	if strings.TrimSpace(config.Issuer) == "" || strings.TrimSpace(config.ClientID) == "" || strings.TrimSpace(config.ClientSecret) == "" || len(config.SessionSecret) < 32 {
 		return nil, errors.New("oidc issuer, client credentials, and a session secret of at least 32 bytes are required")
 	}
@@ -85,8 +84,8 @@ func NewOIDC(ctx context.Context, config OIDCConfig, repository identityReposito
 	}
 	return &OIDC{
 		repository: repository, local: local, verifier: provider.Verifier(&oidc.Config{ClientID: config.ClientID}), issuer: strings.TrimSpace(config.Issuer),
-		secret: []byte(config.SessionSecret), allowRegistration: allowRegistration,
-		oauth: &oauth2.Config{ClientID: config.ClientID, ClientSecret: config.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimRight(config.PublicURL, "/") + "/auth/oidc/callback", Scopes: []string{oidc.ScopeOpenID, "profile", "email"}},
+		secret: []byte(config.SessionSecret),
+		oauth:  &oauth2.Config{ClientID: config.ClientID, ClientSecret: config.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimRight(config.PublicURL, "/") + "/auth/oidc/callback", Scopes: []string{oidc.ScopeOpenID, "profile", "email"}},
 	}, nil
 }
 
@@ -133,7 +132,7 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 		response.Problem(w, http.StatusUnauthorized, "Invalid identity claims.")
 		return
 	}
-	user, err := o.repository.ResolveExternalIdentity(r.Context(), "oidc:"+idToken.Issuer, idToken.Subject, claims.Email, claims.Name, o.allowRegistration)
+	user, err := o.repository.Login(r.Context(), "oidc:"+idToken.Issuer, idToken.Subject, claims.Email, claims.Name)
 	if err != nil {
 		response.Problem(w, http.StatusForbidden, "Login is not permitted.")
 		return

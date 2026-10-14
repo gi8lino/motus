@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
 )
@@ -62,16 +63,17 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 		return BrowserAuth{}, err
 	}
 	local := NewLocal(repository, config.SessionLifetime)
+	externalIdentity := appauth.NewExternalIdentity(repository, config.AllowRegistration)
 	browser := &browserAuthenticator{local: local, mode: config.Mode, localLoginEnabled: config.LocalLoginEnabled}
 	switch config.Mode {
 	case ModeLocal:
 		browser.primary = local
 	case ModeTrustedProxy:
-		browser.primary = NewTrustedProxy(repository, config.TrustedProxyUserHeader, config.AllowRegistration)
+		browser.primary = NewTrustedProxy(externalIdentity, config.TrustedProxyUserHeader)
 	case ModeNone:
 		browser.primary = NewNone(repository)
 	case ModeOIDC:
-		oidc, err := NewOIDC(ctx, config.OIDC, repository, config.AllowRegistration, local)
+		oidc, err := NewOIDC(ctx, config.OIDC, externalIdentity, local)
 		if err != nil {
 			return BrowserAuth{}, err
 		}
