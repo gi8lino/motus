@@ -5,11 +5,12 @@ import (
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
+	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/http/response"
 )
 
 // AuthenticationSettings exposes administrator browser-authentication configuration.
-func AuthenticationSettings(service *appauth.Configuration) http.HandlerFunc {
+func AuthenticationSettings(service *appauth.Configuration, browser httpauth.BrowserAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -28,6 +29,12 @@ func AuthenticationSettings(service *appauth.Configuration) http.HandlerFunc {
 			if err := service.Save(r.Context(), settings); err != nil {
 				response.Problem(w, http.StatusUnprocessableEntity, err.Error())
 				return
+			}
+			if browser.ApplySettings != nil {
+				if err := browser.ApplySettings(r.Context(), settings); err != nil {
+					response.InternalServerError(nil, w, err)
+					return
+				}
 			}
 			response.Respond(w, http.StatusNoContent, nil)
 		default:

@@ -18,6 +18,6 @@ func registerAdminRoutes(mux *http.ServeMux, config Config) {
 	mux.Handle("POST /users/{id}/identities", admin(endpoint.LinkUserIdentity(config.Users, config.Logger)))
 	mux.Handle("DELETE /users/{id}/identities", admin(endpoint.UnlinkUserIdentity(config.Users, config.Logger)))
 	mux.Handle("POST /users/{id}/sessions/revoke", admin(endpoint.RevokeUserSessions(config.Users, config.Logger)))
-	mux.Handle("GET /authentication", admin(endpoint.AuthenticationSettings(config.Authentication)))
-	mux.Handle("PUT /authentication", admin(endpoint.AuthenticationSettings(config.Authentication)))
+	mux.Handle("GET /authentication", admin(endpoint.AuthenticationSettings(config.Authentication, config.Browser)))
+	mux.Handle("PUT /authentication", admin(endpoint.AuthenticationSettings(config.Authentication, config.Browser)))
 }

@@ -1,8 +1,11 @@
 package httpauth
 
 import (
+	"context"
 	"net/http"
 	"time"
+
+	"github.com/gi8lino/motus/internal/db"
 )
 
 // BrowserConfig contains deployment-managed browser authentication settings.
@@ -31,4 +34,6 @@ type BrowserAuth struct {
 	Mode Mode
 	// LocalLoginEnabled reports whether recovery local login is available.
 	LocalLoginEnabled bool
+	// ApplySettings validates and immediately activates persisted authentication settings.
+	ApplySettings func(context.Context, db.AuthenticationSettings) error
 }

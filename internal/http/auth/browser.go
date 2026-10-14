@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
@@ -43,6 +44,7 @@ func ValidateConfig(config BrowserConfig) error {
 
 // browserAuthenticator owns effective mode selection and interactive flow routing.
 type browserAuthenticator struct {
+	mu sync.RWMutex
 	// primary authenticates the configured browser authentication mode.
 	primary Authenticator
 	// local authenticates recovery local browser sessions.
@@ -64,38 +66,20 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	if err != nil {
 		return BrowserAuth{}, err
 	}
-	mode := Mode(settings.Mode)
-	if config.ModeOverride != "" {
-		mode = config.ModeOverride
-	}
 	local := NewLocal(repository, config.SessionLifetime)
-	externalIdentity := appauth.NewExternalIdentity(repository, settings.AllowRegistration)
-	browser := &browserAuthenticator{local: local, mode: mode, localLoginEnabled: config.LocalLoginEnabled}
-	switch mode {
-	case ModeLocal:
-		browser.primary = local
-	case ModeTrustedProxy:
-		if len(settings.TrustedUsernameHeaders) == 0 {
-			return BrowserAuth{}, errors.New("trusted-proxy authentication requires a username header")
-		}
-		browser.primary = NewTrustedProxy(externalIdentity, settings.TrustedUsernameHeaders[0])
-	case ModeNone:
-		browser.primary = NewNone(repository)
-	case ModeOIDC:
-		oidcConfig := config.OIDC
-		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
-		oidc, err := NewOIDC(ctx, oidcConfig, externalIdentity, local)
-		if err != nil {
-			return BrowserAuth{}, err
-		}
-		browser.oidc, browser.primary = oidc, local
+	browser := &browserAuthenticator{local: local, localLoginEnabled: config.LocalLoginEnabled}
+	if err := browser.applySettings(ctx, config, repository, settings); err != nil {
+		return BrowserAuth{}, err
 	}
 	result := BrowserAuth{
 		Authenticator:     browser,
 		Local:             local,
-		Mode:              mode,
-		LocalLoginEnabled: mode == ModeLocal || config.LocalLoginEnabled,
-		Login:             http.HandlerFunc(browser.login),
+		Mode:              browser.mode,
+		LocalLoginEnabled: browser.mode == ModeLocal || config.LocalLoginEnabled,
+		ApplySettings: func(ctx context.Context, settings db.AuthenticationSettings) error {
+			return browser.applySettings(ctx, config, repository, settings)
+		},
+		Login: http.HandlerFunc(browser.login),
 	}
 	if browser.oidc != nil {
 		result.Callback = http.HandlerFunc(browser.callback)
@@ -103,8 +87,48 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	return result, nil
 }
 
+// applySettings rebuilds the effective authenticator from persisted configuration.
+func (b *browserAuthenticator) applySettings(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) error {
+	mode := Mode(settings.Mode)
+	if config.ModeOverride != "" {
+		mode = config.ModeOverride
+	}
+	externalIdentity := appauth.NewExternalIdentity(repository, settings.AllowRegistration)
+	var primary Authenticator
+	var oidcAuth *OIDC
+	switch mode {
+	case ModeLocal:
+		primary = b.local
+	case ModeNone:
+		primary = NewNone(repository)
+	case ModeTrustedProxy:
+		if len(settings.TrustedUsernameHeaders) == 0 {
+			return errors.New("trusted-proxy authentication requires a username header")
+		}
+		primary = NewTrustedProxy(externalIdentity, settings.TrustedUsernameHeaders[0])
+	case ModeOIDC:
+		oidcConfig := config.OIDC
+		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
+		var err error
+		oidcAuth, err = NewOIDC(ctx, oidcConfig, externalIdentity, b.local)
+		if err != nil {
+			return err
+		}
+		primary = b.local
+	default:
+		return errors.New("unknown authentication mode")
+	}
+	b.mu.Lock()
+	b.mode, b.primary, b.oidc = mode, primary, oidcAuth
+	b.mu.Unlock()
+	return nil
+}
+
 func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
-	if b.mode == ModeLocal || b.localLoginEnabled {
+	b.mu.RLock()
+	mode, primary := b.mode, b.primary
+	b.mu.RUnlock()
+	if mode == ModeLocal || b.localLoginEnabled {
 		user, err := b.local.Authenticate(r)
 		if err == nil {
 			return user, nil
@@ -113,7 +137,7 @@ func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
 			return db.User{}, err
 		}
 	}
-	return b.primary.Authenticate(r)
+	return primary.Authenticate(r)
 }
 
 func (b *browserAuthenticator) login(w http.ResponseWriter, r *http.Request) {
