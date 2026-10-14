@@ -74,11 +74,7 @@ jobs:
         run: make download
 
       - name: Build frontend
-        run: |
-          npm --prefix web run typecheck
-          npm --prefix web run lint
-          npm --prefix web run format:check
-          make web
+        run: make check-web web
 
       - name: Check generated files and formatting
         run: |

@@ -178,6 +178,17 @@ promote-admin: ## Promote a user to admin via API: make promote-admin USER_ID=<i
 web: $(WEB_NODE_MODULES) ## Build the frontend application.
 	$(NPM) --prefix web run build
 
+.PHONY: check-web
+check-web: typecheck-web lint-web format-check-web ## Run all frontend static checks.
+
+.PHONY: typecheck-web
+typecheck-web: $(WEB_NODE_MODULES) ## Type-check the frontend application.
+	$(NPM) --prefix web run typecheck
+
+.PHONY: format-check-web
+format-check-web: $(WEB_NODE_MODULES) ## Check frontend source formatting.
+	$(NPM) --prefix web run format:check
+
 .PHONY: lint-web
 lint-web: $(WEB_NODE_MODULES) ## Run frontend eslint checks.
 	$(NPM) --prefix web run lint

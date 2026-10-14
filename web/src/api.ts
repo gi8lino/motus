@@ -155,17 +155,26 @@ export async function updateUserAdmin(
 
 // revokeUserSessions signs a selected user out of every local browser session.
 export async function revokeUserSessions(userId: string): Promise<void> {
-  return requestVoid(`/api/users/${encodeURIComponent(userId)}/sessions/revoke`, {
-    method: "POST",
-  });
+  return requestVoid(
+    `/api/users/${encodeURIComponent(userId)}/sessions/revoke`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 // setUserLocalPassword enables, replaces, or removes an administrator-managed local password.
-export async function setUserLocalPassword(userId: string, password: string): Promise<void> {
-  return requestVoid(`/api/users/${encodeURIComponent(userId)}/local-password`, {
-    method: "PUT",
-    body: JSON.stringify({ password }),
-  });
+export async function setUserLocalPassword(
+  userId: string,
+  password: string,
+): Promise<void> {
+  return requestVoid(
+    `/api/users/${encodeURIComponent(userId)}/local-password`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ password }),
+    },
+  );
 }
 
 // linkUserIdentity attaches an external provider identity to a native Motus user.
