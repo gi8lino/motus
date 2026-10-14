@@ -34,7 +34,7 @@ type Config struct {
 	PublicURL string
 	// DatabaseURL is the PostgreSQL connection URL.
 	DatabaseURL string
-	// AuthMode selects exactly one HTTP authentication strategy.
+	// AuthMode optionally overrides the persisted browser authentication strategy.
 	AuthMode httpauth.Mode
 	// TrustedProxyUserHeader is the identity header set by the trusted reverse proxy.
 	TrustedProxyUserHeader string
@@ -155,9 +155,8 @@ func registerServerFlags(tf *tinyflags.FlagSet, cfg *Config) func() {
 
 // registerAuthenticationFlags registers local and trusted-header authentication configuration.
 func registerAuthenticationFlags(tf *tinyflags.FlagSet, cfg *Config) {
-	tf.StringVar((*string)(&cfg.AuthMode), "auth-mode", string(httpauth.ModeLocal), "Authentication mode").
+	tf.StringVar((*string)(&cfg.AuthMode), "auth-mode", "", "Emergency authentication-mode override").
 		Section(sectionAuthentication).
-		Choices(string(httpauth.ModeLocal), string(httpauth.ModeTrustedProxy), string(httpauth.ModeOIDC), string(httpauth.ModeNone)).
 		Value()
 
 	tf.StringVar(&cfg.TrustedProxyUserHeader, "trusted-proxy-user-header", "", "Trusted reverse-proxy identity header").

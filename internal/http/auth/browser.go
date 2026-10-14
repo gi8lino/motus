@@ -23,13 +23,11 @@ const (
 
 // ValidateConfig verifies deployment-managed browser authentication settings.
 func ValidateConfig(config BrowserConfig) error {
-	switch config.Mode {
-	case ModeLocal, ModeNone:
+	switch config.ModeOverride {
+	case "", ModeLocal, ModeNone:
 		return nil
 	case ModeTrustedProxy:
-		if strings.TrimSpace(config.TrustedProxyUserHeader) == "" {
-			return errors.New("trusted-proxy authentication requires a user header")
-		}
+		return nil
 	case ModeOIDC:
 		if strings.TrimSpace(config.OIDC.Issuer) == "" || strings.TrimSpace(config.OIDC.ClientID) == "" || strings.TrimSpace(config.OIDC.ClientSecret) == "" {
 			return errors.New("oidc issuer, client ID, and client secret are required")
@@ -62,18 +60,31 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	if err := ValidateConfig(config); err != nil {
 		return BrowserAuth{}, err
 	}
+	settings, err := repository.AuthenticationSettings(ctx)
+	if err != nil {
+		return BrowserAuth{}, err
+	}
+	mode := Mode(settings.Mode)
+	if config.ModeOverride != "" {
+		mode = config.ModeOverride
+	}
 	local := NewLocal(repository, config.SessionLifetime)
-	externalIdentity := appauth.NewExternalIdentity(repository, config.AllowRegistration)
-	browser := &browserAuthenticator{local: local, mode: config.Mode, localLoginEnabled: config.LocalLoginEnabled}
-	switch config.Mode {
+	externalIdentity := appauth.NewExternalIdentity(repository, settings.AllowRegistration)
+	browser := &browserAuthenticator{local: local, mode: mode, localLoginEnabled: config.LocalLoginEnabled}
+	switch mode {
 	case ModeLocal:
 		browser.primary = local
 	case ModeTrustedProxy:
-		browser.primary = NewTrustedProxy(externalIdentity, config.TrustedProxyUserHeader)
+		if len(settings.TrustedUsernameHeaders) == 0 {
+			return BrowserAuth{}, errors.New("trusted-proxy authentication requires a username header")
+		}
+		browser.primary = NewTrustedProxy(externalIdentity, settings.TrustedUsernameHeaders[0])
 	case ModeNone:
 		browser.primary = NewNone(repository)
 	case ModeOIDC:
-		oidc, err := NewOIDC(ctx, config.OIDC, externalIdentity, local)
+		oidcConfig := config.OIDC
+		oidcConfig.Issuer, oidcConfig.ClientID = settings.OIDCIssuer, settings.OIDCClientID
+		oidc, err := NewOIDC(ctx, oidcConfig, externalIdentity, local)
 		if err != nil {
 			return BrowserAuth{}, err
 		}
@@ -82,8 +93,8 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	result := BrowserAuth{
 		Authenticator:     browser,
 		Local:             local,
-		Mode:              config.Mode,
-		LocalLoginEnabled: config.Mode == ModeLocal || config.LocalLoginEnabled,
+		Mode:              mode,
+		LocalLoginEnabled: mode == ModeLocal || config.LocalLoginEnabled,
 		Login:             http.HandlerFunc(browser.login),
 	}
 	if browser.oidc != nil {

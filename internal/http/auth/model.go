@@ -7,12 +7,8 @@ import (
 
 // BrowserConfig contains deployment-managed browser authentication settings.
 type BrowserConfig struct {
-	// Mode selects the deployment's primary browser authentication method.
-	Mode Mode
-	// TrustedProxyUserHeader identifies the header used in trusted-proxy mode.
-	TrustedProxyUserHeader string
-	// AllowRegistration permits new external identities to create users.
-	AllowRegistration bool
+	// ModeOverride forces a deployment-managed browser authentication method when non-empty.
+	ModeOverride Mode
 	// LocalLoginEnabled permits recovery sign-in with a Motus password.
 	LocalLoginEnabled bool
 	// SessionLifetime controls the lifespan of Motus browser sessions.

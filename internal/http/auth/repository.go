@@ -24,10 +24,14 @@ type noneRepository interface {
 type identityRepository interface {
 	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
+type settingsRepository interface {
+	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
+}
 
 // browserRepository is composition-only wiring; handlers never receive it.
 type browserRepository interface {
 	localRepository
 	noneRepository
 	identityRepository
+	settingsRepository
 }

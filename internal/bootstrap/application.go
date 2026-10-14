@@ -42,8 +42,7 @@ func NewApplication(
 	}
 	if err := httpauth.ValidateConfig(
 		httpauth.BrowserConfig{
-			Mode:                   cfg.AuthMode,
-			TrustedProxyUserHeader: cfg.TrustedProxyUserHeader,
+			ModeOverride: cfg.AuthMode,
 			OIDC: httpauth.OIDCConfig{
 				Issuer:        cfg.OIDCIssuer,
 				ClientID:      cfg.OIDCClientID,
@@ -51,7 +50,6 @@ func NewApplication(
 				SessionSecret: cfg.OIDCSessionSecret,
 				PublicURL:     cfg.PublicURL,
 			},
-			AllowRegistration: cfg.AllowRegistration,
 			LocalLoginEnabled: cfg.LocalLogin,
 			SessionLifetime:   cfg.SessionLifetime,
 		}); err != nil {
@@ -63,11 +61,9 @@ func NewApplication(
 	}
 
 	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{
-		Mode:                   cfg.AuthMode,
-		TrustedProxyUserHeader: cfg.TrustedProxyUserHeader,
-		AllowRegistration:      cfg.AllowRegistration,
-		LocalLoginEnabled:      cfg.LocalLogin,
-		SessionLifetime:        cfg.SessionLifetime,
+		ModeOverride:      cfg.AuthMode,
+		LocalLoginEnabled: cfg.LocalLogin,
+		SessionLifetime:   cfg.SessionLifetime,
 		OIDC: httpauth.OIDCConfig{
 			Issuer:        cfg.OIDCIssuer,
 			ClientID:      cfg.OIDCClientID,
