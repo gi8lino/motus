@@ -35,6 +35,32 @@ func (s *Store) listAuthIdentities(ctx context.Context) (map[string][]AuthIdenti
 	return identities, rows.Err()
 }
 
+// LinkAuthIdentity links or relinks a provider identity to one native Motus user.
+func (s *Store) LinkAuthIdentity(ctx context.Context, userID string, identity AuthIdentity) error {
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO auth_identities(provider, subject, user_id, email, display_name)
+		VALUES($1, $2, $3, $4, $5)
+		ON CONFLICT(provider, subject) DO UPDATE SET
+			user_id = EXCLUDED.user_id,
+			email = EXCLUDED.email,
+			display_name = EXCLUDED.display_name,
+			last_seen_at = NOW()
+	`, strings.TrimSpace(identity.Provider), strings.TrimSpace(identity.Subject), strings.TrimSpace(userID), strings.TrimSpace(identity.Email), strings.TrimSpace(identity.Name))
+	return err
+}
+
+// DeleteAuthIdentity removes one provider mapping from a native Motus user.
+func (s *Store) DeleteAuthIdentity(ctx context.Context, userID, provider, subject string) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM auth_identities WHERE user_id=$1 AND provider=$2 AND subject=$3`, strings.TrimSpace(userID), strings.TrimSpace(provider), strings.TrimSpace(subject))
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("identity not found")
+	}
+	return nil
+}
+
 // GetIdentityUser resolves a Motus user from a stable external identity.
 func (s *Store) GetIdentityUser(ctx context.Context, provider, subject string) (*User, error) {
 	row := s.pool.QueryRow(ctx, `
