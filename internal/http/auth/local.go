@@ -17,10 +17,13 @@ const localSessionCookie = "motus_session"
 
 // Local owns local credentials and the complete local browser-session lifecycle.
 type Local struct {
+	// repository stores local credentials and sessions.
 	repository localRepository
-	lifetime   time.Duration
+	// lifetime limits local browser-session validity.
+	lifetime time.Duration
 }
 
+// NewLocal creates the local-password authenticator and session manager.
 func NewLocal(repository localRepository, lifetime time.Duration) *Local {
 	if lifetime <= 0 {
 		lifetime = 30 * 24 * time.Hour
@@ -28,6 +31,7 @@ func NewLocal(repository localRepository, lifetime time.Duration) *Local {
 	return &Local{repository: repository, lifetime: lifetime}
 }
 
+// Authenticate resolves the Motus user represented by a local session cookie.
 func (l *Local) Authenticate(r *http.Request) (db.User, error) {
 	cookie, err := r.Cookie(localSessionCookie)
 	if err != nil || strings.TrimSpace(cookie.Value) == "" {
@@ -78,6 +82,7 @@ func (l *Local) StartSession(ctx context.Context, user db.User) (string, error) 
 	return l.createSession(ctx, user.ID)
 }
 
+// createSession creates a new opaque browser session for a native user.
 func (l *Local) createSession(ctx context.Context, userID string) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
@@ -103,6 +108,7 @@ func (l *Local) ClearSession(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: localSessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 }
 
+// RevokeUserSessions invalidates every local browser session for a user.
 func (l *Local) RevokeUserSessions(ctx context.Context, userID string) error {
 	return l.repository.DeleteUserSessions(ctx, userID)
 }
@@ -127,6 +133,8 @@ func (l *Local) ChangePassword(ctx context.Context, userID, currentPassword, new
 	}
 	return l.repository.DeleteUserSessions(ctx, userID)
 }
+
+// SetupRequired reports whether the first local administrator still needs to be created.
 func (l *Local) SetupRequired(ctx context.Context) (bool, error) {
 	return l.repository.SetupRequired(ctx)
 }
