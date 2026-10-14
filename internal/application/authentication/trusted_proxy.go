@@ -36,11 +36,13 @@ func NewTrustedProxy(repository trustedProxyRepository, registrationOverride *bo
 
 // Login resolves a trusted-proxy identity and provisions unknown identities only when allowed.
 func (s *TrustedProxy) Login(ctx context.Context, username, email, displayName string, _ bool, _ bool) (*db.User, error) {
-	username, email, displayName = strings.TrimSpace(username), strings.TrimSpace(email), strings.TrimSpace(displayName)
-
+	username = strings.TrimSpace(username)
+	email = strings.TrimSpace(email)
+	displayName = strings.TrimSpace(displayName)
 	if username == "" {
 		return nil, errors.New("the trusted proxy must supply a username")
 	}
+
 	allow := false
 	if _, err := s.repository.GetIdentityUser(ctx, "trusted-proxy", username); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
