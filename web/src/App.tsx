@@ -277,7 +277,14 @@ export default function App() {
   });
 
   // ---------- admin actions ----------
-  const { toggleAdmin: handleToggleAdmin, backfillCatalog, revokeSessions: handleRevokeSessions } = useAdminActions({
+  const {
+    toggleAdmin: handleToggleAdmin,
+    backfillCatalog,
+    revokeSessions: handleRevokeSessions,
+    setLocalPassword: handleSetLocalPassword,
+    linkIdentity: handleLinkIdentity,
+    unlinkIdentity: handleUnlinkIdentity,
+  } = useAdminActions({
     currentUserId,
     setUsers: (updater) => users.setData?.(updater),
     setView,
@@ -526,6 +533,9 @@ export default function App() {
               actions={{
                 onToggleAdmin: handleToggleAdmin,
 				onRevokeSessions: handleRevokeSessions,
+				onSetLocalPassword: handleSetLocalPassword,
+				onLinkIdentity: handleLinkIdentity,
+				onUnlinkIdentity: handleUnlinkIdentity,
                 onCreateUser: async (email, password) => {
                   try {
                     await handleRegister(email, password);

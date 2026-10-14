@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { User } from "../../types";
+import { Button, Stack, TextField } from "@mui/material";
+import type { AuthIdentity, User } from "../../types";
 import { UserForm } from "../auth/AuthForm";
 import { UI_TEXT } from "../../utils/uiText";
 
@@ -15,6 +16,9 @@ export type AdminViewData = {
 export type AdminViewActions = {
   onToggleAdmin: (user: User) => void | Promise<void>;
   onRevokeSessions: (user: User) => void | Promise<void>;
+  onSetLocalPassword: (user: User, password: string) => void | Promise<void>;
+  onLinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
+  onUnlinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
   onCreateUser: (email: string, password: string) => void | Promise<void>;
   onBackfill: () => void | Promise<void>;
 };
@@ -28,7 +32,7 @@ export function AdminView({
   actions: AdminViewActions;
 }) {
   const { users, loading, currentUserId, allowRegistration } = data;
-  const { onToggleAdmin, onRevokeSessions, onCreateUser, onBackfill } = actions;
+  const { onToggleAdmin, onRevokeSessions, onSetLocalPassword, onLinkIdentity, onUnlinkIdentity, onCreateUser, onBackfill } = actions;
   // tab tracks the active admin section.
   const [tab, setTab] = useState<AdminTab>("users");
   // backfilling controls the backfill button state.
@@ -110,6 +114,7 @@ export function AdminView({
 						  </button>
                         </div>
                       </div>
+					  <UserAccessControls user={u} onSetLocalPassword={onSetLocalPassword} onLinkIdentity={onLinkIdentity} onUnlinkIdentity={onUnlinkIdentity} />
                     </li>
                   ))}
                 </ul>
@@ -166,4 +171,33 @@ export function AdminView({
       </div>
     </section>
   );
+}
+
+// UserAccessControls manages local-password and external-provider bindings for one user.
+function UserAccessControls({ user, onSetLocalPassword, onLinkIdentity, onUnlinkIdentity }: {
+  user: User;
+  onSetLocalPassword: (user: User, password: string) => void | Promise<void>;
+  onLinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
+  onUnlinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
+}) {
+  const [password, setPassword] = useState("");
+  const [provider, setProvider] = useState("");
+  const [subject, setSubject] = useState("");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  return <Stack spacing={1} sx={{ mt: 1.5, maxWidth: 620 }}>
+    <Stack direction="row" spacing={1}>
+      <TextField size="small" label="Local password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+      <Button size="small" onClick={() => { onSetLocalPassword(user, password); setPassword(""); }}>{user.hasLocalPassword ? "Replace" : "Set"}</Button>
+      {user.hasLocalPassword ? <Button size="small" color="warning" onClick={() => onSetLocalPassword(user, "")}>Remove</Button> : null}
+    </Stack>
+    <Stack direction="row" spacing={1}>
+      <TextField size="small" label="Provider" value={provider} onChange={(event) => setProvider(event.target.value)} />
+      <TextField size="small" label="Subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
+      <TextField size="small" label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+      <TextField size="small" label="Name" value={name} onChange={(event) => setName(event.target.value)} />
+      <Button size="small" disabled={!provider || !subject} onClick={() => { onLinkIdentity(user, { provider, subject, email, name }); setProvider(""); setSubject(""); setEmail(""); setName(""); }}>Link</Button>
+    </Stack>
+    {user.identities?.map((identity) => <Stack key={`${identity.provider}:${identity.subject}`} direction="row" spacing={1} alignItems="center"><span className="muted small">{identity.provider} · {identity.subject}</span><Button size="small" color="warning" onClick={() => onUnlinkIdentity(user, identity)}>Unlink</Button></Stack>)}
+  </Stack>;
 }

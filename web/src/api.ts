@@ -160,6 +160,37 @@ export async function revokeUserSessions(userId: string): Promise<void> {
   });
 }
 
+// setUserLocalPassword enables, replaces, or removes an administrator-managed local password.
+export async function setUserLocalPassword(userId: string, password: string): Promise<void> {
+  return requestVoid(`/api/users/${encodeURIComponent(userId)}/local-password`, {
+    method: "PUT",
+    body: JSON.stringify({ password }),
+  });
+}
+
+// linkUserIdentity attaches an external provider identity to a native Motus user.
+export async function linkUserIdentity(
+  userId: string,
+  identity: { provider: string; subject: string; email: string; name: string },
+): Promise<void> {
+  return requestVoid(`/api/users/${encodeURIComponent(userId)}/identities`, {
+    method: "POST",
+    body: JSON.stringify(identity),
+  });
+}
+
+// unlinkUserIdentity removes an external provider identity from a native Motus user.
+export async function unlinkUserIdentity(
+  userId: string,
+  provider: string,
+  subject: string,
+): Promise<void> {
+  return requestVoid(`/api/users/${encodeURIComponent(userId)}/identities`, {
+    method: "DELETE",
+    body: JSON.stringify({ provider, subject }),
+  });
+}
+
 // listWorkouts returns all workouts for a user.
 export async function listWorkouts(userId: string): Promise<Workout[]> {
   return requestJSON(`/api/users/${encodeURIComponent(userId)}/workouts`);

@@ -68,8 +68,17 @@ func LinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerF
 
 // UnlinkUserIdentity removes a provider identity from a selected native user.
 func UnlinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerFunc {
+	type request struct {
+		Provider string `json:"provider"`
+		Subject  string `json:"subject"`
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := service.UnlinkIdentity(r.Context(), r.PathValue("id"), r.PathValue("provider"), r.PathValue("subject")); err != nil {
+		req, err := decode[request](r)
+		if err != nil {
+			response.Problem(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := service.UnlinkIdentity(r.Context(), r.PathValue("id"), req.Provider, req.Subject); err != nil {
 			response.ServiceError(logger, w, err)
 			return
 		}
