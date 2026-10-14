@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/containeroo/tinyflags"
 	"github.com/stretchr/testify/assert"
@@ -107,4 +108,18 @@ func TestParse(t *testing.T) {
 		_, err := Parse([]string{"--database-url", testDatabaseURL, "--log-format", "xml"}, "")
 		require.EqualError(t, err, "invalid value for flag --log-format: \"xml\" must be one of: text, json")
 	})
+}
+
+func TestProxyTrustAndSessionFlags(t *testing.T) {
+	clearEnv(t)
+	cfg, err := Parse([]string{
+		"--database-url", testDatabaseURL,
+		"--trusted-proxy-cidrs", "127.0.0.1/32",
+		"--session-lifetime", "48h",
+		"--auth-mode", "proxy",
+	}, "")
+	require.NoError(t, err)
+	require.Equal(t, []string{"127.0.0.1/32"}, cfg.TrustedProxyCIDRs)
+	require.Equal(t, 48*time.Hour, cfg.Authentication.SessionLifetime)
+	require.Equal(t, "proxy", string(*cfg.Authentication.ModeOverride))
 }

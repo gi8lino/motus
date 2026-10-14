@@ -19,6 +19,7 @@ type Mode = domain.AuthMode
 const (
 	ModeLocal        = domain.AuthModeLocal
 	ModeTrustedProxy = domain.AuthModeTrustedProxy
+	ModeProxy        = domain.AuthModeProxy
 	ModeOIDC         = domain.AuthModeOIDC
 	ModeNone         = domain.AuthModeNone
 )
@@ -28,7 +29,7 @@ func ValidateConfig(config BrowserConfig) error {
 	switch config.ModeOverride {
 	case "", ModeLocal, ModeNone:
 		return nil
-	case ModeTrustedProxy:
+	case ModeTrustedProxy, ModeProxy:
 		return nil
 	case ModeOIDC:
 		if strings.TrimSpace(config.OIDC.ClientSecret) == "" {
@@ -91,7 +92,7 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	if err != nil {
 		return BrowserAuth{}, err
 	}
-	local := NewLocal(repository, config.SessionLifetime)
+	local := NewLocal(repository, config.SessionLifetime, CookieOptions{PublicURL: config.PublicURL, RoutePrefix: config.RoutePrefix})
 	browser := &browserAuthenticator{local: local, localLoginEnabled: config.LocalLoginEnabled}
 	configured, err := browser.configure(ctx, config, repository, settings)
 	if err != nil {
@@ -171,10 +172,30 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 		primary = b.local
 	case ModeNone:
 		primary = NewNone(repository)
-	case ModeTrustedProxy:
-		primary = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup})
+	case ModeTrustedProxy, ModeProxy:
+		if config.ProxyOverrides.Username != nil {
+			settings.TrustedUsernameHeaders = *config.ProxyOverrides.Username
+		}
+		if config.ProxyOverrides.Email != nil {
+			settings.TrustedEmailHeaders = *config.ProxyOverrides.Email
+		}
+		if config.ProxyOverrides.DisplayName != nil {
+			settings.TrustedDisplayNameHeaders = *config.ProxyOverrides.DisplayName
+		}
+		if config.ProxyOverrides.Groups != nil {
+			settings.TrustedGroupHeaders = *config.ProxyOverrides.Groups
+		}
+		var err error
+		primary, err = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup}, config.TrustedProxyCIDRs)
+		if err != nil {
+			return configuredAuthenticator{}, err
+		}
 	case ModeOIDC:
 		oidcConfig := config.OIDC
+		oidcConfig.RoutePrefix = config.RoutePrefix
+		if oidcConfig.GroupClaim == "" {
+			oidcConfig.GroupClaim = settings.OIDCGroupClaim
+		}
 		if oidcConfig.Issuer == "" {
 			oidcConfig.Issuer = settings.OIDCIssuer
 		}
@@ -247,13 +268,14 @@ func validateSettings(mode Mode, config BrowserConfig, settings db.Authenticatio
 	switch mode {
 	case ModeLocal, ModeNone:
 		return nil
-	case ModeTrustedProxy:
+	case ModeTrustedProxy, ModeProxy:
 		if len(settings.TrustedUsernameHeaders) == 0 {
 			return errors.New("trusted-proxy authentication requires a username header")
 		}
 		return nil
 	case ModeOIDC:
-		if strings.TrimSpace(settings.OIDCIssuer) == "" || strings.TrimSpace(settings.OIDCClientID) == "" {
+		if (strings.TrimSpace(settings.OIDCIssuer) == "" && strings.TrimSpace(config.OIDC.Issuer) == "") ||
+			(strings.TrimSpace(settings.OIDCClientID) == "" && strings.TrimSpace(config.OIDC.ClientID) == "") {
 			return errors.New("oidc issuer and client ID are required")
 		}
 		if strings.TrimSpace(config.OIDC.ClientSecret) == "" || len(config.OIDC.SessionSecret) < 32 {

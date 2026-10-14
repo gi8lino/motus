@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	appkitsecrets "github.com/containeroo/appkit/secrets"
+	appkitauth "github.com/containeroo/appkit/auth"
+
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/flags"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
@@ -40,19 +41,22 @@ func NewApplication(
 	logger *slog.Logger,
 ) (*Application, error) {
 	store := infrastructure.store
-	if _, err := appkitsecrets.New(cfg.Authentication.EncryptionKey); err != nil {
-		return nil, fmt.Errorf("configure secrets: %w", err)
-	}
 	if err := httpauth.ValidateConfig(
 		httpauth.BrowserConfig{
-			ModeOverride:                  httpauth.Mode(*cfg.Authentication.ModeOverride),
+			ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
 			AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
 			OIDC: httpauth.OIDCConfig{
 				Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID, ClientSecret: cfg.OIDC.ClientSecret, SessionSecret: cfg.OIDC.SessionSecret,
-				PublicURL: cfg.Server.PublicURL,
+				PublicURL:   cfg.Server.PublicURL,
+				RoutePrefix: cfg.Server.RoutePrefix,
+				GroupClaim:  oidcGroupClaimOverride(cfg),
 			},
 			LocalLoginEnabled: cfg.Authentication.LocalLogin,
 			SessionLifetime:   cfg.Authentication.SessionLifetime,
+			TrustedProxyCIDRs: cfg.TrustedProxyCIDRs,
+			ProxyOverrides:    proxyOverrides(cfg),
+			PublicURL:         cfg.Server.PublicURL,
+			RoutePrefix:       cfg.Server.RoutePrefix,
 		}); err != nil {
 		return nil, fmt.Errorf("validate browser authentication: %w", err)
 	}
@@ -62,16 +66,22 @@ func NewApplication(
 	}
 
 	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{
-		ModeOverride:                  httpauth.Mode(*cfg.Authentication.ModeOverride),
+		ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
 		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
 		AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
 		SessionLifetime:               cfg.Authentication.SessionLifetime,
+		TrustedProxyCIDRs:             cfg.TrustedProxyCIDRs,
+		ProxyOverrides:                proxyOverrides(cfg),
+		PublicURL:                     cfg.Server.PublicURL,
+		RoutePrefix:                   cfg.Server.RoutePrefix,
 		OIDC: httpauth.OIDCConfig{
 			Issuer:        cfg.OIDC.Issuer,
 			ClientID:      cfg.OIDC.ClientID,
 			ClientSecret:  cfg.OIDC.ClientSecret,
 			SessionSecret: cfg.OIDC.SessionSecret,
 			PublicURL:     cfg.Server.PublicURL,
+			RoutePrefix:   cfg.Server.RoutePrefix,
+			GroupClaim:    oidcGroupClaimOverride(cfg),
 		},
 	}, store)
 	if err != nil {
@@ -89,4 +99,43 @@ func NewApplication(
 		trainings:      trainings.New(store, sounds.URLByKey),
 		authentication: appauth.NewConfiguration(store),
 	}, nil
+}
+
+// authenticationMode keeps an absent deployment override distinct from explicit none.
+func authenticationMode(override *appkitauth.Mode) httpauth.Mode {
+	if override == nil {
+		return ""
+	}
+	return httpauth.Mode(*override)
+}
+
+// proxyOverrides distinguishes explicitly selected deployment headers from defaults.
+func proxyOverrides(cfg flags.Config) httpauth.ProxyOverrides {
+	values := cfg.Overrides.Values()
+	var result httpauth.ProxyOverrides
+	if _, ok := values["trusted-username-headers"]; ok {
+		headers := append([]string(nil), cfg.Proxy.UsernameHeaders...)
+		result.Username = &headers
+	}
+	if _, ok := values["trusted-email-headers"]; ok {
+		headers := append([]string(nil), cfg.Proxy.EmailHeaders...)
+		result.Email = &headers
+	}
+	if _, ok := values["trusted-display-name-headers"]; ok {
+		headers := append([]string(nil), cfg.Proxy.DisplayNameHeaders...)
+		result.DisplayName = &headers
+	}
+	if _, ok := values["trusted-group-headers"]; ok {
+		headers := append([]string(nil), cfg.Proxy.GroupHeaders...)
+		result.Groups = &headers
+	}
+	return result
+}
+
+// oidcGroupClaimOverride leaves the database group-claim setting authoritative unless overridden.
+func oidcGroupClaimOverride(cfg flags.Config) string {
+	if _, ok := cfg.Overrides.Values()["oidc-group-claim"]; ok {
+		return cfg.OIDC.GroupClaim
+	}
+	return ""
 }

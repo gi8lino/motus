@@ -9,6 +9,8 @@ const (
 	AuthModeLocal AuthMode = "local"
 	// AuthModeTrustedProxy accepts identities asserted by a trusted reverse proxy.
 	AuthModeTrustedProxy AuthMode = "trusted-proxy"
+	// AuthModeProxy is the preferred name for reverse-proxy authentication.
+	AuthModeProxy AuthMode = "proxy"
 	// AuthModeOIDC authenticates users through OpenID Connect.
 	AuthModeOIDC AuthMode = "oidc"
 	// AuthModeNone permits access behind an already trusted boundary.

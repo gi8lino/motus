@@ -201,3 +201,21 @@ Use the Workouts tab to design trainings. When you’re ready to share one, sele
 ## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+
+
+## Authentication proxy boundary
+
+When using the `proxy` or legacy `trusted-proxy` authentication mode, configure
+`--trusted-proxy-cidrs` with the CIDR addresses of the **immediate, verified ingress peers**.
+Proxy authentication fails at startup if the list is empty or invalid.
+
+```sh
+MOTUS__TRUSTED_PROXY_CIDRS=127.0.0.1/32
+```
+
+The ingress must **strip incoming client-supplied identity headers** and inject its own.
+Only configure peers controlled by your deployment; do not use unrestricted CIDRs.
+The application never trusts `X-Forwarded-For` as evidence of an authenticated peer.
+
+Appkit-managed sessions use purpose-separated hashes; existing Motus session cookies
+remain valid through the legacy lookup path until they expire or are revoked.

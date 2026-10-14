@@ -31,6 +31,13 @@ type fakeUserStore struct {
 }
 
 func (f *fakeUserStore) CreateSession(context.Context, string, string, time.Time) error { return nil }
+func (f *fakeUserStore) CreateSessionHash(context.Context, string, string, time.Time) error {
+	return nil
+}
+func (f *fakeUserStore) GetSessionUserByHash(context.Context, string, time.Time) (*db.User, error) {
+	return nil, nil
+}
+func (f *fakeUserStore) DeleteSessionHash(context.Context, string) error { return nil }
 func (f *fakeUserStore) GetSessionUser(context.Context, string, time.Time) (*db.User, error) {
 	return nil, nil
 }

@@ -9,6 +9,9 @@ import (
 
 type localRepository interface {
 	CreateSession(context.Context, string, string, time.Time) error
+	CreateSessionHash(context.Context, string, string, time.Time) error
+	GetSessionUserByHash(context.Context, string, time.Time) (*db.User, error)
+	DeleteSessionHash(context.Context, string) error
 	GetSessionUser(context.Context, string, time.Time) (*db.User, error)
 	DeleteSession(context.Context, string) error
 	DeleteUserSessions(context.Context, string) error

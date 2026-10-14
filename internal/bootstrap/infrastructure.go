@@ -18,7 +18,7 @@ type Infrastructure struct {
 
 // NewInfrastructure initializes process-level dependencies in startup order.
 func NewInfrastructure(ctx context.Context, cfg flags.Config, logger *slog.Logger) (*Infrastructure, error) {
-	store, err := db.New(ctx, cfg.Database.URL)
+	store, err := db.NewWithPoolLimits(ctx, cfg.Database.URL, cfg.Database.MaxConns, cfg.Database.MinIdleConns)
 	if err != nil {
 		return nil, fmt.Errorf("connect db: %w", err)
 	}

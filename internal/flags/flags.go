@@ -2,6 +2,8 @@
 package flags
 
 import (
+	"time"
+
 	appkitconfig "github.com/containeroo/appkit/config"
 	"github.com/containeroo/tinyflags"
 )
@@ -30,6 +32,8 @@ type Config struct {
 	// Logging contains shared logging configuration.
 	Logging appkitconfig.Logging
 
+	// TrustedProxyCIDRs limits accepted identity headers to explicitly trusted upstream peers.
+	TrustedProxyCIDRs []string
 	CoreExercisesFile string
 	// Overrides records configuration values explicitly overridden by flags or environment variables.
 	Overrides tinyflags.Overrides
@@ -39,30 +43,32 @@ type Config struct {
 func Parse(args []string, version string) (Config, error) {
 	cfg := Config{}
 
-	tf := tinyflags.NewFlagSet("motus", tinyflags.ContinueOnError)
-	tf.EnvPrefix("MOTUS_")
-	tf.Version(version)
-	tf.HideEnvs()
-	tf.Note("\nFlags can also be set through environment variables using the MOTUS__ prefix. " +
-		"Flag names are uppercased and hyphens are replaced with underscores; for example, " +
-		"--listen-address becomes MOTUS__LISTEN_ADDRESS.")
+	tf := appkitconfig.NewFlagSet("motus", "MOTUS", version)
 	tf.SectionOrder(
 		sectionServer,
 		sectionDatabase,
 		sectionAuthentication,
+		appkitconfig.SectionProxy,
 		sectionOIDC,
 		sectionCatalog,
 		sectionLoggingDiagnostics,
 	)
 
 	finalizeServer := appkitconfig.RegisterServer(tf, &cfg.Server, appkitconfig.ServerOptions{})
+
 	appkitconfig.RegisterPostgres(tf, &cfg.Database, appkitconfig.PostgresOptions{})
 	finalizeAuthentication := appkitconfig.RegisterAuthentication(
 		tf,
 		&cfg.Authentication,
-		appkitconfig.AuthenticationOptions{},
+		appkitconfig.AuthenticationOptions{RegisterSessionLifetime: true, DefaultSessionLifetime: 30 * 24 * time.Hour},
 	)
+
 	appkitconfig.RegisterProxy(tf, &cfg.Proxy)
+	tf.StringSliceVar(&cfg.TrustedProxyCIDRs, "trusted-proxy-cidrs", nil,
+		"Trusted ingress peer CIDRs (required for proxy authentication)").
+		Section(appkitconfig.SectionProxy).
+		Value()
+
 	appkitconfig.RegisterOIDC(tf, &cfg.OIDC)
 	finalizeLogging := appkitconfig.RegisterLogging(tf, &cfg.Logging)
 	registerCatalogFlags(tf, &cfg)
@@ -74,8 +80,6 @@ func Parse(args []string, version string) (Config, error) {
 	finalizeServer()
 	finalizeAuthentication()
 	finalizeLogging()
-	cfg.Overrides = tf.Overrides()
-
 	cfg.Overrides = tf.Overrides()
 	return cfg, nil
 }

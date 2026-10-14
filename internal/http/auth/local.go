@@ -2,139 +2,214 @@ package httpauth
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
+	appkitauth "github.com/containeroo/appkit/auth"
+	appkitlocal "github.com/containeroo/appkit/auth/local"
+	appkitsession "github.com/containeroo/appkit/auth/session"
 	"github.com/gi8lino/motus/internal/db"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/jackc/pgx/v5"
 )
 
 const localSessionCookie = "motus_session"
+const sessionHashPurpose = "motus-browser-session-v1"
 
-// Local owns local credentials and the complete local browser-session lifecycle.
-type Local struct {
-	// repository stores local credentials and sessions.
-	repository localRepository
-	// lifetime limits local browser-session validity.
-	lifetime time.Duration
+// CookieOptions configures session-cookie routing and transport security.
+type CookieOptions struct {
+	PublicURL   string
+	RoutePrefix string
 }
 
-// NewLocal creates the local-password authenticator and session manager.
-func NewLocal(repository localRepository, lifetime time.Duration) *Local {
+// Local bridges Motus user persistence with the shared password and session lifecycle.
+type Local struct {
+	repository localRepository
+	sessions   appkitsession.Manager[db.User]
+	lifetime   time.Duration
+	cookie     appkitsession.CookieConfig
+}
+
+// NewLocal constructs a local password and revocable browser session adapter.
+func NewLocal(repository localRepository, lifetime time.Duration, opts ...CookieOptions) *Local {
 	if lifetime <= 0 {
 		lifetime = 30 * 24 * time.Hour
 	}
-	return &Local{repository: repository, lifetime: lifetime}
+	var option CookieOptions
+	if len(opts) != 0 {
+		option = opts[0]
+	}
+	path := "/"
+	if option.RoutePrefix != "" {
+		path = strings.TrimSuffix(option.RoutePrefix, "/") + "/"
+	}
+	return &Local{
+		repository: repository,
+		sessions: appkitsession.Manager[db.User]{
+			Store:    sessionStore{repository: repository},
+			Lifetime: lifetime,
+			Purpose:  sessionHashPurpose,
+		},
+		lifetime: lifetime,
+		cookie: appkitsession.CookieConfig{
+			Name:     localSessionCookie,
+			Path:     path,
+			Lifetime: lifetime,
+			Secure:   strings.HasPrefix(option.PublicURL, "https://"),
+		},
+	}
 }
 
-// Authenticate resolves the Motus user represented by a local session cookie.
+// sessionStore implements the shared session contract using purpose-separated token hashes.
+type sessionStore struct{ repository localRepository }
+
+// Create persists a user session by its hash, never its bearer token.
+func (s sessionStore) Create(ctx context.Context, hash string, user db.User, expiry time.Time) error {
+	return s.repository.CreateSessionHash(ctx, hash, user.ID, expiry)
+}
+
+// Lookup resolves a valid session and maps missing rows to shared authentication errors.
+func (s sessionStore) Lookup(ctx context.Context, hash string) (db.User, error) {
+	user, err := s.repository.GetSessionUserByHash(ctx, hash, time.Now().UTC())
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && user == nil) {
+		return db.User{}, appkitsession.ErrNotFound
+	}
+	if err != nil {
+		return db.User{}, err
+	}
+	return *user, nil
+}
+
+// Revoke removes a session hash from durable persistence.
+func (s sessionStore) Revoke(ctx context.Context, hash string) error {
+	return s.repository.DeleteSessionHash(ctx, hash)
+}
+
+// Authenticate resolves a shared session or a valid legacy session during migration.
 func (l *Local) Authenticate(r *http.Request) (db.User, error) {
 	cookie, err := r.Cookie(localSessionCookie)
 	if err != nil || strings.TrimSpace(cookie.Value) == "" {
 		return db.User{}, ErrUnauthenticated
 	}
-	user, err := l.repository.GetSessionUser(r.Context(), cookie.Value, time.Now().UTC())
-	if err != nil || user == nil {
+	user, err := l.sessions.Resolve(r.Context(), cookie.Value)
+	if err == nil || !errors.Is(err, ErrUnauthenticated) {
+		return user, err
+	}
+	// Existing sessions use SHA-256(raw token) rather than appkit's purpose-separated hash.
+	previous, err := l.repository.GetSessionUser(r.Context(), cookie.Value, time.Now().UTC())
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && previous == nil) {
 		return db.User{}, ErrUnauthenticated
 	}
-	return *user, nil
+	if err != nil {
+		return db.User{}, err
+	}
+	return *previous, nil
 }
 
-// SignIn validates a local credential and creates the browser session.
+// SignIn authenticates existing local credentials and starts an appkit session.
 func (l *Local) SignIn(ctx context.Context, email, password string) (db.User, string, error) {
 	user, hash, err := l.repository.GetUserWithPassword(ctx, strings.TrimSpace(email))
-	if err != nil || user == nil || hash == "" || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (user == nil || hash == "")) {
 		return db.User{}, "", ErrInvalidCredentials
 	}
-	token, err := l.createSession(ctx, user.ID)
+	if err != nil {
+		return db.User{}, "", err
+	}
+	if err := appkitlocal.VerifyPassword(hash, password); err != nil {
+		return db.User{}, "", ErrInvalidCredentials
+	}
+	token, err := l.sessions.Start(ctx, *user)
 	if err != nil {
 		return db.User{}, "", err
 	}
 	return *user, token, nil
 }
 
-// Setup creates Motus's first local administrator and starts its browser session.
+// Setup atomically creates the first administrator and issues a browser session.
 func (l *Local) Setup(ctx context.Context, email, password string) (db.User, string, error) {
 	if strings.TrimSpace(password) == "" {
 		return db.User{}, "", errors.New("password is required")
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := appkitlocal.HashPassword(password)
 	if err != nil {
 		return db.User{}, "", err
 	}
-	user, err := l.repository.CreateInitialAdministrator(ctx, email, string(hash))
-	if err != nil || user == nil {
+	user, err := l.repository.CreateInitialAdministrator(ctx, email, hash)
+	if err != nil {
 		return db.User{}, "", err
 	}
-	token, err := l.createSession(ctx, user.ID)
+	if user == nil {
+		return db.User{}, "", errors.New("initial administrator not created")
+	}
+	token, err := l.sessions.Start(ctx, *user)
 	if err != nil {
 		return db.User{}, "", err
 	}
 	return *user, token, nil
 }
 
-// StartSession creates a session for a user authenticated by another browser method.
+// StartSession creates a session for an externally verified account.
 func (l *Local) StartSession(ctx context.Context, user db.User) (string, error) {
-	return l.createSession(ctx, user.ID)
+	return l.sessions.Start(ctx, user)
 }
 
-// createSession creates a new opaque browser session for a native user.
-func (l *Local) createSession(ctx context.Context, userID string) (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", err
-	}
-	token := base64.RawURLEncoding.EncodeToString(raw)
-	if err := l.repository.CreateSession(ctx, token, userID, time.Now().UTC().Add(l.lifetime)); err != nil {
-		return "", err
-	}
-	return token, nil
-}
-
-// WriteSessionCookie records a local session in the browser.
+// WriteSessionCookie issues a secure browser cookie for a validated session.
 func (l *Local) WriteSessionCookie(w http.ResponseWriter, r *http.Request, token string) {
-	http.SetCookie(w, &http.Cookie{Name: localSessionCookie, Value: token, Path: "/", Expires: time.Now().UTC().Add(l.lifetime), HttpOnly: true, Secure: r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https", SameSite: http.SameSiteLaxMode})
+	cfg := l.cookie
+	cfg.Secure = cfg.Secure || r.TLS != nil
+	if cfg.Path != "/" {
+		http.SetCookie(w, &http.Cookie{Name: cfg.Name, Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	}
+	http.SetCookie(w, cfg.Cookie(token, false))
 }
 
-// ClearSession revokes the current session and clears its browser cookie.
+// ClearSession revokes new and legacy session hashes and clears the cookie.
 func (l *Local) ClearSession(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(localSessionCookie); err == nil && cookie.Value != "" {
+		_ = l.sessions.End(r.Context(), cookie.Value)
 		_ = l.repository.DeleteSession(r.Context(), cookie.Value)
 	}
-	http.SetCookie(w, &http.Cookie{Name: localSessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	if l.cookie.Path != "/" {
+		http.SetCookie(w, &http.Cookie{Name: l.cookie.Name, Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	}
+	http.SetCookie(w, l.cookie.Cookie("", true))
 }
 
-// RevokeUserSessions invalidates every local browser session for a user.
+// RevokeUserSessions invalidates every browser session for the selected user.
 func (l *Local) RevokeUserSessions(ctx context.Context, userID string) error {
 	return l.repository.DeleteUserSessions(ctx, userID)
 }
 
-// ChangePassword verifies and replaces a local credential, then revokes every
-// existing browser session so the old credential cannot remain active.
+// ChangePassword checks the old secret, persists its replacement, and revokes sessions.
 func (l *Local) ChangePassword(ctx context.Context, userID, currentPassword, newPassword string) error {
 	currentPassword, newPassword = strings.TrimSpace(currentPassword), strings.TrimSpace(newPassword)
 	if currentPassword == "" || newPassword == "" {
 		return errors.New("currentPassword and newPassword are required")
 	}
 	user, hash, err := l.repository.GetUserWithPassword(ctx, userID)
-	if err != nil || user == nil || user.ID != userID || hash == "" || bcrypt.CompareHashAndPassword([]byte(hash), []byte(currentPassword)) != nil {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (user == nil || user.ID != userID || hash == "")) {
 		return ErrInvalidCredentials
 	}
-	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	if err := l.repository.UpdateUserPassword(ctx, userID, string(newHash)); err != nil {
+	if err := appkitlocal.VerifyPassword(hash, currentPassword); err != nil {
+		return ErrInvalidCredentials
+	}
+	newHash, err := appkitlocal.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	if err := l.repository.UpdateUserPassword(ctx, userID, newHash); err != nil {
 		return err
 	}
 	return l.repository.DeleteUserSessions(ctx, userID)
 }
 
-// SetupRequired reports whether the first local administrator still needs to be created.
+// SetupRequired reports whether local administrator setup is still available.
 func (l *Local) SetupRequired(ctx context.Context) (bool, error) {
 	return l.repository.SetupRequired(ctx)
 }
+
+var _ appkitauth.Authenticator[db.User] = (*Local)(nil)

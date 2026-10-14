@@ -14,7 +14,10 @@ type None struct{ repository noneRepository }
 func NewNone(repository noneRepository) *None { return &None{repository: repository} }
 func (a *None) Authenticate(r *http.Request) (db.User, error) {
 	user, err := a.repository.EnsureAdministrator(r.Context())
-	if err != nil || user == nil {
+	if err != nil {
+		return db.User{}, err
+	}
+	if user == nil {
 		return db.User{}, ErrUnauthenticated
 	}
 	return *user, nil

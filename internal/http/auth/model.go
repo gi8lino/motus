@@ -18,6 +18,14 @@ type BrowserConfig struct {
 	AllowUserRegistrationOverride *bool
 	// SessionLifetime controls the lifespan of Motus browser sessions.
 	SessionLifetime time.Duration
+	// TrustedProxyCIDRs explicitly identifies peers permitted to assert identity headers.
+	TrustedProxyCIDRs []string
+	// ProxyOverrides contains explicit CLI/environment header overrides, not defaults.
+	ProxyOverrides ProxyOverrides
+	// PublicURL configures secure session cookies.
+	PublicURL string
+	// RoutePrefix scopes the browser cookie to this application.
+	RoutePrefix string
 	// OIDC configures the OpenID Connect browser flow.
 	OIDC OIDCConfig
 }
@@ -48,4 +56,12 @@ type BrowserState struct {
 	AllowRegistration bool
 	// LocalLoginEnabled reports whether local sign-in is currently available.
 	LocalLoginEnabled bool
+}
+
+// ProxyOverrides supplies only explicitly configured identity-header overrides.
+type ProxyOverrides struct {
+	Username    *[]string
+	Email       *[]string
+	DisplayName *[]string
+	Groups      *[]string
 }

@@ -1,43 +1,38 @@
-// Package httpauth contains HTTP authentication implementations and contracts.
+// Package httpauth adapts application identities and local persistence to shared authentication.
 package httpauth
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
+	appkitauth "github.com/containeroo/appkit/auth"
+	appkithttpauth "github.com/containeroo/appkit/httpauth"
 	"github.com/gi8lino/motus/internal/db"
 )
 
 var (
-	// ErrUnauthenticated indicates that a request has no valid authenticated identity.
-	ErrUnauthenticated = errors.New("unauthenticated")
-	// ErrInvalidCredentials indicates that local credentials could not be verified.
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	// ErrRegistrationDisabled indicates that new identity provisioning is disabled.
-	ErrRegistrationDisabled = errors.New("user registration is disabled")
+	// ErrUnauthenticated is a missing or expired identity.
+	ErrUnauthenticated = appkitauth.ErrUnauthenticated
+	// ErrInvalidCredentials denotes invalid supplied credentials.
+	ErrInvalidCredentials = appkitauth.ErrInvalidCredentials
+	// ErrRegistrationDisabled means a new user cannot be provisioned.
+	ErrRegistrationDisabled = appkitauth.ErrForbidden
 )
 
-// Authenticator resolves the complete authenticated Motus user for a request.
-type Authenticator interface {
-	Authenticate(*http.Request) (db.User, error)
+// Authenticator resolves a Motus user from an HTTP request.
+type Authenticator = appkitauth.Authenticator[db.User]
+
+// User returns an authenticated user from a request.
+func User(r *http.Request) (db.User, bool) {
+	return appkithttpauth.CurrentUser[db.User](r)
 }
 
-type contextKey struct{}
-
-// User returns the authenticated user attached by authentication middleware.
-func User(r *http.Request) (user db.User, ok bool) {
-	user, ok = r.Context().Value(contextKey{}).(db.User)
-	return user, ok
-}
-
-// WithUser returns a request containing user as its authenticated identity.
+// WithUser attaches the authenticated user to request context.
 func WithUser(r *http.Request, user db.User) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), contextKey{}, user))
+	return appkithttpauth.WithUser(r, user)
 }
 
-// ContextUser returns the authenticated user from a request context.
-func ContextUser(ctx context.Context) (user db.User, ok bool) {
-	user, ok = ctx.Value(contextKey{}).(db.User)
-	return user, ok
+// ContextUser returns the authenticated user in a context.
+func ContextUser(ctx context.Context) (db.User, bool) {
+	return appkithttpauth.CurrentUserFromContext[db.User](ctx)
 }

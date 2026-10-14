@@ -32,7 +32,7 @@ func (s *Configuration) Current(ctx context.Context) (Settings, error) {
 func (s *Configuration) Save(ctx context.Context, settings Settings) error {
 	switch settings.Mode {
 	case domain.AuthModeLocal, domain.AuthModeNone:
-	case domain.AuthModeTrustedProxy:
+	case domain.AuthModeTrustedProxy, domain.AuthModeProxy:
 		if len(settings.TrustedUsernameHeaders) == 0 {
 			return fmt.Errorf("trusted-proxy authentication requires a username header")
 		}
