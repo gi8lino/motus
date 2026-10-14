@@ -71,7 +71,7 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	if err := browser.applySettings(ctx, config, repository, settings); err != nil {
 		return BrowserAuth{}, err
 	}
-	result := BrowserAuth{
+	return BrowserAuth{
 		Authenticator:     browser,
 		Local:             local,
 		Mode:              browser.mode,
@@ -79,12 +79,9 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 		ApplySettings: func(ctx context.Context, settings db.AuthenticationSettings) error {
 			return browser.applySettings(ctx, config, repository, settings)
 		},
-		Login: http.HandlerFunc(browser.login),
-	}
-	if browser.oidc != nil {
-		result.Callback = http.HandlerFunc(browser.callback)
-	}
-	return result, nil
+		Login:    http.HandlerFunc(browser.login),
+		Callback: http.HandlerFunc(browser.callback),
+	}, nil
 }
 
 // applySettings rebuilds the effective authenticator from persisted configuration.
@@ -92,6 +89,9 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 	mode := Mode(settings.Mode)
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
+	}
+	if err := validateSettings(mode, config, settings); err != nil {
+		return err
 	}
 	allowRegistration := settings.AllowRegistration
 	if config.AllowUserRegistrationOverride != nil {
@@ -145,19 +145,48 @@ func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
 }
 
 func (b *browserAuthenticator) login(w http.ResponseWriter, r *http.Request) {
-	if b.mode != ModeOIDC || b.oidc == nil {
+	b.mu.RLock()
+	mode, oidcAuth := b.mode, b.oidc
+	b.mu.RUnlock()
+	if mode != ModeOIDC || oidcAuth == nil {
 		response.Problem(w, http.StatusNotFound, "Interactive login is unavailable.")
 		return
 	}
-	b.oidc.login(w, r)
+	oidcAuth.login(w, r)
 }
 
 func (b *browserAuthenticator) callback(w http.ResponseWriter, r *http.Request) {
-	if b.mode != ModeOIDC || b.oidc == nil {
+	b.mu.RLock()
+	mode, oidcAuth := b.mode, b.oidc
+	b.mu.RUnlock()
+	if mode != ModeOIDC || oidcAuth == nil {
 		response.Problem(w, http.StatusNotFound, "OIDC authentication is unavailable.")
 		return
 	}
-	b.oidc.callback(w, r)
+	oidcAuth.callback(w, r)
+}
+
+// validateSettings checks the effective non-secret and deployment-managed OIDC configuration.
+func validateSettings(mode Mode, config BrowserConfig, settings db.AuthenticationSettings) error {
+	switch mode {
+	case ModeLocal, ModeNone:
+		return nil
+	case ModeTrustedProxy:
+		if len(settings.TrustedUsernameHeaders) == 0 {
+			return errors.New("trusted-proxy authentication requires a username header")
+		}
+		return nil
+	case ModeOIDC:
+		if strings.TrimSpace(settings.OIDCIssuer) == "" || strings.TrimSpace(settings.OIDCClientID) == "" {
+			return errors.New("oidc issuer and client ID are required")
+		}
+		if strings.TrimSpace(config.OIDC.ClientSecret) == "" || len(config.OIDC.SessionSecret) < 32 {
+			return errors.New("oidc client secret and a session secret of at least 32 bytes are required")
+		}
+		return nil
+	default:
+		return errors.New("unknown authentication mode")
+	}
 }
 
 var _ Authenticator = (*browserAuthenticator)(nil)

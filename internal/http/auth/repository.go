@@ -24,6 +24,11 @@ type noneRepository interface {
 type identityRepository interface {
 	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
+
+// externalLoginService resolves a verified external identity through application policy.
+type externalLoginService interface {
+	Login(context.Context, string, string, string, string) (*db.User, error)
+}
 type settingsRepository interface {
 	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
 }

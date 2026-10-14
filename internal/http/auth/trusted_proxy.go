@@ -1,22 +1,22 @@
 package httpauth
 
 import (
-	appauth "github.com/gi8lino/motus/internal/application/authentication"
-	"github.com/gi8lino/motus/internal/db"
-	"github.com/gi8lino/motus/internal/utils"
 	"net/http"
 	"strings"
+
+	"github.com/gi8lino/motus/internal/db"
+	"github.com/gi8lino/motus/internal/utils"
 )
 
 // TrustedProxy accepts identities supplied by a reverse proxy that strips and sets Header.
 type TrustedProxy struct {
-	repository *appauth.ExternalIdentity
-	header     string
+	loginService externalLoginService
+	header       string
 }
 
 // NewTrustedProxy creates a trusted-proxy authenticator backed by provider mappings.
-func NewTrustedProxy(repository *appauth.ExternalIdentity, header string) *TrustedProxy {
-	return &TrustedProxy{repository: repository, header: header}
+func NewTrustedProxy(loginService externalLoginService, header string) *TrustedProxy {
+	return &TrustedProxy{loginService: loginService, header: header}
 }
 
 // Authenticate resolves the current reverse-proxy identity to a Motus user.
@@ -25,7 +25,7 @@ func (a *TrustedProxy) Authenticate(r *http.Request) (db.User, error) {
 	if err != nil {
 		return db.User{}, ErrUnauthenticated
 	}
-	user, err := a.repository.Login(r.Context(), "trusted-proxy", email, email, email)
+	user, err := a.loginService.Login(r.Context(), "trusted-proxy", email, email, email)
 	if err != nil || user == nil {
 		return db.User{}, ErrUnauthenticated
 	}
