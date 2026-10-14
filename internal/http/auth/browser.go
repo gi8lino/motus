@@ -59,6 +59,18 @@ type browserAuthenticator struct {
 	localLoginEnabled bool
 }
 
+// configuredAuthenticator is one complete, not-yet-published browser authentication runtime.
+type configuredAuthenticator struct {
+	// primary authenticates requests after this configuration is published.
+	primary Authenticator
+	// oidc serves the interactive OIDC flow when OIDC is active.
+	oidc *OIDC
+	// mode identifies the effective primary authentication method.
+	mode Mode
+	// allowRegistration controls external identity provisioning for this configuration.
+	allowRegistration bool
+}
+
 // ConfigureBrowserAuth composes the complete browser authentication boundary.
 func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository browserRepository) (BrowserAuth, error) {
 	if err := ValidateConfig(config); err != nil {
@@ -77,6 +89,10 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 		Authenticator: browser,
 		Local:         local,
 		Current:       browser.current,
+		Validate: func(ctx context.Context, settings db.AuthenticationSettings) error {
+			_, err := browser.configure(ctx, config, repository, settings)
+			return err
+		},
 		ApplySettings: func(ctx context.Context, settings db.AuthenticationSettings) error {
 			return browser.applySettings(ctx, config, repository, settings)
 		},
@@ -87,12 +103,27 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 
 // applySettings rebuilds the effective authenticator from persisted configuration.
 func (b *browserAuthenticator) applySettings(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) error {
+	configured, err := b.configure(ctx, config, repository, settings)
+	if err != nil {
+		return err
+	}
+	b.mu.Lock()
+	b.mode = configured.mode
+	b.primary = configured.primary
+	b.oidc = configured.oidc
+	b.allowRegistration = configured.allowRegistration
+	b.mu.Unlock()
+	return nil
+}
+
+// configure creates one complete browser authentication runtime without publishing it.
+func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) (configuredAuthenticator, error) {
 	mode := Mode(settings.Mode)
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
 	}
 	if err := validateSettings(mode, config, settings); err != nil {
-		return err
+		return configuredAuthenticator{}, err
 	}
 	allowRegistration := settings.AllowRegistration
 	if config.AllowUserRegistrationOverride != nil {
@@ -107,9 +138,6 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeTrustedProxy:
-		if len(settings.TrustedUsernameHeaders) == 0 {
-			return errors.New("trusted-proxy authentication requires a username header")
-		}
 		primary = NewTrustedProxy(externalIdentity, settings.TrustedUsernameHeaders[0])
 	case ModeOIDC:
 		oidcConfig := config.OIDC
@@ -117,16 +145,13 @@ func (b *browserAuthenticator) applySettings(ctx context.Context, config Browser
 		var err error
 		oidcAuth, err = NewOIDC(ctx, oidcConfig, externalIdentity, b.local)
 		if err != nil {
-			return err
+			return configuredAuthenticator{}, err
 		}
 		primary = b.local
 	default:
-		return errors.New("unknown authentication mode")
+		return configuredAuthenticator{}, errors.New("unknown authentication mode")
 	}
-	b.mu.Lock()
-	b.mode, b.primary, b.oidc, b.allowRegistration = mode, primary, oidcAuth, allowRegistration
-	b.mu.Unlock()
-	return nil
+	return configuredAuthenticator{primary: primary, oidc: oidcAuth, mode: mode, allowRegistration: allowRegistration}, nil
 }
 
 // current returns a consistent snapshot of browser-facing authentication state.

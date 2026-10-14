@@ -26,6 +26,12 @@ func AuthenticationSettings(service *appauth.Configuration, browser httpauth.Bro
 				response.Problem(w, http.StatusBadRequest, err.Error())
 				return
 			}
+			if browser.Validate != nil {
+				if err := browser.Validate(r.Context(), settings); err != nil {
+					response.Problem(w, http.StatusUnprocessableEntity, err.Error())
+					return
+				}
+			}
 			if err := service.Save(r.Context(), settings); err != nil {
 				response.Problem(w, http.StatusUnprocessableEntity, err.Error())
 				return

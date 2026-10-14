@@ -34,6 +34,8 @@ type BrowserAuth struct {
 	Local *Local
 	// Current reports the effective browser authentication state without another database read.
 	Current func() BrowserState
+	// Validate checks whether proposed persisted settings can become the effective runtime configuration.
+	Validate func(context.Context, db.AuthenticationSettings) error
 	// ApplySettings validates and immediately activates persisted authentication settings.
 	ApplySettings func(context.Context, db.AuthenticationSettings) error
 }
