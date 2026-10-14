@@ -90,6 +90,10 @@ func (f *fakeUserStore) CreateUser(ctx context.Context, email, avatarURL, passwo
 	return f.createUserFn(ctx, email, avatarURL, passwordHash)
 }
 
+func (*fakeUserStore) LinkAuthIdentity(context.Context, string, db.AuthIdentity) error { return nil }
+
+func (*fakeUserStore) DeleteAuthIdentity(context.Context, string, string, string) error { return nil }
+
 func TestUsersHandlers(t *testing.T) {
 	t.Run("List users", func(t *testing.T) {
 		store := &fakeUserStore{listUsersFn: func(context.Context) ([]db.User, error) {

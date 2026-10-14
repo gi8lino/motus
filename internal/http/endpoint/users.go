@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
 	"log/slog"
 	"net/http"
@@ -21,6 +22,69 @@ func GetUsers(service *users.Service, logger *slog.Logger) http.HandlerFunc {
 		}
 
 		response.Respond(w, http.StatusOK, users)
+	}
+}
+
+// SetUserLocalPassword sets or removes an administrator-managed local credential.
+func SetUserLocalPassword(service *users.Service, logger *slog.Logger) http.HandlerFunc {
+	type request struct {
+		Password string `json:"password"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("id")
+		req, err := decode[request](r)
+		if err != nil {
+			response.Problem(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if req.Password == "" {
+			err = service.DisableLocalPassword(r.Context(), userID)
+		} else {
+			err = service.SetLocalPassword(r.Context(), userID, req.Password)
+		}
+		if err != nil {
+			response.ServiceError(logger, w, err)
+			return
+		}
+		response.Respond(w, http.StatusNoContent, nil)
+	}
+}
+
+// LinkUserIdentity connects a provider identity to a selected native user.
+func LinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		identity, err := decode[db.AuthIdentity](r)
+		if err != nil {
+			response.Problem(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := service.LinkIdentity(r.Context(), r.PathValue("id"), identity); err != nil {
+			response.ServiceError(logger, w, err)
+			return
+		}
+		response.Respond(w, http.StatusNoContent, nil)
+	}
+}
+
+// UnlinkUserIdentity removes a provider identity from a selected native user.
+func UnlinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := service.UnlinkIdentity(r.Context(), r.PathValue("id"), r.PathValue("provider"), r.PathValue("subject")); err != nil {
+			response.ServiceError(logger, w, err)
+			return
+		}
+		response.Respond(w, http.StatusNoContent, nil)
+	}
+}
+
+// RevokeUserSessions invalidates every local browser session for a selected user.
+func RevokeUserSessions(service *users.Service, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := service.RevokeSessions(r.Context(), r.PathValue("id")); err != nil {
+			response.ServiceError(logger, w, err)
+			return
+		}
+		response.Respond(w, http.StatusNoContent, nil)
 	}
 }
 
