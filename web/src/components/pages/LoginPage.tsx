@@ -111,7 +111,7 @@ export function LoginView({
         </CardContent>
       </Card>
 
-      {allowRegistration && (!oidcEnabled || localLoginRequested) && !setupRequired ? (
+      {allowRegistration && !oidcEnabled && !setupRequired ? (
         <Card sx={authCardSx}>
           <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
             <Stack spacing={0.5} sx={{ mb: 2.25 }}>
@@ -139,7 +139,7 @@ export function LoginView({
             <UserForm onCreate={onCreateUser} />
           </CardContent>
         </Card>
-      ) : !setupRequired && (!oidcEnabled || localLoginRequested) ? (
+      ) : !setupRequired && !oidcEnabled ? (
         <Typography
           variant="body2"
           color="text.secondary"
