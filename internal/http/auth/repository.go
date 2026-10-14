@@ -21,17 +21,13 @@ type localRepository interface {
 type noneRepository interface {
 	EnsureAdministrator(context.Context) (*db.User, error)
 }
-type trustedProxyRepository interface {
-	ResolveTrustedProxyUser(context.Context, string, bool) (*db.User, error)
-}
-type oidcRepository interface {
-	ResolveOIDCUser(context.Context, string, string, string, string, bool) (*db.User, error)
+type identityRepository interface {
+	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
 }
 
 // browserRepository is composition-only wiring; handlers never receive it.
 type browserRepository interface {
 	localRepository
 	noneRepository
-	trustedProxyRepository
-	oidcRepository
+	identityRepository
 }

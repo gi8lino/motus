@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gi8lino/motus/internal/utils"
-	"github.com/jackc/pgx/v5"
 )
 
 // CreateUser inserts a new user with the provided password hash.
@@ -37,24 +36,6 @@ func (s *Store) CreateUser(ctx context.Context, email, avatarURL, passwordHash s
 		return nil, err
 	}
 	return user, nil
-}
-
-// ResolveTrustedProxyUser maps a verified proxy identity to exactly one Motus user.
-// A first-seen identity is provisioned only when the deployment allows it.
-func (s *Store) ResolveTrustedProxyUser(ctx context.Context, email string, allowRegistration bool) (*User, error) {
-	user, err := s.GetUser(ctx, email)
-	if err == nil {
-		return user, nil
-	}
-	if !errors.Is(err, pgx.ErrNoRows) || !allowRegistration {
-		return nil, err
-	}
-	user, err = s.CreateUser(ctx, email, "", "")
-	if err == nil {
-		return user, nil
-	}
-	// A concurrent first login may have won the insert race.
-	return s.GetUser(ctx, email)
 }
 
 // EnsureAdministrator returns the administrator used by explicitly unauthenticated deployments.

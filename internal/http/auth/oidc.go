@@ -39,8 +39,8 @@ type OIDCConfig struct {
 
 // OIDC implements a browser authorization-code flow with PKCE and nonce binding.
 type OIDC struct {
-	// store persists sessions and external identity mappings.
-	repository oidcRepository
+	// repository persists sessions and external identity mappings.
+	repository identityRepository
 	local      *Local
 	// verifier validates provider identity tokens.
 	verifier *oidc.IDTokenVerifier
@@ -75,7 +75,7 @@ type oidcClaims struct {
 }
 
 // NewOIDC discovers the provider and constructs the verified login flow.
-func NewOIDC(ctx context.Context, config OIDCConfig, repository oidcRepository, allowRegistration bool, local *Local) (*OIDC, error) {
+func NewOIDC(ctx context.Context, config OIDCConfig, repository identityRepository, allowRegistration bool, local *Local) (*OIDC, error) {
 	if strings.TrimSpace(config.Issuer) == "" || strings.TrimSpace(config.ClientID) == "" || strings.TrimSpace(config.ClientSecret) == "" || len(config.SessionSecret) < 32 {
 		return nil, errors.New("oidc issuer, client credentials, and a session secret of at least 32 bytes are required")
 	}
@@ -133,7 +133,7 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 		response.Problem(w, http.StatusUnauthorized, "Invalid identity claims.")
 		return
 	}
-	user, err := o.repository.ResolveOIDCUser(r.Context(), idToken.Issuer, idToken.Subject, claims.Email, claims.Name, o.allowRegistration)
+	user, err := o.repository.ResolveExternalIdentity(r.Context(), "oidc:"+idToken.Issuer, idToken.Subject, claims.Email, claims.Name, o.allowRegistration)
 	if err != nil {
 		response.Problem(w, http.StatusForbidden, "Login is not permitted.")
 		return
