@@ -32,10 +32,11 @@ func NewHTTPConfig(
 			AllowRegistration: cfg.AllowRegistration,
 		},
 		ApplicationConfig: httpserver.ApplicationConfig{
-			Users:     application.users,
-			Exercises: application.exercises,
-			Workouts:  application.workouts,
-			Trainings: application.trainings,
+			Authentication: application.authentication,
+			Users:          application.users,
+			Exercises:      application.exercises,
+			Workouts:       application.workouts,
+			Trainings:      application.trainings,
 		},
 	}
 }

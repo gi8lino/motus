@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/flags"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/secrets"
@@ -27,6 +28,8 @@ type Application struct {
 	workouts *workouts.Service
 	// trainings provides training use cases.
 	trainings *trainings.Service
+	// authentication manages persisted browser-authentication configuration.
+	authentication *appauth.Configuration
 }
 
 // NewApplication composes application services around initialized process infrastructure.
@@ -77,10 +80,11 @@ func NewApplication(
 	}
 
 	return &Application{
-		browser:   browser,
-		users:     users.New(store, cfg.AllowRegistration),
-		exercises: exercises.New(store),
-		workouts:  workouts.New(store),
-		trainings: trainings.New(store, sounds.URLByKey),
+		browser:        browser,
+		users:          users.New(store, cfg.AllowRegistration),
+		exercises:      exercises.New(store),
+		workouts:       workouts.New(store),
+		trainings:      trainings.New(store, sounds.URLByKey),
+		authentication: appauth.NewConfiguration(store),
 	}, nil
 }

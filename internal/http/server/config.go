@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"log/slog"
 
+	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/service/exercises"
@@ -30,10 +31,11 @@ type AuthenticationConfig struct {
 
 // ApplicationConfig contains Motus use cases exposed by HTTP routes.
 type ApplicationConfig struct {
-	Users     *users.Service
-	Exercises *exercises.Service
-	Workouts  *workouts.Service
-	Trainings *trainings.Service
+	Authentication *appauth.Configuration
+	Users          *users.Service
+	Exercises      *exercises.Service
+	Workouts       *workouts.Service
+	Trainings      *trainings.Service
 }
 
 // Config groups capabilities used to construct HTTP routes.
