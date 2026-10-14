@@ -123,3 +123,14 @@ func TestProxyTrustAndSessionFlags(t *testing.T) {
 	require.Equal(t, 48*time.Hour, cfg.Authentication.SessionLifetime)
 	require.Equal(t, "proxy", string(*cfg.Authentication.ModeOverride))
 }
+
+func TestProxyWildcardFlag(t *testing.T) {
+	clearEnv(t)
+	cfg, err := Parse([]string{
+		"--database-url", testDatabaseURL,
+		"--auth-mode", "proxy",
+		"--trusted-proxy-cidrs", "*",
+	}, "")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"*"}, cfg.Proxy.TrustedCIDRs)
+}

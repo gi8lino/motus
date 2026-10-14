@@ -109,9 +109,10 @@ Motus can be configured using command-line flags or environment variables. Envir
 - `--management-listen-address` (default `127.0.0.1:8081`): health/readiness bind address.
 - `--route-prefix` (default empty): mount the public app under a path (e.g. `/motus`).
 - `--public-url` (default `http://localhost:8080`): externally visible base URL used for browser callbacks.
-- `--auth-mode` (default `local`): one of `local`, `trusted-proxy`, `oidc`, or `none`.
-- `--trusted-proxy-user-header`: identity header accepted only in `trusted-proxy` mode.
-- `--allow-registration` (default false): allow new local, trusted-proxy, or OIDC users to be created.
+- `--auth-mode` (optional deployment override): one of `local`, `proxy`, `oidc`, or `none`.
+- `--trusted-proxy-cidrs`: allowed immediate proxy CIDRs, or an explicit `*` to trust every peer.
+- `--trusted-username-headers`: ordered identity headers used in proxy mode.
+- `--allow-user-registration` (optional override): control automatic registration of external identities.
 - `--session-lifetime` (default `720h`): lifetime of local and OIDC authentication sessions.
 - `--oidc-issuer`, `--oidc-client-id`, `--oidc-client-secret`, and `--oidc-session-secret`: configure browser OIDC login in `oidc` mode. The session secret must be at least 32 bytes.
 - `--encryption-key`: optional base64-encoded 256-bit key for sensitive persisted settings.
@@ -126,7 +127,7 @@ The management listener is deliberately separate from the public application lis
 
 Local authentication is the default. On an empty database, open Motus and use the first-run setup screen to create the initial administrator. The setup endpoint can create the first user exactly once; there are no startup admin flags.
 
-After setup, additional local users can register only when `--allow-registration` is enabled. Administrators can manage users from the application.
+After setup, additional local users can register only when `--allow-user-registration` is enabled. Administrators can manage users from the application.
 
 ## Trusted-proxy mode
 
@@ -134,25 +135,29 @@ Use trusted-proxy mode when an authentication proxy such as oauth2-proxy authent
 
 ```yaml
 - name: MOTUS__AUTH_MODE
-  value: trusted-proxy
-- name: MOTUS__TRUSTED_PROXY_USER_HEADER
+  value: proxy
+- name: MOTUS__TRUSTED_USERNAME_HEADERS
   value: X-Auth-Request-Email
+- name: MOTUS__TRUSTED_PROXY_CIDRS
+  value: 10.0.0.0/8
 ```
 
-The proxy must strip any client-supplied copy of the configured identity header before setting its verified value. Setting `MOTUS__TRUSTED_PROXY_USER_HEADER` alone does not enable trusted-proxy authentication.
+The proxy must strip client-supplied identity headers and replace them with verified values. `MOTUS__TRUSTED_PROXY_CIDRS` must match the immediate proxy peers; without it, proxy authentication is disabled.
 
 Existing Motus users are resolved by email. To provision previously unknown proxy identities automatically, also set:
 
 ```yaml
-- name: MOTUS__ALLOW_REGISTRATION
+- name: MOTUS__ALLOW_USER_REGISTRATION
   value: "true"
 ```
 
 New proxy-provisioned users are not administrators automatically. For a new installation, either create the initial administrator in local mode first using the same email address and then switch to trusted-proxy mode, or promote the provisioned user explicitly.
 
+`--trusted-proxy-cidrs="*"` (or `MOTUS__TRUSTED_PROXY_CIDRS="*"`) explicitly trusts **every valid immediate peer**. Do not use this without a network boundary restricting direct access to the authentication proxy, which must strip incoming identity headers. A wildcard cannot be combined with CIDRs; leaving the list empty still denies proxy authentication.
+
 ## OIDC mode
 
-Set `--auth-mode=oidc` and all four OIDC flags to use a single OpenID Connect provider. Motus uses the authorization-code flow with PKCE and nonce/state validation, verifies the provider ID token, and creates its normal opaque Motus session. The provider callback is `<public-url>/auth/oidc/callback`; add that exact URL to the provider client. New verified identities are admitted only when `--allow-registration` is enabled.
+Set `--auth-mode=oidc` and all four OIDC flags to use a single OpenID Connect provider. Motus uses the authorization-code flow with PKCE and nonce/state validation, verifies the provider ID token, and creates its normal opaque Motus session. The provider callback is `<public-url>/auth/oidc/callback`; add that exact URL to the provider client. New verified identities are admitted only when `--allow-user-registration` is enabled.
 
 ## No-auth mode
 

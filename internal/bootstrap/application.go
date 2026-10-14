@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	appkitauth "github.com/containeroo/appkit/auth"
+	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/flags"
@@ -40,6 +41,10 @@ func NewApplication(
 	infrastructure *Infrastructure,
 	logger *slog.Logger,
 ) (*Application, error) {
+	if appkitproxy.IsWildcardCIDRs(cfg.Proxy.TrustedCIDRs) {
+		logger.Warn("trusted proxy wildcard accepts identities from any valid peer; restrict ingress and strip untrusted identity headers",
+			"event", "trusted_proxy_wildcard_enabled")
+	}
 	store := infrastructure.store
 	if err := httpauth.ValidateConfig(
 		httpauth.BrowserConfig{

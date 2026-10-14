@@ -1,5 +1,5 @@
-github.com/containeroo/appkit v0.1.0 h1:2TJg+J5UrWRYO7m36Mflx0NDUYi6YTcW+KQwSkTFdSA=
-github.com/containeroo/appkit v0.1.0/go.mod h1:PavEm/5jxpuaJZqrWw6HH/EY/r7fpZUCYo7nKRGSOT4=
+github.com/containeroo/appkit v0.2.0 h1:zC8iOOYSp8ZAR4WFsAWgO4zEArETYakddLC7eW0p9DE=
+github.com/containeroo/appkit v0.2.0/go.mod h1:PavEm/5jxpuaJZqrWw6HH/EY/r7fpZUCYo7nKRGSOT4=
 github.com/containeroo/httpkit v0.0.3 h1:msDWnXu3fhAja9aOXfP6vw6GO803zHW9/lgp+cqOQQU=
 github.com/containeroo/httpkit v0.0.3/go.mod h1:3O+ot7igC5SMFIsVu7nZmBNewa4VbigOOu47eGR9qaI=
 github.com/containeroo/tinyflags v0.5.0 h1:FIt3Vwmwx2w7Lu8bUFTGGmWEx46zDybWnx3nCzT1nEc=
