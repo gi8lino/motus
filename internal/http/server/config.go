@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
+	appsystem "github.com/gi8lino/motus/internal/application/system"
 	"github.com/gi8lino/motus/internal/db"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/service/exercises"
@@ -31,6 +32,7 @@ type AuthenticationConfig struct {
 // ApplicationConfig contains Motus use cases exposed by HTTP routes.
 type ApplicationConfig struct {
 	Authentication *appauth.Configuration
+	System         *appsystem.System
 	Users          *users.Service
 	Exercises      *exercises.Service
 	Workouts       *workouts.Service

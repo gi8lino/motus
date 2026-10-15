@@ -57,6 +57,75 @@ export function UserForm({
   );
 }
 
+// SetupForm creates the initial administrator after confirming its local password.
+export function SetupForm({
+  onCreate,
+}: {
+  onCreate: (email: string, password: string) => void | Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const trimmedEmail = email.trim();
+  const emailInvalid = trimmedEmail !== "" && !isValidEmail(trimmedEmail);
+  const passwordsMatch = password !== "" && password === passwordConfirmation;
+
+  return (
+    <Stack
+      component="form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!trimmedEmail || emailInvalid || !passwordsMatch) return;
+        void onCreate(trimmedEmail, password);
+      }}
+      spacing={2}
+    >
+      <TextField
+        autoComplete="email"
+        autoFocus
+        error={emailInvalid}
+        helperText={emailInvalid ? "Enter a valid email address" : undefined}
+        label="Administrator email"
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="you@example.com"
+        required
+        type="email"
+        value={email}
+      />
+      <TextField
+        autoComplete="new-password"
+        label="Local password"
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        type="password"
+        value={password}
+      />
+      <TextField
+        autoComplete="new-password"
+        error={passwordConfirmation !== "" && !passwordsMatch}
+        helperText={
+          passwordConfirmation !== "" && !passwordsMatch
+            ? "Passwords must match"
+            : undefined
+        }
+        label="Confirm local password"
+        onChange={(event) => setPasswordConfirmation(event.target.value)}
+        required
+        type="password"
+        value={passwordConfirmation}
+      />
+      <Button
+        disabled={!trimmedEmail || emailInvalid || !passwordsMatch}
+        size="large"
+        type="submit"
+        variant="contained"
+      >
+        Create administrator
+      </Button>
+    </Stack>
+  );
+}
+
 // LoginForm validates credentials for local auth.
 export function LoginForm({
   onLogin,

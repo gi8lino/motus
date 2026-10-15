@@ -9,6 +9,7 @@ import (
 	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
+	appsystem "github.com/gi8lino/motus/internal/application/system"
 	"github.com/gi8lino/motus/internal/flags"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/service/exercises"
@@ -32,6 +33,8 @@ type Application struct {
 	trainings *trainings.Service
 	// authentication manages persisted browser-authentication configuration.
 	authentication *appauth.Configuration
+	// system owns process-local one-time setup state.
+	system *appsystem.System
 }
 
 // NewApplication composes application services around initialized process infrastructure.
@@ -46,7 +49,14 @@ func NewApplication(
 			"event", "trusted_proxy_wildcard_enabled")
 	}
 	store := infrastructure.store
+	setupRequired, err := store.SetupRequired(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("load setup state: %w", err)
+	}
+	system := appsystem.New(appsystem.NewSetupState(setupRequired))
 	browserConfig := newBrowserConfig(cfg)
+	browserConfig.SetupRequired = system.SetupRequired
+	browserConfig.SetupCompleted = system.CompleteSetup
 	if err := httpauth.ValidateConfig(browserConfig); err != nil {
 		return nil, fmt.Errorf("validate browser authentication: %w", err)
 	}
@@ -70,6 +80,7 @@ func NewApplication(
 		workouts:       workouts.New(store),
 		trainings:      trainings.New(store, sounds.URLByKey),
 		authentication: appauth.NewConfiguration(store),
+		system:         system,
 	}, nil
 }
 

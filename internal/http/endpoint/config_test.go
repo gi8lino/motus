@@ -45,6 +45,22 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, "v1", payload.Version)
 		assert.Equal(t, "c1", payload.Commit)
 	})
+
+	t.Run("Returns process-local setup state", func(t *testing.T) {
+		t.Parallel()
+		h := ClientConfiguration{
+			SetupRequired: func() bool { return true },
+		}.Handler()
+		req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		var payload configResponse
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&payload))
+		assert.True(t, payload.SetupRequired)
+	})
 }
 
 func TestCurrentUser(t *testing.T) {

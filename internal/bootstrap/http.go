@@ -32,6 +32,7 @@ func NewHTTPConfig(
 		},
 		ApplicationConfig: httpserver.ApplicationConfig{
 			Authentication: application.authentication,
+			System:         application.system,
 			Users:          application.users,
 			Exercises:      application.exercises,
 			Workouts:       application.workouts,

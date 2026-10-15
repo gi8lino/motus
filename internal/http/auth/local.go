@@ -29,6 +29,14 @@ type Local struct {
 	sessions   appkitsession.Manager[db.User]
 	lifetime   time.Duration
 	cookie     appkitsession.CookieConfig
+	// setupCompleted updates process-local setup state after bootstrap persistence succeeds.
+	setupCompleted func()
+}
+
+// WithSetupCompleted records the process-local setup transition after bootstrap persistence.
+func (l *Local) WithSetupCompleted(complete func()) *Local {
+	l.setupCompleted = complete
+	return l
 }
 
 // NewLocal constructs a local password and revocable browser session adapter.
@@ -142,6 +150,9 @@ func (l *Local) Setup(ctx context.Context, email, password string) (db.User, str
 	if user == nil {
 		return db.User{}, "", errors.New("initial administrator not created")
 	}
+	if l.setupCompleted != nil {
+		l.setupCompleted()
+	}
 	token, err := l.sessions.Start(ctx, *user)
 	if err != nil {
 		return db.User{}, "", err
@@ -205,11 +216,6 @@ func (l *Local) ChangePassword(ctx context.Context, userID, currentPassword, new
 		return err
 	}
 	return l.repository.DeleteUserSessions(ctx, userID)
-}
-
-// SetupRequired reports whether local administrator setup is still available.
-func (l *Local) SetupRequired(ctx context.Context) (bool, error) {
-	return l.repository.SetupRequired(ctx)
 }
 
 var _ appkitauth.Authenticator[db.User] = (*Local)(nil)

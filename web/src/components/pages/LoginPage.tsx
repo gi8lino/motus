@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, Stack, Typography } from "@mui/material";
-import { LoginForm, UserForm } from "./../auth/AuthForm";
+import { LoginForm, SetupForm, UserForm } from "./../auth/AuthForm";
 import { withBasePath } from "../../utils/basePath";
 
 export type LoginViewData = {
@@ -77,10 +77,7 @@ export function LoginView({
           </Stack>
 
           {setupRequired ? (
-            <UserForm
-              onCreate={onCreateUser}
-              submitLabel="Create administrator"
-            />
+            <SetupForm onCreate={onCreateUser} />
           ) : oidcEnabled && !localLoginRequested ? (
             <Stack spacing={1.5}>
               <Button

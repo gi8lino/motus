@@ -15,6 +15,10 @@ type BrowserConfig struct {
 	ModeOverride Mode
 	// LocalLoginEnabled permits recovery sign-in with a Motus password.
 	LocalLoginEnabled bool
+	// SetupRequired reports process-local first-run setup state without request-time database access.
+	SetupRequired func() bool
+	// SetupCompleted marks process-local setup complete after the bootstrap transaction commits.
+	SetupCompleted func()
 	// AllowUserRegistrationOverride overrides persisted external-user registration when non-nil.
 	AllowUserRegistrationOverride *bool
 	// SessionLifetime controls the lifespan of Motus browser sessions.

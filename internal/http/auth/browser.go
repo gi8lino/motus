@@ -7,23 +7,23 @@ import (
 	"strings"
 	"sync"
 
+	appkitauth "github.com/containeroo/appkit/auth"
 	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
-	"github.com/gi8lino/motus/pkg/domain"
 )
 
 var _ Authenticator = (*browserAuthenticator)(nil)
 
-// Mode is the HTTP authentication alias for the transport-independent authentication mode.
-type Mode = domain.AuthMode
+// Mode is the shared AppKit browser authentication mode.
+type Mode = appkitauth.Mode
 
 const (
-	ModeLocal = domain.AuthModeLocal
-	ModeProxy = domain.AuthModeProxy
-	ModeOIDC  = domain.AuthModeOIDC
-	ModeNone  = domain.AuthModeNone
+	ModeLocal = appkitauth.ModeLocal
+	ModeProxy = appkitauth.ModeProxy
+	ModeOIDC  = appkitauth.ModeOIDC
+	ModeNone  = appkitauth.ModeNone
 )
 
 // ValidateConfig verifies deployment-managed browser authentication settings.
@@ -61,6 +61,10 @@ type browserAuthenticator struct {
 	allowRegistration bool
 	// localLoginEnabled exposes local recovery login outside local mode.
 	localLoginEnabled bool
+	// setupRequired reports whether the first-run setup flow is still active.
+	setupRequired func() bool
+	// setupCompleted records the completed first-run setup transaction.
+	setupCompleted func()
 	// prepared holds the runtime validated for the next matching persisted settings update.
 	prepared *preparedAuthenticator
 }
@@ -106,7 +110,13 @@ func ConfigureBrowserAuth(
 			RoutePrefix: config.RoutePrefix,
 		},
 	)
-	browser := &browserAuthenticator{local: local, localLoginEnabled: config.LocalLoginEnabled}
+	browser := &browserAuthenticator{
+		local:             local,
+		localLoginEnabled: config.LocalLoginEnabled,
+		setupRequired:     config.SetupRequired,
+		setupCompleted:    config.SetupCompleted,
+	}
+	browser.local = browser.local.WithSetupCompleted(browser.completeSetup)
 	configured, err := browser.configure(ctx, config, repository, settings)
 	if err != nil {
 		return BrowserAuth{}, err
@@ -243,6 +253,9 @@ func (b *browserAuthenticator) current() BrowserState {
 }
 
 func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
+	if b.requiresSetup() {
+		return db.User{}, ErrUnauthenticated
+	}
 	b.mu.RLock()
 	mode, primary := b.mode, b.primary
 	b.mu.RUnlock()
@@ -259,6 +272,10 @@ func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
 }
 
 func (b *browserAuthenticator) login(w http.ResponseWriter, r *http.Request) {
+	if b.requiresSetup() {
+		response.Problem(w, http.StatusNotFound, "Interactive login is unavailable.")
+		return
+	}
 	b.mu.RLock()
 	mode, oidcAuth := b.mode, b.oidc
 	b.mu.RUnlock()
@@ -278,6 +295,18 @@ func (b *browserAuthenticator) callback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	oidcAuth.callback(w, r)
+}
+
+// requiresSetup reports process-local first-run setup state without database access.
+func (b *browserAuthenticator) requiresSetup() bool {
+	return b.setupRequired != nil && b.setupRequired()
+}
+
+// completeSetup publishes the completed setup transition to the application state.
+func (b *browserAuthenticator) completeSetup() {
+	if b.setupCompleted != nil {
+		b.setupCompleted()
+	}
 }
 
 // persistedProxyLayer adapts configured database headers to appkit's resolution model.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	appkitauth "github.com/containeroo/appkit/auth"
 	"github.com/gi8lino/motus/internal/db"
-	"github.com/gi8lino/motus/pkg/domain"
 )
 
 // SettingsRepository persists browser authentication configuration.
@@ -31,7 +31,7 @@ func (s *Configuration) Current(ctx context.Context) (Settings, error) {
 // Effective provider and header validation is performed by browser.Validate before Save.
 func (s *Configuration) Save(ctx context.Context, settings Settings) error {
 	switch settings.Mode {
-	case domain.AuthModeLocal, domain.AuthModeNone, domain.AuthModeProxy, domain.AuthModeOIDC:
+	case appkitauth.ModeLocal, appkitauth.ModeNone, appkitauth.ModeProxy, appkitauth.ModeOIDC:
 	default:
 		return fmt.Errorf("unknown authentication mode %q", settings.Mode)
 	}

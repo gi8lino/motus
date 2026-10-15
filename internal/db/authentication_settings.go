@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/gi8lino/motus/pkg/domain"
+	appkitauth "github.com/containeroo/appkit/auth"
 )
 
 // AuthenticationSettings returns the persisted browser authentication configuration.
@@ -25,7 +25,7 @@ func (s *Store) AuthenticationSettings(ctx context.Context) (AuthenticationSetti
 	if err != nil {
 		return AuthenticationSettings{}, err
 	}
-	settings.Mode = domain.AuthMode(mode)
+	settings.Mode = appkitauth.Mode(mode)
 	settings.TrustedUsernameHeaders = headerList(usernames)
 	settings.TrustedEmailHeaders = headerList(emails)
 	settings.TrustedDisplayNameHeaders = headerList(names)

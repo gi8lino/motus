@@ -17,7 +17,6 @@ type localRepository interface {
 	DeleteUserSessions(context.Context, string) error
 	GetUserWithPassword(context.Context, string) (*db.User, string, error)
 	UpdateUserPassword(context.Context, string, string) error
-	SetupRequired(context.Context) (bool, error)
 	CreateInitialAdministrator(context.Context, string, string) (*db.User, error)
 }
 

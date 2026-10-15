@@ -2,22 +2,20 @@ package endpoint
 
 import (
 	"github.com/gi8lino/motus/internal/http/response"
-	"log/slog"
 	"net/http"
 
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 )
 
 // Setup bootstraps Motus's first local administrator exactly once.
-func Setup(local *httpauth.Local, logger *slog.Logger) http.HandlerFunc {
+func Setup(setupRequired func() bool, local *httpauth.Local) http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		required, err := local.SetupRequired(r.Context())
-		if err != nil || !required {
-			response.Problem(w, http.StatusForbidden, "setup is unavailable")
+		if setupRequired == nil || !setupRequired() {
+			response.Problem(w, http.StatusNotFound, "Not found.")
 			return
 		}
 		body, err := decode[request](r)

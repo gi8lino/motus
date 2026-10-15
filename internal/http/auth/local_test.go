@@ -57,7 +57,6 @@ func (s *localRepositoryStub) UpdateUserPassword(context.Context, string, string
 	s.updated = true
 	return nil
 }
-func (*localRepositoryStub) SetupRequired(context.Context) (bool, error) { return false, nil }
 func (*localRepositoryStub) CreateInitialAdministrator(context.Context, string, string) (*db.User, error) {
 	return nil, errors.New("not implemented")
 }

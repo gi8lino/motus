@@ -3,13 +3,13 @@ package db
 import (
 	"time"
 
-	"github.com/gi8lino/motus/pkg/domain"
+	appkitauth "github.com/containeroo/appkit/auth"
 )
 
 // AuthenticationSettings is the persisted, non-secret browser authentication configuration.
 type AuthenticationSettings struct {
 	// Mode selects the browser authentication strategy.
-	Mode                      domain.AuthMode
+	Mode                      appkitauth.Mode
 	AllowRegistration         bool
 	TrustedUsernameHeaders    []string
 	TrustedEmailHeaders       []string

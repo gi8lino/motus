@@ -10,6 +10,10 @@ import (
 
 // registerPublicRoutes registers unauthenticated assets, setup, and login routes.
 func registerPublicRoutes(mux *http.ServeMux, config Config) {
+	setupRequired := func() bool { return false }
+	if config.System != nil {
+		setupRequired = config.System.SetupRequired
+	}
 	staticAssets := assets.Static(assets.StaticConfig{
 		Files:           config.Assets,
 		ImmutablePrefix: "/assets/",
@@ -32,12 +36,12 @@ func registerPublicRoutes(mux *http.ServeMux, config Config) {
 	mux.Handle("GET /auth/local", (appkitweb.SPA{Assets: config.Assets, BasePath: config.RoutePrefix}).Handler())
 	// The SPA must discover the selected login mode before it can authenticate.
 	mux.Handle("GET /api/config", endpoint.ClientConfiguration{
-		Current: config.Browser.Current,
-		Local:   config.Browser.Local,
-		Version: config.Version,
-		Commit:  config.Commit,
+		Current:       config.Browser.Current,
+		SetupRequired: setupRequired,
+		Version:       config.Version,
+		Commit:        config.Commit,
 	}.Handler())
-	mux.Handle("POST /api/setup", endpoint.Setup(config.Browser.Local, config.Logger))
+	registerSetupRoutes(mux, config)
 	mux.Handle("POST /api/login", endpoint.Login(config.Browser.Local, func() bool {
 		return config.Browser.Current().LocalLoginEnabled
 	}, config.Logger))
@@ -46,4 +50,12 @@ func registerPublicRoutes(mux *http.ServeMux, config Config) {
 		mux.Handle("GET /auth/oidc/login", config.Browser.Login)
 		mux.Handle("GET /auth/oidc/callback", config.Browser.Callback)
 	}
+}
+
+// registerSetupRoutes exposes bootstrap only when Motus started before setup completed.
+func registerSetupRoutes(mux *http.ServeMux, config Config) {
+	if config.System == nil || !config.System.SetupRequired() {
+		return
+	}
+	mux.Handle("POST /api/setup", endpoint.Setup(config.System.SetupRequired, config.Browser.Local))
 }

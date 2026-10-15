@@ -13,8 +13,8 @@ import (
 type ClientConfiguration struct {
 	// Current returns the process-resident browser authentication state.
 	Current func() httpauth.BrowserState
-	// Local resolves whether initial setup is required.
-	Local *httpauth.Local
+	// SetupRequired reports process-local first-run setup state.
+	SetupRequired func() bool
 	// Version identifies the current application build.
 	Version string
 	// Commit identifies the source commit of the current build.
@@ -39,10 +39,7 @@ func (config ClientConfiguration) Handler() http.HandlerFunc {
 		if config.Current != nil {
 			state = config.Current()
 		}
-		setupRequired := false
-		if config.Local != nil {
-			setupRequired, _ = config.Local.SetupRequired(r.Context())
-		}
+		setupRequired := config.SetupRequired != nil && config.SetupRequired()
 		response.Respond(w, http.StatusOK, configResponse{
 			AuthHeaderEnabled: state.Mode == httpauth.ModeProxy,
 			AllowRegistration: state.Mode == httpauth.ModeLocal && state.AllowRegistration,
