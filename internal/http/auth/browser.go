@@ -14,15 +14,16 @@ import (
 	"github.com/gi8lino/motus/pkg/domain"
 )
 
+var _ Authenticator = (*browserAuthenticator)(nil)
+
 // Mode is the HTTP authentication alias for the transport-independent authentication mode.
 type Mode = domain.AuthMode
 
 const (
-	ModeLocal        = domain.AuthModeLocal
-	ModeTrustedProxy = domain.AuthModeTrustedProxy
-	ModeProxy        = domain.AuthModeProxy
-	ModeOIDC         = domain.AuthModeOIDC
-	ModeNone         = domain.AuthModeNone
+	ModeLocal = domain.AuthModeLocal
+	ModeProxy = domain.AuthModeProxy
+	ModeOIDC  = domain.AuthModeOIDC
+	ModeNone  = domain.AuthModeNone
 )
 
 // ValidateConfig verifies deployment-managed browser authentication settings.
@@ -30,7 +31,7 @@ func ValidateConfig(config BrowserConfig) error {
 	switch config.ModeOverride {
 	case "", ModeLocal, ModeNone:
 		return nil
-	case ModeTrustedProxy, ModeProxy:
+	case ModeProxy:
 		return nil
 	case ModeOIDC:
 		if strings.TrimSpace(config.OIDC.ClientSecret) == "" {
@@ -85,7 +86,11 @@ type preparedAuthenticator struct {
 }
 
 // ConfigureBrowserAuth composes the complete browser authentication boundary.
-func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository browserRepository) (BrowserAuth, error) {
+func ConfigureBrowserAuth(
+	ctx context.Context,
+	config BrowserConfig,
+	repository browserRepository,
+) (BrowserAuth, error) {
 	if err := ValidateConfig(config); err != nil {
 		return BrowserAuth{}, err
 	}
@@ -93,7 +98,14 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 	if err != nil {
 		return BrowserAuth{}, err
 	}
-	local := NewLocal(repository, config.SessionLifetime, CookieOptions{PublicURL: config.PublicURL, RoutePrefix: config.RoutePrefix})
+	local := NewLocal(
+		repository,
+		config.SessionLifetime,
+		CookieOptions{
+			PublicURL:   config.PublicURL,
+			RoutePrefix: config.RoutePrefix,
+		},
+	)
 	browser := &browserAuthenticator{local: local, localLoginEnabled: config.LocalLoginEnabled}
 	configured, err := browser.configure(ctx, config, repository, settings)
 	if err != nil {
@@ -114,7 +126,12 @@ func ConfigureBrowserAuth(ctx context.Context, config BrowserConfig, repository 
 }
 
 // validate prepares the exact runtime that can be published after settings persistence succeeds.
-func (b *browserAuthenticator) validate(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) error {
+func (b *browserAuthenticator) validate(
+	ctx context.Context,
+	config BrowserConfig,
+	repository browserRepository,
+	settings db.AuthenticationSettings,
+) error {
 	configured, err := b.configure(ctx, config, repository, settings)
 	if err != nil {
 		return err
@@ -152,7 +169,12 @@ func (b *browserAuthenticator) publishLocked(configured configuredAuthenticator)
 }
 
 // configure creates one complete browser authentication runtime without publishing it.
-func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConfig, repository browserRepository, settings db.AuthenticationSettings) (configuredAuthenticator, error) {
+func (b *browserAuthenticator) configure(
+	ctx context.Context,
+	config BrowserConfig,
+	repository browserRepository,
+	settings db.AuthenticationSettings,
+) (configuredAuthenticator, error) {
 	mode := settings.Mode
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
@@ -173,7 +195,7 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 		primary = b.local
 	case ModeNone:
 		primary = NewNone(repository)
-	case ModeTrustedProxy, ModeProxy:
+	case ModeProxy:
 		proxySettings, err := appkitproxy.Resolve(appkitproxy.Options{
 			Persisted: persistedProxyLayer(settings),
 			Overrides: config.ProxyOverrides,
@@ -281,7 +303,7 @@ func configuredHeaders(headers []string) *[]string {
 // validateSettings checks the effective non-secret and deployment-managed OIDC configuration.
 func validateSettings(mode Mode, config BrowserConfig, settings db.AuthenticationSettings) error {
 	switch mode {
-	case ModeLocal, ModeNone, ModeTrustedProxy, ModeProxy:
+	case ModeLocal, ModeNone, ModeProxy:
 		// Proxy settings are resolved and validated by appkit in configure.
 		return nil
 	case ModeOIDC:
@@ -325,5 +347,3 @@ func stringSlicesEqual(left, right []string) bool {
 	}
 	return true
 }
-
-var _ Authenticator = (*browserAuthenticator)(nil)

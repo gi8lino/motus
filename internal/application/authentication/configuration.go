@@ -31,7 +31,7 @@ func (s *Configuration) Current(ctx context.Context) (Settings, error) {
 // Effective provider and header validation is performed by browser.Validate before Save.
 func (s *Configuration) Save(ctx context.Context, settings Settings) error {
 	switch settings.Mode {
-	case domain.AuthModeLocal, domain.AuthModeNone, domain.AuthModeTrustedProxy, domain.AuthModeProxy, domain.AuthModeOIDC:
+	case domain.AuthModeLocal, domain.AuthModeNone, domain.AuthModeProxy, domain.AuthModeOIDC:
 	default:
 		return fmt.Errorf("unknown authentication mode %q", settings.Mode)
 	}

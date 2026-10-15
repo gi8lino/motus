@@ -1,8 +1,9 @@
 package endpoint
 
 import (
-	"github.com/gi8lino/motus/internal/http/response"
 	"net/http"
+
+	"github.com/gi8lino/motus/internal/http/response"
 
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 )
@@ -43,7 +44,7 @@ func (config ClientConfiguration) Handler() http.HandlerFunc {
 			setupRequired, _ = config.Local.SetupRequired(r.Context())
 		}
 		response.Respond(w, http.StatusOK, configResponse{
-			AuthHeaderEnabled: state.Mode == httpauth.ModeTrustedProxy || state.Mode == httpauth.ModeProxy,
+			AuthHeaderEnabled: state.Mode == httpauth.ModeProxy,
 			AllowRegistration: state.Mode == httpauth.ModeLocal && state.AllowRegistration,
 			OIDCEnabled:       state.Mode == httpauth.ModeOIDC,
 			LocalLoginEnabled: state.LocalLoginEnabled,
