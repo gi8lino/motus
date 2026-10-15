@@ -134,3 +134,26 @@ func TestProxyWildcardFlag(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"*"}, cfg.Proxy.TrustedCIDRs)
 }
+
+// TestProxyEnvironmentOverrides verifies Envoy identity headers retain their explicit override origins.
+func TestProxyEnvironmentOverrides(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("MOTUS__AUTH_MODE", "proxy")
+	t.Setenv("MOTUS__TRUSTED_PROXY_CIDRS", "*")
+	t.Setenv("MOTUS__TRUSTED_USERNAME_HEADERS", "X-Auth-Request-Email")
+	t.Setenv("MOTUS__TRUSTED_EMAIL_HEADERS", "X-Auth-Request-Email")
+
+	cfg, err := Parse([]string{"--database-url", testDatabaseURL}, "")
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Authentication.ModeOverride)
+	assert.Equal(t, "proxy", string(*cfg.Authentication.ModeOverride))
+	assert.Equal(t, []string{"*"}, cfg.Proxy.TrustedCIDRs)
+	assert.Equal(t, []string{"X-Auth-Request-Email"}, cfg.Proxy.UsernameHeaders)
+	assert.Equal(t, []string{"X-Auth-Request-Email"}, cfg.Proxy.EmailHeaders)
+
+	values := cfg.Overrides.Values()
+	_, usernameOverridden := values["trusted-username-headers"]
+	_, emailOverridden := values["trusted-email-headers"]
+	assert.True(t, usernameOverridden)
+	assert.True(t, emailOverridden)
+}

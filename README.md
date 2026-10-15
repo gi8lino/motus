@@ -111,7 +111,7 @@ Motus can be configured using command-line flags or environment variables. Envir
 - `--public-url` (default `http://localhost:8080`): externally visible base URL used for browser callbacks.
 - `--auth-mode` (optional deployment override): one of `local`, `proxy`, `oidc`, or `none`.
 - `--trusted-proxy-cidrs`: allowed immediate proxy CIDRs, or an explicit `*` to trust every peer.
-- `--trusted-username-headers`: ordered identity headers used in proxy mode.
+- `--trusted-username-headers`, `--trusted-email-headers`: ordered identity headers used in proxy mode; deployment overrides take precedence over persisted header settings.
 - `--allow-user-registration` (optional override): control automatic registration of external identities.
 - `--session-lifetime` (default `720h`): lifetime of local and OIDC authentication sessions.
 - `--oidc-issuer`, `--oidc-client-id`, `--oidc-client-secret`, and `--oidc-session-secret`: configure browser OIDC login in `oidc` mode. The session secret must be at least 32 bytes.
@@ -138,11 +138,13 @@ Use trusted-proxy mode when an authentication proxy such as oauth2-proxy authent
   value: proxy
 - name: MOTUS__TRUSTED_USERNAME_HEADERS
   value: X-Auth-Request-Email
+- name: MOTUS__TRUSTED_EMAIL_HEADERS
+  value: X-Auth-Request-Email
 - name: MOTUS__TRUSTED_PROXY_CIDRS
   value: 10.0.0.0/8
 ```
 
-The proxy must strip client-supplied identity headers and replace them with verified values. `MOTUS__TRUSTED_PROXY_CIDRS` must match the immediate proxy peers; without it, proxy authentication is disabled.
+The proxy must strip client-supplied identity headers and replace them with verified values. `MOTUS__TRUSTED_PROXY_CIDRS` must match the immediate proxy peers; without it, proxy authentication is disabled. The deployment header overrides are applied before the effective configuration is validated, so proxy mode also starts with an empty persisted header configuration.
 
 Existing Motus users are resolved by email. To provision previously unknown proxy identities automatically, also set:
 
@@ -152,6 +154,8 @@ Existing Motus users are resolved by email. To provision previously unknown prox
 ```
 
 New proxy-provisioned users are not administrators automatically. For a new installation, either create the initial administrator in local mode first using the same email address and then switch to trusted-proxy mode, or promote the provisioned user explicitly.
+
+For an Envoy Gateway SecurityPolicy that injects `X-Auth-Request-Email`, the same username and email header settings apply. Its JWT must contain the `email` claim. If proxy Pod addresses change, `MOTUS__TRUSTED_PROXY_CIDRS="*"` is an option **only** when network policy prevents all direct access to the Motus listener.
 
 `--trusted-proxy-cidrs="*"` (or `MOTUS__TRUSTED_PROXY_CIDRS="*"`) explicitly trusts **every valid immediate peer**. Do not use this without a network boundary restricting direct access to the authentication proxy, which must strip incoming identity headers. A wildcard cannot be combined with CIDRs; leaving the list empty still denies proxy authentication.
 

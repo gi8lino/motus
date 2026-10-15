@@ -3,7 +3,6 @@ package authentication
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/pkg/domain"
@@ -28,18 +27,11 @@ func (s *Configuration) Current(ctx context.Context) (Settings, error) {
 	return s.repository.AuthenticationSettings(ctx)
 }
 
-// Save validates and persists browser authentication configuration.
+// Save validates the persisted authentication mode and saves the settings.
+// Effective provider and header validation is performed by browser.Validate before Save.
 func (s *Configuration) Save(ctx context.Context, settings Settings) error {
 	switch settings.Mode {
-	case domain.AuthModeLocal, domain.AuthModeNone:
-	case domain.AuthModeTrustedProxy, domain.AuthModeProxy:
-		if len(settings.TrustedUsernameHeaders) == 0 {
-			return fmt.Errorf("trusted-proxy authentication requires a username header")
-		}
-	case domain.AuthModeOIDC:
-		if strings.TrimSpace(settings.OIDCIssuer) == "" || strings.TrimSpace(settings.OIDCClientID) == "" {
-			return fmt.Errorf("oidc issuer and client ID are required")
-		}
+	case domain.AuthModeLocal, domain.AuthModeNone, domain.AuthModeTrustedProxy, domain.AuthModeProxy, domain.AuthModeOIDC:
 	default:
 		return fmt.Errorf("unknown authentication mode %q", settings.Mode)
 	}

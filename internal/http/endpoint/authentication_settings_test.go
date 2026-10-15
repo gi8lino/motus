@@ -56,6 +56,27 @@ func TestAuthenticationSettings(t *testing.T) {
 		assert.False(t, store.saved)
 	})
 
+	t.Run("Persists empty proxy headers when deployment overrides validate", func(t *testing.T) {
+		t.Parallel()
+		store := &authenticationSettingsStore{}
+		validated := false
+		handler := AuthenticationSettings(
+			appauth.NewConfiguration(store),
+			httpauth.BrowserAuth{Validate: func(_ context.Context, settings db.AuthenticationSettings) error {
+				validated = true
+				assert.Empty(t, settings.TrustedUsernameHeaders)
+				return nil // The deployment supplies the effective headers.
+			}},
+		)
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPut, "/authentication", strings.NewReader(`{"mode":"proxy"}`))
+		handler.ServeHTTP(recorder, request)
+		require.Equal(t, http.StatusNoContent, recorder.Code)
+		assert.True(t, validated)
+		assert.True(t, store.saved)
+		assert.Empty(t, store.settings.TrustedUsernameHeaders)
+	})
+
 	t.Run("Persists then applies a validated configuration", func(t *testing.T) {
 		t.Parallel()
 		store := &authenticationSettingsStore{}

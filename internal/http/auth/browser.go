@@ -156,6 +156,9 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
 	}
+	// Validate the effective configuration, not the unmodified database values.
+	// The original settings remain available for persisted-settings comparisons.
+	settings = effectiveProxySettings(settings, config.ProxyOverrides)
 	if err := validateSettings(mode, config, settings); err != nil {
 		return configuredAuthenticator{}, err
 	}
@@ -173,18 +176,6 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeTrustedProxy, ModeProxy:
-		if config.ProxyOverrides.Username != nil {
-			settings.TrustedUsernameHeaders = *config.ProxyOverrides.Username
-		}
-		if config.ProxyOverrides.Email != nil {
-			settings.TrustedEmailHeaders = *config.ProxyOverrides.Email
-		}
-		if config.ProxyOverrides.DisplayName != nil {
-			settings.TrustedDisplayNameHeaders = *config.ProxyOverrides.DisplayName
-		}
-		if config.ProxyOverrides.Groups != nil {
-			settings.TrustedGroupHeaders = *config.ProxyOverrides.Groups
-		}
 		var err error
 		primary, err = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup}, config.TrustedProxyCIDRs)
 		if err != nil {
@@ -263,14 +254,31 @@ func (b *browserAuthenticator) callback(w http.ResponseWriter, r *http.Request) 
 	oidcAuth.callback(w, r)
 }
 
+// effectiveProxySettings overlays explicitly configured proxy headers without changing persisted settings.
+func effectiveProxySettings(settings db.AuthenticationSettings, overrides ProxyOverrides) db.AuthenticationSettings {
+	if overrides.Username != nil {
+		settings.TrustedUsernameHeaders = append([]string(nil), (*overrides.Username)...)
+	}
+	if overrides.Email != nil {
+		settings.TrustedEmailHeaders = append([]string(nil), (*overrides.Email)...)
+	}
+	if overrides.DisplayName != nil {
+		settings.TrustedDisplayNameHeaders = append([]string(nil), (*overrides.DisplayName)...)
+	}
+	if overrides.Groups != nil {
+		settings.TrustedGroupHeaders = append([]string(nil), (*overrides.Groups)...)
+	}
+	return settings
+}
+
 // validateSettings checks the effective non-secret and deployment-managed OIDC configuration.
 func validateSettings(mode Mode, config BrowserConfig, settings db.AuthenticationSettings) error {
 	switch mode {
 	case ModeLocal, ModeNone:
 		return nil
 	case ModeTrustedProxy, ModeProxy:
-		if len(settings.TrustedUsernameHeaders) == 0 {
-			return errors.New("trusted-proxy authentication requires a username header")
+		if len(settings.TrustedUsernameHeaders) == 0 && len(settings.TrustedEmailHeaders) == 0 {
+			return errors.New("trusted-proxy authentication requires a username or email header")
 		}
 		return nil
 	case ModeOIDC:
