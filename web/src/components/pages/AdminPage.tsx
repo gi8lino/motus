@@ -210,34 +210,77 @@ function UserAccessControls({
   onSetLocalPassword: (user: User, password: string) => void | Promise<void>;
 }) {
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [editingPassword, setEditingPassword] = useState(false);
+
+  // closePasswordEditor clears sensitive values after a completed or cancelled edit.
+  const closePasswordEditor = () => {
+    setPassword("");
+    setPasswordConfirmation("");
+    setEditingPassword(false);
+  };
+
+  // saveLocalPassword validates the local credential before it is persisted.
+  const saveLocalPassword = async () => {
+    if (!password || password !== passwordConfirmation) return;
+    await onSetLocalPassword(user, password);
+    closePasswordEditor();
+  };
+
+  if (!editingPassword) {
+    return (
+      <div className="btn-group" style={{ marginTop: "0.9rem" }}>
+        <button
+          className="btn subtle"
+          type="button"
+          onClick={() => setEditingPassword(true)}
+        >
+          {user.hasLocalPassword
+            ? "Reset local password"
+            : "Set local password"}
+        </button>
+        {user.hasLocalPassword ? (
+          <button
+            className="btn subtle"
+            type="button"
+            onClick={() => onSetLocalPassword(user, "")}
+          >
+            Remove local password
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <Stack spacing={1} sx={{ mt: 1.5, maxWidth: 620 }}>
+    <Stack spacing={1} sx={{ mt: 1.5, maxWidth: 420 }}>
       <Stack direction="row" spacing={1}>
         <TextField
           size="small"
-          label="Local password"
+          label="New local password"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
+        <TextField
+          size="small"
+          label="Confirm local password"
+          type="password"
+          value={passwordConfirmation}
+          onChange={(event) => setPasswordConfirmation(event.target.value)}
+        />
+      </Stack>
+      <Stack direction="row" spacing={1}>
         <Button
           size="small"
-          onClick={() => {
-            onSetLocalPassword(user, password);
-            setPassword("");
-          }}
+          disabled={!password || password !== passwordConfirmation}
+          onClick={saveLocalPassword}
         >
           {user.hasLocalPassword ? "Replace" : "Set"}
         </Button>
-        {user.hasLocalPassword ? (
-          <Button
-            size="small"
-            color="warning"
-            onClick={() => onSetLocalPassword(user, "")}
-          >
-            Remove
-          </Button>
-        ) : null}
+        <Button size="small" color="inherit" onClick={closePasswordEditor}>
+          Cancel
+        </Button>
       </Stack>
     </Stack>
   );
