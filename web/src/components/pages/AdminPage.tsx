@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Stack, TextField } from "@mui/material";
-import type { AuthIdentity, User } from "../../types";
+import type { User } from "../../types";
 import { UserForm } from "../auth/AuthForm";
 import { UI_TEXT } from "../../utils/uiText";
 
@@ -17,11 +17,6 @@ export type AdminViewActions = {
   onToggleAdmin: (user: User) => void | Promise<void>;
   onRevokeSessions: (user: User) => void | Promise<void>;
   onSetLocalPassword: (user: User, password: string) => void | Promise<void>;
-  onLinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
-  onUnlinkIdentity: (
-    user: User,
-    identity: AuthIdentity,
-  ) => void | Promise<void>;
   onCreateUser: (email: string, password: string) => void | Promise<void>;
   onBackfill: () => void | Promise<void>;
 };
@@ -39,8 +34,6 @@ export function AdminView({
     onToggleAdmin,
     onRevokeSessions,
     onSetLocalPassword,
-    onLinkIdentity,
-    onUnlinkIdentity,
     onCreateUser,
     onBackfill,
   } = actions;
@@ -103,17 +96,7 @@ export function AdminView({
                             • {new Date(u.createdAt).toLocaleDateString()}
                           </div>
                           <div className="muted small">
-                            {u.hasLocalPassword
-                              ? "Local password"
-                              : "No local password"}
-                            {u.identities?.map((identity) => (
-                              <span
-                                key={`${identity.provider}:${identity.subject}`}
-                              >
-                                {" · "}
-                                {identity.provider}
-                              </span>
-                            ))}
+                            <UserAuthenticationSummary user={u} />
                           </div>
                         </div>
                         <div className="btn-group">
@@ -136,8 +119,6 @@ export function AdminView({
                       <UserAccessControls
                         user={u}
                         onSetLocalPassword={onSetLocalPassword}
-                        onLinkIdentity={onLinkIdentity}
-                        onUnlinkIdentity={onUnlinkIdentity}
                       />
                     </li>
                   ))}
@@ -197,26 +178,38 @@ export function AdminView({
   );
 }
 
-// UserAccessControls manages local-password and external-provider bindings for one user.
+// UserAuthenticationSummary presents the account's configured sign-in methods.
+function UserAuthenticationSummary({ user }: { user: User }) {
+  const methods = [
+    ...(user.hasLocalPassword ? ["Local password"] : []),
+    ...new Set(
+      user.identities?.map((identity) =>
+        authenticationProvider(identity.provider),
+      ) || [],
+    ),
+  ];
+
+  return methods.length > 0
+    ? `Authentication: ${methods.join(" · ")}`
+    : "No sign-in method configured";
+}
+
+// authenticationProvider translates persisted provider keys into user-facing labels.
+function authenticationProvider(provider: string): string {
+  if (provider === "trusted-proxy") return "Trusted proxy";
+  if (provider.startsWith("oidc:")) return "OpenID Connect";
+  return provider;
+}
+
+// UserAccessControls manages the local recovery credential for one user.
 function UserAccessControls({
   user,
   onSetLocalPassword,
-  onLinkIdentity,
-  onUnlinkIdentity,
 }: {
   user: User;
   onSetLocalPassword: (user: User, password: string) => void | Promise<void>;
-  onLinkIdentity: (user: User, identity: AuthIdentity) => void | Promise<void>;
-  onUnlinkIdentity: (
-    user: User,
-    identity: AuthIdentity,
-  ) => void | Promise<void>;
 }) {
   const [password, setPassword] = useState("");
-  const [provider, setProvider] = useState("");
-  const [subject, setSubject] = useState("");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   return (
     <Stack spacing={1} sx={{ mt: 1.5, maxWidth: 620 }}>
       <Stack direction="row" spacing={1}>
@@ -246,64 +239,6 @@ function UserAccessControls({
           </Button>
         ) : null}
       </Stack>
-      <Stack direction="row" spacing={1}>
-        <TextField
-          size="small"
-          label="Provider"
-          value={provider}
-          onChange={(event) => setProvider(event.target.value)}
-        />
-        <TextField
-          size="small"
-          label="Subject"
-          value={subject}
-          onChange={(event) => setSubject(event.target.value)}
-        />
-        <TextField
-          size="small"
-          label="Email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-        <TextField
-          size="small"
-          label="Name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <Button
-          size="small"
-          disabled={!provider || !subject}
-          onClick={() => {
-            onLinkIdentity(user, { provider, subject, email, name });
-            setProvider("");
-            setSubject("");
-            setEmail("");
-            setName("");
-          }}
-        >
-          Link
-        </Button>
-      </Stack>
-      {user.identities?.map((identity) => (
-        <Stack
-          key={`${identity.provider}:${identity.subject}`}
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center" }}
-        >
-          <span className="muted small">
-            {identity.provider} · {identity.subject}
-          </span>
-          <Button
-            size="small"
-            color="warning"
-            onClick={() => onUnlinkIdentity(user, identity)}
-          >
-            Unlink
-          </Button>
-        </Stack>
-      ))}
     </Stack>
   );
 }

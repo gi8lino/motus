@@ -2,13 +2,11 @@ import { useCallback } from "react";
 
 import {
   backfillExercises,
-  linkUserIdentity,
   revokeUserSessions,
   setUserLocalPassword,
-  unlinkUserIdentity,
   updateUserAdmin,
 } from "../api";
-import type { AuthIdentity, User, View } from "../types";
+import type { User, View } from "../types";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import { UI_TEXT } from "../utils/uiText";
 
@@ -97,64 +95,10 @@ export function useAdminActions({
     [notify, setUsers],
   );
 
-  // linkIdentity attaches a provider identity and updates the local user cache.
-  const linkIdentity = useCallback(
-    async (user: User, identity: AuthIdentity) => {
-      try {
-        await linkUserIdentity(user.id, identity);
-        setUsers(
-          (prev) =>
-            prev?.map((item) =>
-              item.id === user.id
-                ? {
-                    ...item,
-                    identities: [...(item.identities || []), identity],
-                  }
-                : item,
-            ) || prev,
-        );
-        await notify(`Provider identity linked to ${user.name}.`);
-      } catch (err) {
-        await notify(toErrorMessage(err, "Unable to link provider identity"));
-      }
-    },
-    [notify, setUsers],
-  );
-
-  // unlinkIdentity detaches a provider identity and updates the local user cache.
-  const unlinkIdentity = useCallback(
-    async (user: User, identity: AuthIdentity) => {
-      try {
-        await unlinkUserIdentity(user.id, identity.provider, identity.subject);
-        setUsers(
-          (prev) =>
-            prev?.map((item) =>
-              item.id === user.id
-                ? {
-                    ...item,
-                    identities: item.identities?.filter(
-                      (value) =>
-                        value.provider !== identity.provider ||
-                        value.subject !== identity.subject,
-                    ),
-                  }
-                : item,
-            ) || prev,
-        );
-        await notify(`Provider identity removed from ${user.name}.`);
-      } catch (err) {
-        await notify(toErrorMessage(err, "Unable to remove provider identity"));
-      }
-    },
-    [notify, setUsers],
-  );
-
   return {
     toggleAdmin,
     backfillCatalog,
     revokeSessions,
     setLocalPassword,
-    linkIdentity,
-    unlinkIdentity,
   };
 }

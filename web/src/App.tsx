@@ -282,8 +282,6 @@ export default function App() {
     backfillCatalog,
     revokeSessions: handleRevokeSessions,
     setLocalPassword: handleSetLocalPassword,
-    linkIdentity: handleLinkIdentity,
-    unlinkIdentity: handleUnlinkIdentity,
   } = useAdminActions({
     currentUserId,
     setUsers: (updater) => users.setData?.(updater),
@@ -534,8 +532,6 @@ export default function App() {
                 onToggleAdmin: handleToggleAdmin,
                 onRevokeSessions: handleRevokeSessions,
                 onSetLocalPassword: handleSetLocalPassword,
-                onLinkIdentity: handleLinkIdentity,
-                onUnlinkIdentity: handleUnlinkIdentity,
                 onCreateUser: async (email, password) => {
                   try {
                     await handleRegister(email, password);
