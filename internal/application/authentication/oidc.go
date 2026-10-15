@@ -3,7 +3,9 @@ package authentication
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/containeroo/appkit/auth"
 	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/jackc/pgx/v5"
@@ -37,7 +39,8 @@ func NewOIDC(repository oidcRepository, registrationOverride *bool) *OIDC {
 				return repository.GetIdentityUser(ctx, "oidc:"+identity.Issuer, identity.Subject)
 			},
 			Resolve: func(ctx context.Context, identity provisioning.Identity, registrationEnabled bool) (*db.User, error) {
-				return repository.ResolveExternalIdentity(ctx, "oidc:"+identity.Issuer, identity.Subject, identity.Email, identity.DisplayName, registrationEnabled)
+				user, err := repository.ResolveExternalIdentity(ctx, "oidc:"+identity.Issuer, identity.Subject, identity.Email, identity.DisplayName, registrationEnabled)
+				return user, classifyExternalIdentityError(err)
 			},
 		},
 	}
@@ -49,7 +52,7 @@ func (s *OIDC) Login(ctx context.Context, issuer, subject, username, email, disp
 		Issuer: issuer, Subject: subject, Username: username, Email: email, DisplayName: displayName,
 	})
 	if errors.Is(err, provisioning.ErrIncompleteIdentity) {
-		return nil, errors.New("the identity provider must supply issuer, subject, and username")
+		return nil, fmt.Errorf("%w: the identity provider must supply issuer, subject, and username", auth.ErrInvalidCredentials)
 	}
 	return user, err
 }

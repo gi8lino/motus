@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	appkitoidc "github.com/containeroo/appkit/auth/oidc"
+	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
 )
 
@@ -78,8 +79,20 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 		username = identity.Subject
 	}
 	user, err := o.loginService.Login(r.Context(), identity.Issuer, identity.Subject, username, identity.Email, identity.DisplayName)
-	if err != nil || user == nil {
-		// Do not reveal whether an account exists or can be registered.
+	if err != nil {
+		switch {
+		case errors.Is(err, db.ErrIdentityEmailInUse):
+			response.Problem(w, http.StatusForbidden, "The external identity must be linked to your existing account by an administrator.")
+		case errors.Is(err, ErrInvalidCredentials):
+			response.Problem(w, http.StatusUnauthorized, "Invalid identity.")
+		case errors.Is(err, ErrRegistrationDisabled):
+			response.Problem(w, http.StatusForbidden, "Login is not permitted.")
+		default:
+			response.InternalServerError(nil, w, err)
+		}
+		return
+	}
+	if user == nil {
 		response.Problem(w, http.StatusForbidden, "Login is not permitted.")
 		return
 	}

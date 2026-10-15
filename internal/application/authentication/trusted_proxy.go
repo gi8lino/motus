@@ -3,8 +3,10 @@ package authentication
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/containeroo/appkit/auth"
 	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/jackc/pgx/v5"
@@ -40,7 +42,7 @@ func (s *TrustedProxy) Login(ctx context.Context, username, email, displayName s
 	email = strings.TrimSpace(email)
 	displayName = strings.TrimSpace(displayName)
 	if username == "" {
-		return nil, errors.New("the trusted proxy must supply a username")
+		return nil, fmt.Errorf("%w: the trusted proxy must supply a username", auth.ErrInvalidCredentials)
 	}
 
 	allow := false
@@ -54,5 +56,6 @@ func (s *TrustedProxy) Login(ctx context.Context, username, email, displayName s
 			return nil, policyErr
 		}
 	}
-	return s.repository.ResolveExternalIdentity(ctx, "trusted-proxy", username, email, displayName, allow)
+	user, err := s.repository.ResolveExternalIdentity(ctx, "trusted-proxy", username, email, displayName, allow)
+	return user, classifyExternalIdentityError(err)
 }

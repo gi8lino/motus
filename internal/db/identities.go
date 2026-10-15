@@ -11,6 +11,15 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
+var (
+	// ErrIdentityRegistrationDisabled denies provisioning an unknown external account.
+	ErrIdentityRegistrationDisabled = errors.New("user registration is disabled")
+	// ErrIdentityEmailInUse requires an administrator to link an existing local account.
+	ErrIdentityEmailInUse = errors.New("an account already exists for this email")
+	// ErrIdentityEmailInvalid rejects external identities without a usable email.
+	ErrIdentityEmailInvalid = errors.New("identity provider did not supply a valid email")
+)
+
 // listAuthIdentities loads provider mappings keyed by their native Motus user.
 func (s *Store) listAuthIdentities(ctx context.Context) (map[string][]AuthIdentity, error) {
 	rows, err := s.pool.Query(ctx, `
@@ -97,18 +106,18 @@ func (s *Store) ResolveExternalIdentity(
 		return nil, err
 	}
 	if !allowRegistration {
-		return nil, errors.New("user registration is disabled")
+		return nil, ErrIdentityRegistrationDisabled
 	}
 
 	email, err := utils.NormalizeEmail(email)
 	if err != nil {
-		return nil, errors.New("identity provider did not supply a valid email")
+		return nil, ErrIdentityEmailInvalid
 	}
 	// Never bind a newly seen external identity to an existing local account.
 	// An administrator must link identities explicitly, so a mutable provider
 	// email claim can never take over an existing account.
 	if _, err := s.GetUser(ctx, email); err == nil {
-		return nil, errors.New("an account already exists for this email")
+		return nil, ErrIdentityEmailInUse
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
