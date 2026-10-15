@@ -6,7 +6,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 	"github.com/gi8lino/motus/internal/utils"
 )
@@ -75,33 +74,6 @@ func (s *Service) DisableLocalPassword(ctx context.Context, userID string) error
 		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
 	}
 	return s.store.DeleteUserSessions(ctx, userID)
-}
-
-// LinkIdentity connects an administrator-selected external identity to a native user.
-func (s *Service) LinkIdentity(ctx context.Context, userID string, identity db.AuthIdentity) error {
-	userID, err := requireEntityID(userID, "user id is required")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(identity.Provider) == "" || strings.TrimSpace(identity.Subject) == "" {
-		return errpkg.NewErrorWithScope(errpkg.ErrorValidation, "provider and subject are required", errorScope)
-	}
-	if err := s.store.LinkAuthIdentity(ctx, userID, identity); err != nil {
-		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
-	}
-	return nil
-}
-
-// UnlinkIdentity disconnects one external identity from a native user.
-func (s *Service) UnlinkIdentity(ctx context.Context, userID, provider, subject string) error {
-	userID, err := requireEntityID(userID, "user id is required")
-	if err != nil {
-		return err
-	}
-	if err := s.store.DeleteAuthIdentity(ctx, userID, provider, subject); err != nil {
-		return errpkg.NewErrorWithScope(errpkg.ErrorInternal, err.Error(), errorScope)
-	}
-	return nil
 }
 
 // RevokeSessions invalidates every local browser session for a user.

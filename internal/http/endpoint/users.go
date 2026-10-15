@@ -2,7 +2,6 @@ package endpoint
 
 import (
 	"errors"
-	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
 	"log/slog"
 	"net/http"
@@ -43,42 +42,6 @@ func SetUserLocalPassword(service *users.Service, logger *slog.Logger) http.Hand
 			err = service.SetLocalPassword(r.Context(), userID, req.Password)
 		}
 		if err != nil {
-			response.ServiceError(logger, w, err)
-			return
-		}
-		response.Respond(w, http.StatusNoContent, nil)
-	}
-}
-
-// LinkUserIdentity connects a provider identity to a selected native user.
-func LinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		identity, err := decode[db.AuthIdentity](r)
-		if err != nil {
-			response.Problem(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		if err := service.LinkIdentity(r.Context(), r.PathValue("id"), identity); err != nil {
-			response.ServiceError(logger, w, err)
-			return
-		}
-		response.Respond(w, http.StatusNoContent, nil)
-	}
-}
-
-// UnlinkUserIdentity removes a provider identity from a selected native user.
-func UnlinkUserIdentity(service *users.Service, logger *slog.Logger) http.HandlerFunc {
-	type request struct {
-		Provider string `json:"provider"`
-		Subject  string `json:"subject"`
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := decode[request](r)
-		if err != nil {
-			response.Problem(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		if err := service.UnlinkIdentity(r.Context(), r.PathValue("id"), req.Provider, req.Subject); err != nil {
 			response.ServiceError(logger, w, err)
 			return
 		}

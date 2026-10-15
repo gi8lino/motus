@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/gi8lino/motus/internal/db"
 	errpkg "github.com/gi8lino/motus/internal/service/errors"
 )
 
@@ -22,10 +21,6 @@ type fakeStore struct {
 }
 
 func (*fakeStore) DeleteUserSessions(context.Context, string) error { return nil }
-
-func (*fakeStore) LinkAuthIdentity(context.Context, string, db.AuthIdentity) error { return nil }
-
-func (*fakeStore) DeleteAuthIdentity(context.Context, string, string, string) error { return nil }
 
 func (f *fakeStore) ListUsers(ctx context.Context) ([]User, error) {
 	if f.listUsersFn == nil {
