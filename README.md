@@ -131,20 +131,27 @@ After setup, additional local users can register only when `--allow-user-registr
 
 ## Trusted-proxy mode
 
-Use trusted-proxy mode when an authentication proxy such as oauth2-proxy authenticates the browser and forwards a verified email header to Motus:
+Use `proxy` mode when an authentication gateway verifies a user's identity and forwards an identity header. For an Envoy Gateway SecurityPolicy that sets `X-Auth-Request-Email` from a verified JWT:
 
 ```yaml
 - name: MOTUS__AUTH_MODE
   value: proxy
+- name: MOTUS__TRUSTED_PROXY_CIDRS
+  value: "*"
+```
+
+Motus uses appkit's default identity headers when none are persisted: `X-Forwarded-User`, `X-Auth-Request-User`, and `Remote-User` for usernames; `X-Forwarded-Email`, `X-Auth-Request-Email`, and `X-Authentik-Email` for email. Nonempty persisted header lists take precedence over these defaults; explicitly set CLI/environment headers take precedence over both. Empty persisted lists use the defaults without modifying PostgreSQL.
+
+**Security:** Only use `*` when network policy restricts access to the authenticated Gateway. The Gateway must strip or overwrite **every** accepted identity header supplied by clients. To allow only Envoy's verified email header (recommended when other forwarded headers aren't guaranteed to be sanitized), explicitly configure:
+
+```yaml
 - name: MOTUS__TRUSTED_USERNAME_HEADERS
   value: X-Auth-Request-Email
 - name: MOTUS__TRUSTED_EMAIL_HEADERS
   value: X-Auth-Request-Email
-- name: MOTUS__TRUSTED_PROXY_CIDRS
-  value: 10.0.0.0/8
 ```
 
-The proxy must strip client-supplied identity headers and replace them with verified values. `MOTUS__TRUSTED_PROXY_CIDRS` must match the immediate proxy peers; without it, proxy authentication is disabled. The deployment header overrides are applied before the effective configuration is validated, so proxy mode also starts with an empty persisted header configuration.
+With specific ingress IPs, use their CIDRs instead of `*`. Leaving the CIDR list unset fails closed.
 
 Existing Motus users are resolved by email. To provision previously unknown proxy identities automatically, also set:
 
@@ -228,3 +235,5 @@ The application never trusts `X-Forwarded-For` as evidence of an authenticated p
 
 Appkit-managed sessions use purpose-separated hashes; existing Motus session cookies
 remain valid through the legacy lookup path until they expire or are revoked.
+
+

@@ -20,6 +20,8 @@ type BrowserConfig struct {
 	SessionLifetime time.Duration
 	// TrustedProxyCIDRs explicitly identifies peers permitted to assert identity headers.
 	TrustedProxyCIDRs []string
+	// ProxyDefaults provides fallback headers when persisted settings have no value.
+	ProxyDefaults TrustedProxyHeaders
 	// ProxyOverrides contains explicit CLI/environment header overrides, not defaults.
 	ProxyOverrides ProxyOverrides
 	// PublicURL configures secure session cookies.

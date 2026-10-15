@@ -145,3 +145,92 @@ func TestBrowserProxyUsesPersistedHeadersWithoutOverrides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "alice", user.ID)
 }
+
+// TestBrowserProxyDefaultsSupportEmptyDatabase ensures the first proxy-mode startup
+// works with appkit defaults and no persisted identity-header configuration.
+func TestBrowserProxyDefaultsSupportEmptyDatabase(t *testing.T) {
+	t.Parallel()
+
+	store := &proxyBrowserRepository{settings: db.AuthenticationSettings{Mode: ModeLocal}}
+	allow := true
+	config := BrowserConfig{
+		ModeOverride:                  ModeProxy,
+		AllowUserRegistrationOverride: &allow,
+		TrustedProxyCIDRs:             []string{"*"},
+		ProxyDefaults: TrustedProxyHeaders{
+			Username: []string{"X-Forwarded-User", "X-Auth-Request-User", "Remote-User"},
+			Email:    []string{"X-Forwarded-Email", "X-Auth-Request-Email"},
+		},
+	}
+
+	browser, err := ConfigureBrowserAuth(context.Background(), config, store)
+	require.NoError(t, err)
+	require.Equal(t, ModeProxy, browser.Current().Mode)
+
+	request := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	request.RemoteAddr = "192.0.2.10:443"
+	request.Header.Set("X-Auth-Request-Email", "alice@example.com")
+	user, err := browser.Authenticator.Authenticate(request)
+	require.NoError(t, err)
+	require.Equal(t, "alice@example.com", user.ID)
+	require.Empty(t, store.settings.TrustedUsernameHeaders)
+	require.Empty(t, store.settings.TrustedEmailHeaders)
+
+	// Runtime settings updates also use defaults without rewriting the database.
+	updated := db.AuthenticationSettings{Mode: ModeProxy}
+	require.NoError(t, browser.Validate(context.Background(), updated))
+	browser.ApplySettings(updated)
+	user, err = browser.Authenticator.Authenticate(request)
+	require.NoError(t, err)
+	require.Equal(t, "alice@example.com", user.ID)
+}
+
+// TestEffectiveProxyHeaderPrecedence keeps stored settings above defaults while
+// respecting CLI/environment overrides, including intentionally empty lists.
+func TestEffectiveProxyHeaderPrecedence(t *testing.T) {
+	t.Parallel()
+	defaults := TrustedProxyHeaders{
+		Username:    []string{"X-Default-User"},
+		Email:       []string{"X-Default-Email"},
+		DisplayName: []string{"X-Default-Name"},
+		Groups:      []string{"X-Default-Groups"},
+	}
+	stored := db.AuthenticationSettings{
+		TrustedUsernameHeaders: []string{"X-Saved-User"},
+		TrustedGroupHeaders:    []string{"X-Saved-Groups"},
+	}
+	resolved := effectiveProxySettings(stored, defaults, ProxyOverrides{})
+	require.Equal(t, []string{"X-Saved-User"}, resolved.TrustedUsernameHeaders)
+	require.Equal(t, []string{"X-Default-Email"}, resolved.TrustedEmailHeaders)
+	require.Equal(t, []string{"X-Default-Name"}, resolved.TrustedDisplayNameHeaders)
+	require.Equal(t, []string{"X-Saved-Groups"}, resolved.TrustedGroupHeaders)
+
+	custom := []string{"X-CLI-User"}
+	empty := []string{}
+	resolved = effectiveProxySettings(stored, defaults, ProxyOverrides{
+		Username: &custom,
+		Email:    &empty,
+	})
+	require.Equal(t, custom, resolved.TrustedUsernameHeaders)
+	require.Empty(t, resolved.TrustedEmailHeaders)
+	require.Equal(t, []string{"X-Saved-User"}, stored.TrustedUsernameHeaders)
+	require.Empty(t, stored.TrustedEmailHeaders)
+}
+
+// TestBrowserProxyExplicitEmptyOverridesDisableDefaults verifies that explicitly
+// disabling all identity headers is rejected even when defaults exist.
+func TestBrowserProxyExplicitEmptyOverridesDisableDefaults(t *testing.T) {
+	t.Parallel()
+	emptyUser := []string{}
+	emptyEmail := []string{}
+	store := &proxyBrowserRepository{settings: db.AuthenticationSettings{Mode: ModeProxy}}
+	_, err := ConfigureBrowserAuth(context.Background(), BrowserConfig{
+		TrustedProxyCIDRs: []string{"*"},
+		ProxyDefaults: TrustedProxyHeaders{
+			Username: []string{"X-Forwarded-User"},
+			Email:    []string{"X-Auth-Request-Email"},
+		},
+		ProxyOverrides: ProxyOverrides{Username: &emptyUser, Email: &emptyEmail},
+	}, store)
+	require.ErrorContains(t, err, "username or email header")
+}

@@ -46,23 +46,8 @@ func NewApplication(
 			"event", "trusted_proxy_wildcard_enabled")
 	}
 	store := infrastructure.store
-	if err := httpauth.ValidateConfig(
-		httpauth.BrowserConfig{
-			ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
-			AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
-			OIDC: httpauth.OIDCConfig{
-				Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID, ClientSecret: cfg.OIDC.ClientSecret, SessionSecret: cfg.OIDC.SessionSecret,
-				PublicURL:   cfg.Server.PublicURL,
-				RoutePrefix: cfg.Server.RoutePrefix,
-				GroupClaim:  oidcGroupClaimOverride(cfg),
-			},
-			LocalLoginEnabled: cfg.Authentication.LocalLogin,
-			SessionLifetime:   cfg.Authentication.SessionLifetime,
-			TrustedProxyCIDRs: cfg.Proxy.TrustedCIDRs,
-			ProxyOverrides:    proxyOverrides(cfg),
-			PublicURL:         cfg.Server.PublicURL,
-			RoutePrefix:       cfg.Server.RoutePrefix,
-		}); err != nil {
+	browserConfig := newBrowserConfig(cfg)
+	if err := httpauth.ValidateConfig(browserConfig); err != nil {
 		return nil, fmt.Errorf("validate browser authentication: %w", err)
 	}
 
@@ -70,25 +55,7 @@ func NewApplication(
 		return nil, fmt.Errorf("load core exercises: %w", err)
 	}
 
-	browser, err := httpauth.ConfigureBrowserAuth(ctx, httpauth.BrowserConfig{
-		ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
-		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
-		AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
-		SessionLifetime:               cfg.Authentication.SessionLifetime,
-		TrustedProxyCIDRs:             cfg.Proxy.TrustedCIDRs,
-		ProxyOverrides:                proxyOverrides(cfg),
-		PublicURL:                     cfg.Server.PublicURL,
-		RoutePrefix:                   cfg.Server.RoutePrefix,
-		OIDC: httpauth.OIDCConfig{
-			Issuer:        cfg.OIDC.Issuer,
-			ClientID:      cfg.OIDC.ClientID,
-			ClientSecret:  cfg.OIDC.ClientSecret,
-			SessionSecret: cfg.OIDC.SessionSecret,
-			PublicURL:     cfg.Server.PublicURL,
-			RoutePrefix:   cfg.Server.RoutePrefix,
-			GroupClaim:    oidcGroupClaimOverride(cfg),
-		},
-	}, store)
+	browser, err := httpauth.ConfigureBrowserAuth(ctx, browserConfig, store)
 	if err != nil {
 		return nil, fmt.Errorf("configure browser authentication: %w", err)
 	}
@@ -104,6 +71,36 @@ func NewApplication(
 		trainings:      trainings.New(store, sounds.URLByKey),
 		authentication: appauth.NewConfiguration(store),
 	}, nil
+}
+
+// newBrowserConfig combines appkit flag defaults with deployment overrides.
+// Persisted authentication settings are resolved later by ConfigureBrowserAuth.
+func newBrowserConfig(cfg flags.Config) httpauth.BrowserConfig {
+	return httpauth.BrowserConfig{
+		ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
+		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
+		AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
+		SessionLifetime:               cfg.Authentication.SessionLifetime,
+		TrustedProxyCIDRs:             cfg.Proxy.TrustedCIDRs,
+		ProxyDefaults: httpauth.TrustedProxyHeaders{
+			Username:    cfg.Proxy.UsernameHeaders,
+			Email:       cfg.Proxy.EmailHeaders,
+			DisplayName: cfg.Proxy.DisplayNameHeaders,
+			Groups:      cfg.Proxy.GroupHeaders,
+		},
+		ProxyOverrides: proxyOverrides(cfg),
+		PublicURL:      cfg.Server.PublicURL,
+		RoutePrefix:    cfg.Server.RoutePrefix,
+		OIDC: httpauth.OIDCConfig{
+			Issuer:        cfg.OIDC.Issuer,
+			ClientID:      cfg.OIDC.ClientID,
+			ClientSecret:  cfg.OIDC.ClientSecret,
+			SessionSecret: cfg.OIDC.SessionSecret,
+			PublicURL:     cfg.Server.PublicURL,
+			RoutePrefix:   cfg.Server.RoutePrefix,
+			GroupClaim:    oidcGroupClaimOverride(cfg),
+		},
+	}
 }
 
 // authenticationMode keeps an absent deployment override distinct from explicit none.

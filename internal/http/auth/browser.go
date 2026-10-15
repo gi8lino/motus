@@ -158,7 +158,7 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	}
 	// Validate the effective configuration, not the unmodified database values.
 	// The original settings remain available for persisted-settings comparisons.
-	settings = effectiveProxySettings(settings, config.ProxyOverrides)
+	settings = effectiveProxySettings(settings, config.ProxyDefaults, config.ProxyOverrides)
 	if err := validateSettings(mode, config, settings); err != nil {
 		return configuredAuthenticator{}, err
 	}
@@ -254,21 +254,26 @@ func (b *browserAuthenticator) callback(w http.ResponseWriter, r *http.Request) 
 	oidcAuth.callback(w, r)
 }
 
-// effectiveProxySettings overlays explicitly configured proxy headers without changing persisted settings.
-func effectiveProxySettings(settings db.AuthenticationSettings, overrides ProxyOverrides) db.AuthenticationSettings {
-	if overrides.Username != nil {
-		settings.TrustedUsernameHeaders = append([]string(nil), (*overrides.Username)...)
-	}
-	if overrides.Email != nil {
-		settings.TrustedEmailHeaders = append([]string(nil), (*overrides.Email)...)
-	}
-	if overrides.DisplayName != nil {
-		settings.TrustedDisplayNameHeaders = append([]string(nil), (*overrides.DisplayName)...)
-	}
-	if overrides.Groups != nil {
-		settings.TrustedGroupHeaders = append([]string(nil), (*overrides.Groups)...)
-	}
+// effectiveProxySettings resolves defaults, persisted settings, then explicit overrides.
+// The returned settings are runtime-only; none of these changes are persisted.
+func effectiveProxySettings(settings db.AuthenticationSettings, defaults TrustedProxyHeaders, overrides ProxyOverrides) db.AuthenticationSettings {
+	settings.TrustedUsernameHeaders = effectiveProxyHeaders(settings.TrustedUsernameHeaders, defaults.Username, overrides.Username)
+	settings.TrustedEmailHeaders = effectiveProxyHeaders(settings.TrustedEmailHeaders, defaults.Email, overrides.Email)
+	settings.TrustedDisplayNameHeaders = effectiveProxyHeaders(settings.TrustedDisplayNameHeaders, defaults.DisplayName, overrides.DisplayName)
+	settings.TrustedGroupHeaders = effectiveProxyHeaders(settings.TrustedGroupHeaders, defaults.Groups, overrides.Groups)
 	return settings
+}
+
+// effectiveProxyHeaders uses application defaults only when no persisted headers exist.
+// An explicit deployment override takes precedence, including an empty list.
+func effectiveProxyHeaders(persisted, defaults []string, override *[]string) []string {
+	if override != nil {
+		return append([]string(nil), (*override)...)
+	}
+	if len(persisted) != 0 {
+		return append([]string(nil), persisted...)
+	}
+	return append([]string(nil), defaults...)
 }
 
 // validateSettings checks the effective non-secret and deployment-managed OIDC configuration.
