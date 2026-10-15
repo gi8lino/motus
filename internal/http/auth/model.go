@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	"github.com/gi8lino/motus/internal/db"
 )
 
@@ -18,12 +19,8 @@ type BrowserConfig struct {
 	AllowUserRegistrationOverride *bool
 	// SessionLifetime controls the lifespan of Motus browser sessions.
 	SessionLifetime time.Duration
-	// TrustedProxyCIDRs explicitly identifies peers permitted to assert identity headers.
-	TrustedProxyCIDRs []string
-	// ProxyDefaults provides fallback headers when persisted settings have no value.
-	ProxyDefaults TrustedProxyHeaders
-	// ProxyOverrides contains explicit CLI/environment header overrides, not defaults.
-	ProxyOverrides ProxyOverrides
+	// ProxyOverrides contains only explicit deployment settings; appkit supplies defaults.
+	ProxyOverrides appkitproxy.Layer
 	// PublicURL configures secure session cookies.
 	PublicURL string
 	// RoutePrefix scopes the browser cookie to this application.
@@ -58,12 +55,4 @@ type BrowserState struct {
 	AllowRegistration bool
 	// LocalLoginEnabled reports whether local sign-in is currently available.
 	LocalLoginEnabled bool
-}
-
-// ProxyOverrides supplies only explicitly configured identity-header overrides.
-type ProxyOverrides struct {
-	Username    *[]string
-	Email       *[]string
-	DisplayName *[]string
-	Groups      *[]string
 }

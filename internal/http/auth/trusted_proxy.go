@@ -10,51 +10,28 @@ import (
 	"github.com/gi8lino/motus/internal/utils"
 )
 
-// TrustedProxyHeaders lists trusted identity headers configured by the administrator.
-type TrustedProxyHeaders struct {
-	Username    []string
-	Email       []string
-	DisplayName []string
-	Groups      []string
-	AdminGroup  string
-}
-
 // TrustedProxy delegates header parsing and ingress verification to appkit.
 type TrustedProxy struct {
 	provider appkitproxy.Authenticator[db.User]
 }
 
 // NewTrustedProxy creates a fail-closed authenticator for explicitly allowed peers.
-func NewTrustedProxy(loginService trustedProxyLoginService, headers TrustedProxyHeaders, cidrs []string) (*TrustedProxy, error) {
-	trust, err := appkitproxy.TrustCIDRs(cidrs)
+func NewTrustedProxy(loginService trustedProxyLoginService, settings appkitproxy.Config) (*TrustedProxy, error) {
+	provider, err := appkitproxy.New(settings, "trusted-proxy", func(ctx context.Context, identity appkitauth.ExternalIdentity) (db.User, error) {
+		email, err := utils.NormalizeEmail(identity.Email)
+		if err != nil {
+			return db.User{}, appkitauth.ErrInvalidCredentials
+		}
+		user, err := loginService.Login(ctx, identity.Username, email, identity.DisplayName, false, false)
+		if err != nil {
+			return db.User{}, err
+		}
+		if user == nil {
+			return db.User{}, appkitauth.ErrUnauthenticated
+		}
+		return *user, nil
+	})
 	if err != nil {
-		return nil, err
-	}
-	// A proxy can supply a username or an email-based stable identity.
-	usernames := append(append([]string{}, headers.Username...), headers.Email...)
-	provider := appkitproxy.Authenticator[db.User]{
-		Issuer:             "trusted-proxy",
-		UsernameHeaders:    usernames,
-		EmailHeaders:       headers.Email,
-		DisplayNameHeaders: headers.DisplayName,
-		GroupHeaders:       headers.Groups,
-		Trust:              trust,
-		Resolve: func(ctx context.Context, identity appkitauth.ExternalIdentity) (db.User, error) {
-			email, err := utils.NormalizeEmail(identity.Email)
-			if err != nil {
-				return db.User{}, appkitauth.ErrInvalidCredentials
-			}
-			user, err := loginService.Login(ctx, identity.Username, email, identity.DisplayName, false, false)
-			if err != nil {
-				return db.User{}, err
-			}
-			if user == nil {
-				return db.User{}, appkitauth.ErrUnauthenticated
-			}
-			return *user, nil
-		},
-	}
-	if err := provider.Validate(); err != nil {
 		return nil, err
 	}
 	return &TrustedProxy{provider: provider}, nil

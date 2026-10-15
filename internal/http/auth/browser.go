@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/gi8lino/motus/internal/http/response"
@@ -156,9 +157,6 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	if config.ModeOverride != "" {
 		mode = config.ModeOverride
 	}
-	// Validate the effective configuration, not the unmodified database values.
-	// The original settings remain available for persisted-settings comparisons.
-	settings = effectiveProxySettings(settings, config.ProxyDefaults, config.ProxyOverrides)
 	if err := validateSettings(mode, config, settings); err != nil {
 		return configuredAuthenticator{}, err
 	}
@@ -176,8 +174,14 @@ func (b *browserAuthenticator) configure(ctx context.Context, config BrowserConf
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeTrustedProxy, ModeProxy:
-		var err error
-		primary, err = NewTrustedProxy(trustedProxyLogin, TrustedProxyHeaders{Username: settings.TrustedUsernameHeaders, Email: settings.TrustedEmailHeaders, DisplayName: settings.TrustedDisplayNameHeaders, Groups: settings.TrustedGroupHeaders, AdminGroup: settings.TrustedAdminGroup}, config.TrustedProxyCIDRs)
+		proxySettings, err := appkitproxy.Resolve(appkitproxy.Options{
+			Persisted: persistedProxyLayer(settings),
+			Overrides: config.ProxyOverrides,
+		})
+		if err != nil {
+			return configuredAuthenticator{}, err
+		}
+		primary, err = NewTrustedProxy(trustedProxyLogin, proxySettings)
 		if err != nil {
 			return configuredAuthenticator{}, err
 		}
@@ -254,37 +258,31 @@ func (b *browserAuthenticator) callback(w http.ResponseWriter, r *http.Request) 
 	oidcAuth.callback(w, r)
 }
 
-// effectiveProxySettings resolves defaults, persisted settings, then explicit overrides.
-// The returned settings are runtime-only; none of these changes are persisted.
-func effectiveProxySettings(settings db.AuthenticationSettings, defaults TrustedProxyHeaders, overrides ProxyOverrides) db.AuthenticationSettings {
-	settings.TrustedUsernameHeaders = effectiveProxyHeaders(settings.TrustedUsernameHeaders, defaults.Username, overrides.Username)
-	settings.TrustedEmailHeaders = effectiveProxyHeaders(settings.TrustedEmailHeaders, defaults.Email, overrides.Email)
-	settings.TrustedDisplayNameHeaders = effectiveProxyHeaders(settings.TrustedDisplayNameHeaders, defaults.DisplayName, overrides.DisplayName)
-	settings.TrustedGroupHeaders = effectiveProxyHeaders(settings.TrustedGroupHeaders, defaults.Groups, overrides.Groups)
-	return settings
+// persistedProxyLayer adapts configured database headers to appkit's resolution model.
+// Empty legacy database lists mean "not configured" and inherit appkit defaults.
+func persistedProxyLayer(settings db.AuthenticationSettings) appkitproxy.Layer {
+	return appkitproxy.Layer{
+		UsernameHeaders:    configuredHeaders(settings.TrustedUsernameHeaders),
+		EmailHeaders:       configuredHeaders(settings.TrustedEmailHeaders),
+		DisplayNameHeaders: configuredHeaders(settings.TrustedDisplayNameHeaders),
+		GroupHeaders:       configuredHeaders(settings.TrustedGroupHeaders),
+	}
 }
 
-// effectiveProxyHeaders uses application defaults only when no persisted headers exist.
-// An explicit deployment override takes precedence, including an empty list.
-func effectiveProxyHeaders(persisted, defaults []string, override *[]string) []string {
-	if override != nil {
-		return append([]string(nil), (*override)...)
+// configuredHeaders returns nil for legacy unset lists and a distinct list otherwise.
+func configuredHeaders(headers []string) *[]string {
+	if len(headers) == 0 {
+		return nil
 	}
-	if len(persisted) != 0 {
-		return append([]string(nil), persisted...)
-	}
-	return append([]string(nil), defaults...)
+	cloned := append([]string{}, headers...)
+	return &cloned
 }
 
 // validateSettings checks the effective non-secret and deployment-managed OIDC configuration.
 func validateSettings(mode Mode, config BrowserConfig, settings db.AuthenticationSettings) error {
 	switch mode {
-	case ModeLocal, ModeNone:
-		return nil
-	case ModeTrustedProxy, ModeProxy:
-		if len(settings.TrustedUsernameHeaders) == 0 && len(settings.TrustedEmailHeaders) == 0 {
-			return errors.New("trusted-proxy authentication requires a username or email header")
-		}
+	case ModeLocal, ModeNone, ModeTrustedProxy, ModeProxy:
+		// Proxy settings are resolved and validated by appkit in configure.
 		return nil
 	case ModeOIDC:
 		if (strings.TrimSpace(settings.OIDCIssuer) == "" && strings.TrimSpace(config.OIDC.Issuer) == "") ||

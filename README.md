@@ -111,7 +111,7 @@ Motus can be configured using command-line flags or environment variables. Envir
 - `--public-url` (default `http://localhost:8080`): externally visible base URL used for browser callbacks.
 - `--auth-mode` (optional deployment override): one of `local`, `proxy`, `oidc`, or `none`.
 - `--trusted-proxy-cidrs`: allowed immediate proxy CIDRs, or an explicit `*` to trust every peer.
-- `--trusted-username-headers`, `--trusted-email-headers`: ordered identity headers used in proxy mode; deployment overrides take precedence over persisted header settings.
+- `--trusted-username-headers`, `--trusted-email-headers`: optional ordered identity headers used in proxy mode. Appkit supplies defaults unless replaced by persisted settings or explicit deployment overrides.
 - `--allow-user-registration` (optional override): control automatic registration of external identities.
 - `--session-lifetime` (default `720h`): lifetime of local and OIDC authentication sessions.
 - `--oidc-issuer`, `--oidc-client-id`, `--oidc-client-secret`, and `--oidc-session-secret`: configure browser OIDC login in `oidc` mode. The session secret must be at least 32 bytes.
@@ -140,7 +140,7 @@ Use `proxy` mode when an authentication gateway verifies a user's identity and f
   value: "*"
 ```
 
-Motus uses appkit's default identity headers when none are persisted: `X-Forwarded-User`, `X-Auth-Request-User`, and `Remote-User` for usernames; `X-Forwarded-Email`, `X-Auth-Request-Email`, and `X-Authentik-Email` for email. Nonempty persisted header lists take precedence over these defaults; explicitly set CLI/environment headers take precedence over both. Empty persisted lists use the defaults without modifying PostgreSQL.
+Motus delegates header defaults, precedence and proxy trust validation to `appkit/auth/proxy.Resolve`. Appkit supplies its default identity headers when none are persisted: `X-Forwarded-User`, `X-Auth-Request-User`, and `Remote-User` for usernames; `X-Forwarded-Email`, `X-Auth-Request-Email`, and `X-Authentik-Email` for email. Nonempty persisted header lists take precedence over these defaults; explicitly set CLI/environment headers take precedence over both. Empty persisted lists use the defaults without modifying PostgreSQL.
 
 **Security:** Only use `*` when network policy restricts access to the authenticated Gateway. The Gateway must strip or overwrite **every** accepted identity header supplied by clients. To allow only Envoy's verified email header (recommended when other forwarded headers aren't guaranteed to be sanitized), explicitly configure:
 

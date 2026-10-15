@@ -73,24 +73,17 @@ func NewApplication(
 	}, nil
 }
 
-// newBrowserConfig combines appkit flag defaults with deployment overrides.
-// Persisted authentication settings are resolved later by ConfigureBrowserAuth.
+// newBrowserConfig passes explicit deployment overrides to the browser-auth runtime.
+// Appkit resolves proxy header defaults against persisted settings at runtime.
 func newBrowserConfig(cfg flags.Config) httpauth.BrowserConfig {
 	return httpauth.BrowserConfig{
 		ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
 		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
 		AllowUserRegistrationOverride: cfg.Authentication.AllowRegistrationOverride,
 		SessionLifetime:               cfg.Authentication.SessionLifetime,
-		TrustedProxyCIDRs:             cfg.Proxy.TrustedCIDRs,
-		ProxyDefaults: httpauth.TrustedProxyHeaders{
-			Username:    cfg.Proxy.UsernameHeaders,
-			Email:       cfg.Proxy.EmailHeaders,
-			DisplayName: cfg.Proxy.DisplayNameHeaders,
-			Groups:      cfg.Proxy.GroupHeaders,
-		},
-		ProxyOverrides: proxyOverrides(cfg),
-		PublicURL:      cfg.Server.PublicURL,
-		RoutePrefix:    cfg.Server.RoutePrefix,
+		ProxyOverrides:                cfg.Proxy.DeploymentOverrides(cfg.Overrides),
+		PublicURL:                     cfg.Server.PublicURL,
+		RoutePrefix:                   cfg.Server.RoutePrefix,
 		OIDC: httpauth.OIDCConfig{
 			Issuer:        cfg.OIDC.Issuer,
 			ClientID:      cfg.OIDC.ClientID,
@@ -109,29 +102,6 @@ func authenticationMode(override *appkitauth.Mode) httpauth.Mode {
 		return ""
 	}
 	return httpauth.Mode(*override)
-}
-
-// proxyOverrides distinguishes explicitly selected deployment headers from defaults.
-func proxyOverrides(cfg flags.Config) httpauth.ProxyOverrides {
-	values := cfg.Overrides.Values()
-	var result httpauth.ProxyOverrides
-	if _, ok := values["trusted-username-headers"]; ok {
-		headers := append([]string(nil), cfg.Proxy.UsernameHeaders...)
-		result.Username = &headers
-	}
-	if _, ok := values["trusted-email-headers"]; ok {
-		headers := append([]string(nil), cfg.Proxy.EmailHeaders...)
-		result.Email = &headers
-	}
-	if _, ok := values["trusted-display-name-headers"]; ok {
-		headers := append([]string(nil), cfg.Proxy.DisplayNameHeaders...)
-		result.DisplayName = &headers
-	}
-	if _, ok := values["trusted-group-headers"]; ok {
-		headers := append([]string(nil), cfg.Proxy.GroupHeaders...)
-		result.Groups = &headers
-	}
-	return result
 }
 
 // oidcGroupClaimOverride leaves the database group-claim setting authoritative unless overridden.

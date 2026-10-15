@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	appkitauth "github.com/containeroo/appkit/auth"
+	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/stretchr/testify/require"
 )
@@ -18,10 +19,11 @@ func (testProxyLogin) Login(_ context.Context, user, email, _ string, _, _ bool)
 }
 
 func TestProxyRejectsUntrustedPeers(t *testing.T) {
-	provider, err := NewTrustedProxy(testProxyLogin{}, TrustedProxyHeaders{
-		Username: []string{"X-Forwarded-User"},
-		Email:    []string{"X-Forwarded-Email"},
-	}, []string{"127.0.0.1/32"})
+	provider, err := NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{
+		UsernameHeaders: []string{"X-Forwarded-User"},
+		EmailHeaders:    []string{"X-Forwarded-Email"},
+		TrustedCIDRs:    []string{"127.0.0.1/32"},
+	})
 	require.NoError(t, err)
 	request := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	request.Header.Set("X-Forwarded-User", "alice")
@@ -36,18 +38,21 @@ func TestProxyRejectsUntrustedPeers(t *testing.T) {
 }
 
 func TestProxyRequiresExplicitTrustedCIDR(t *testing.T) {
-	_, err := NewTrustedProxy(testProxyLogin{}, TrustedProxyHeaders{Username: []string{"X-Forwarded-User"}}, nil)
+	_, err := NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{UsernameHeaders: []string{"X-Forwarded-User"}})
 	require.ErrorContains(t, err, "trusted-proxy-cidrs")
-	_, err = NewTrustedProxy(testProxyLogin{}, TrustedProxyHeaders{Username: []string{"X-Forwarded-User"}}, []string{"not-a-network"})
+	_, err = NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{
+		UsernameHeaders: []string{"X-Forwarded-User"}, TrustedCIDRs: []string{"not-a-network"},
+	})
 	require.ErrorContains(t, err, "invalid trusted proxy CIDR")
 }
 
-// TestProxyWildcardTrust verifies that wildcard trust is explicit and still needs a real peer address.
+// TestProxyWildcardTrust verifies that wildcard trust still requires a valid immediate peer.
 func TestProxyWildcardTrust(t *testing.T) {
-	provider, err := NewTrustedProxy(testProxyLogin{}, TrustedProxyHeaders{
-		Username: []string{"X-Forwarded-User"},
-		Email:    []string{"X-Forwarded-Email"},
-	}, []string{"*"})
+	provider, err := NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{
+		UsernameHeaders: []string{"X-Forwarded-User"},
+		EmailHeaders:    []string{"X-Forwarded-Email"},
+		TrustedCIDRs:    []string{"*"},
+	})
 	require.NoError(t, err)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/me", nil)
@@ -68,7 +73,24 @@ func TestProxyWildcardTrust(t *testing.T) {
 
 // TestProxyRejectsMixedWildcard ensures configuration mistakes cannot broaden trusted peers.
 func TestProxyRejectsMixedWildcard(t *testing.T) {
-	_, err := NewTrustedProxy(testProxyLogin{}, TrustedProxyHeaders{Username: []string{"X-Forwarded-User"}},
-		[]string{"*", "127.0.0.1/32"})
+	_, err := NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{
+		UsernameHeaders: []string{"X-Forwarded-User"},
+		TrustedCIDRs:    []string{"*", "127.0.0.1/32"},
+	})
 	require.ErrorContains(t, err, "alone")
+}
+
+// TestProxyEmailOnlyIdentity verifies that Motus delegates email-only identities to appkit.
+func TestProxyEmailOnlyIdentity(t *testing.T) {
+	provider, err := NewTrustedProxy(testProxyLogin{}, appkitproxy.Config{
+		TrustedCIDRs: []string{"*"}, EmailHeaders: []string{"X-Auth-Request-Email"},
+	})
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	request.RemoteAddr = "192.0.2.10:443"
+	request.Header.Set("X-Auth-Request-Email", "alice@example.com")
+	request.Header.Set("X-Forwarded-User", "forged")
+	user, err := provider.Authenticate(request)
+	require.NoError(t, err)
+	require.Equal(t, "alice@example.com", user.ID)
 }
