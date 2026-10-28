@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.28
 
 # Build the frontend assets.
-FROM node:24-alpine AS frontend
+FROM node:26-alpine AS frontend
 
 WORKDIR /web
 
