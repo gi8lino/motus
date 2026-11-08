@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/containeroo/appkit v0.7.0
 	github.com/containeroo/httpkit v0.1.1
-	github.com/containeroo/tinyflags v0.8.0
+	github.com/containeroo/tinyflags v0.9.0
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/crypto v0.58.0
