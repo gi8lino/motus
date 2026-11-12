@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.28
+# syntax=docker/dockerfile:1.29
 
 # Build the frontend assets.
 FROM node:26-alpine AS frontend
