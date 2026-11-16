@@ -11,6 +11,7 @@ import (
 // newApplication constructs public application routes and their middleware.
 func newApplication(config Config) http.Handler {
 	applicationMux := http.NewServeMux()
+
 	registerPublicRoutes(applicationMux, config)
 	registerAPIRoutes(applicationMux, config)
 	registerFallbackRoutes(applicationMux, config)

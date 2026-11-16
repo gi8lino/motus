@@ -24,6 +24,8 @@ type OIDCConfig struct {
 
 // OIDC maps verified external identities into local Motus browser sessions.
 type OIDC struct {
+	// issuer binds sessions to the configured provider.
+	issuer       string
 	flow         *appkitoidc.Flow
 	loginService oidcLoginService
 	local        *Local
@@ -53,7 +55,12 @@ func NewOIDC(ctx context.Context, cfg OIDCConfig, loginService oidcLoginService,
 	if err != nil {
 		return nil, err
 	}
-	return &OIDC{flow: flow, loginService: loginService, local: local}, nil
+	return &OIDC{
+		issuer:       cfg.Issuer,
+		flow:         flow,
+		loginService: loginService,
+		local:        local,
+	}, nil
 }
 
 // login delegates secure browser state and provider redirect handling to appkit.
@@ -96,7 +103,7 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 		response.Problem(w, http.StatusForbidden, "Login is not permitted.")
 		return
 	}
-	token, err := o.local.StartSession(r.Context(), *user)
+	token, err := o.local.sessions.StartScoped(r.Context(), *user, "oidc:"+identity.Issuer)
 	if err != nil {
 		response.InternalServerError(nil, w, err)
 		return

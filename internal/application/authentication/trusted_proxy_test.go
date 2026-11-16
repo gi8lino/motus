@@ -49,7 +49,7 @@ func TestProxyRegistrationOverrideAndExistingAccountConflict(t *testing.T) {
 		resolveErr: db.ErrIdentityEmailInUse,
 	}
 	allow := true
-	_, err := NewTrustedProxy(repo, &allow).Login(context.Background(), "alice@example.com", "alice@example.com", "Alice", false, false)
+	_, err := NewTrustedProxy(repo, allow).Login(context.Background(), "alice@example.com", "alice@example.com", "Alice", false, false)
 	require.ErrorIs(t, err, appkitauth.ErrForbidden)
 	require.ErrorIs(t, err, db.ErrIdentityEmailInUse)
 	require.NotNil(t, repo.allowSeen)
@@ -60,7 +60,7 @@ func TestProxyRegistrationOverrideAndExistingAccountConflict(t *testing.T) {
 func TestProxyRegistrationDisabledIsNotInfrastructureFailure(t *testing.T) {
 	t.Parallel()
 	repo := &proxyLoginRepository{resolveErr: db.ErrIdentityRegistrationDisabled}
-	_, err := NewTrustedProxy(repo, nil).Login(context.Background(), "alice@example.com", "alice@example.com", "", false, false)
+	_, err := NewTrustedProxy(repo, false).Login(context.Background(), "alice@example.com", "alice@example.com", "", false, false)
 	require.ErrorIs(t, err, appkitauth.ErrForbidden)
 	require.ErrorIs(t, err, db.ErrIdentityRegistrationDisabled)
 	require.NotNil(t, repo.allowSeen)
@@ -73,7 +73,7 @@ func TestProxyDatabaseErrorIsPreserved(t *testing.T) {
 	underlying := errors.New("database unavailable")
 	repo := &proxyLoginRepository{resolveErr: underlying}
 	allow := true
-	_, err := NewTrustedProxy(repo, &allow).Login(context.Background(), "alice@example.com", "alice@example.com", "", false, false)
+	_, err := NewTrustedProxy(repo, allow).Login(context.Background(), "alice@example.com", "alice@example.com", "", false, false)
 	require.ErrorIs(t, err, underlying)
 	require.NotErrorIs(t, err, appkitauth.ErrForbidden)
 }

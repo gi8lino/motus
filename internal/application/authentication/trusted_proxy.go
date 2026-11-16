@@ -4,58 +4,43 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/containeroo/appkit/auth"
 	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
-	"github.com/jackc/pgx/v5"
 )
 
-// trustedProxyRepository contains persistence required for trusted-proxy login resolution.
-type trustedProxyRepository interface {
-	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
-	GetIdentityUser(context.Context, string, string) (*db.User, error)
-	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
-}
-
-// TrustedProxy owns trusted-proxy identity normalization and registration policy.
+// TrustedProxy resolves verified external identities under the effective registration policy.
 type TrustedProxy struct {
-	repository   trustedProxyRepository
-	registration provisioning.RegistrationPolicy
+	// accounts applies the shared access policy using the Motus directory.
+	accounts provisioning.Accounts[*db.User]
+	// policy contains the effective deployment and application settings.
+	policy provisioning.AccessPolicy
 }
 
-// NewTrustedProxy constructs the trusted-proxy login application service.
-func NewTrustedProxy(repository trustedProxyRepository, registrationOverride *bool) *TrustedProxy {
-	return &TrustedProxy{repository: repository, registration: provisioning.RegistrationPolicy{
-		Override: registrationOverride,
-		Load: func(ctx context.Context) (bool, error) {
-			settings, err := repository.AuthenticationSettings(ctx)
-			return settings.AllowRegistration, err
-		},
-	}}
+// NewTrustedProxy binds the resolved registration setting to the local identity store.
+func NewTrustedProxy(repo externalAccountStore, allowRegistration bool) *TrustedProxy {
+	return &TrustedProxy{
+		accounts: newExternalAccounts(repo),
+		policy:   provisioning.AccessPolicy{AllowRegistration: allowRegistration},
+	}
 }
 
 // Login resolves a trusted-proxy identity and provisions unknown identities only when allowed.
 func (s *TrustedProxy) Login(ctx context.Context, username, email, displayName string, _ bool, _ bool) (*db.User, error) {
-	username = strings.TrimSpace(username)
-	email = strings.TrimSpace(email)
-	displayName = strings.TrimSpace(displayName)
-	if username == "" {
+	user, err := s.accounts.Login(
+		ctx,
+		s.policy,
+		provisioning.Identity{
+			Issuer:      "trusted-proxy",
+			Subject:     username,
+			Username:    username,
+			Email:       email,
+			DisplayName: displayName,
+		},
+	)
+	if errors.Is(err, provisioning.ErrIncompleteIdentity) {
 		return nil, fmt.Errorf("%w: the trusted proxy must supply a username", auth.ErrInvalidCredentials)
 	}
-
-	allow := false
-	if _, err := s.repository.GetIdentityUser(ctx, "trusted-proxy", username); err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
-		}
-		var policyErr error
-		allow, policyErr = s.registration.Enabled(ctx)
-		if policyErr != nil {
-			return nil, policyErr
-		}
-	}
-	user, err := s.repository.ResolveExternalIdentity(ctx, "trusted-proxy", username, email, displayName, allow)
-	return user, classifyExternalIdentityError(err)
+	return user, err
 }

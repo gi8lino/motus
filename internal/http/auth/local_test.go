@@ -91,20 +91,39 @@ func TestLocalChangePasswordRevokesSessions(t *testing.T) {
 	require.True(t, repository.revoked)
 }
 
-func TestLocalAcceptsLegacyCookie(t *testing.T) {
+func TestLocalRejectsSessionWithoutSignInOrigin(t *testing.T) {
 	repository := &localRepositoryStub{user: &db.User{ID: "legacy@example.com"}, legacyToken: "older-valid-session"}
 	local := NewLocal(repository, time.Hour)
 	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	req.AddCookie(&http.Cookie{Name: localSessionCookie, Value: repository.legacyToken})
-	user, err := local.Authenticate(req)
-	require.NoError(t, err)
-	require.Equal(t, repository.user.ID, user.ID)
+	_, _, err := local.sessionOrigin(req)
+	require.ErrorIs(t, err, ErrUnauthenticated)
 }
 
 func TestLocalRejectsMissingSession(t *testing.T) {
 	repository := &localRepositoryStub{user: &db.User{ID: "user@example.com"}}
 	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	req.AddCookie(&http.Cookie{Name: localSessionCookie, Value: "not-a-valid-token"})
-	_, err := NewLocal(repository, time.Hour).Authenticate(req)
+	_, _, err := NewLocal(repository, time.Hour).sessionOrigin(req)
+	require.ErrorIs(t, err, ErrUnauthenticated)
+}
+
+// TestBrowserSessionIssuerChange exercises the persisted token through Motus's request authenticator.
+func TestBrowserSessionIssuerChange(t *testing.T) {
+	t.Parallel()
+	account := db.User{ID: "alice"}
+	local := NewLocal(&localRepositoryStub{user: &account}, time.Hour)
+	token, err := local.sessions.StartScoped(t.Context(), account, "oidc:https://original.example")
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	request.AddCookie(&http.Cookie{Name: localSessionCookie, Value: token})
+
+	b := browserAuthenticator{mode: ModeOIDC, local: local, oidc: &OIDC{issuer: "https://original.example"}}
+	user, err := b.Authenticate(request)
+	require.NoError(t, err)
+	require.Equal(t, account.ID, user.ID)
+
+	b.publish(configuredAuthenticator{mode: ModeOIDC, oidc: &OIDC{issuer: "https://replacement.example"}})
+	_, err = b.Authenticate(request)
 	require.ErrorIs(t, err, ErrUnauthenticated)
 }

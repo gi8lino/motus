@@ -4,52 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/containeroo/appkit/auth"
 	"github.com/containeroo/appkit/auth/provisioning"
 	"github.com/gi8lino/motus/internal/db"
-	"github.com/jackc/pgx/v5"
 )
 
-// oidcRepository contains persistence required for OIDC login resolution.
-type oidcRepository interface {
-	AuthenticationSettings(context.Context) (db.AuthenticationSettings, error)
-	GetIdentityUser(context.Context, string, string) (*db.User, error)
-	ResolveExternalIdentity(context.Context, string, string, string, string, bool) (*db.User, error)
-}
-
-// OIDC coordinates verified OIDC identity login policy with persistence.
+// OIDC resolves verified external identities under the effective registration policy.
 type OIDC struct {
-	resolver provisioning.Resolver[*db.User]
+	// accounts applies the shared access policy using the Motus directory.
+	accounts provisioning.Accounts[*db.User]
+	// policy contains the effective deployment and application settings.
+	policy provisioning.AccessPolicy
 }
 
-// NewOIDC constructs the OIDC login application service.
-func NewOIDC(repository oidcRepository, registrationOverride *bool) *OIDC {
+// NewOIDC binds the resolved registration setting to the local identity store.
+func NewOIDC(repo externalAccountStore, allowRegistration bool) *OIDC {
 	return &OIDC{
-		resolver: provisioning.Resolver[*db.User]{
-			Registration: provisioning.RegistrationPolicy{
-				Override: registrationOverride,
-				Load: func(ctx context.Context) (bool, error) {
-					settings, err := repository.AuthenticationSettings(ctx)
-					return settings.AllowRegistration, err
-				},
-			},
-			IsMissing: func(err error) bool { return errors.Is(err, pgx.ErrNoRows) },
-			Lookup: func(ctx context.Context, identity provisioning.Identity) (*db.User, error) {
-				return repository.GetIdentityUser(ctx, "oidc:"+identity.Issuer, identity.Subject)
-			},
-			Resolve: func(ctx context.Context, identity provisioning.Identity, registrationEnabled bool) (*db.User, error) {
-				user, err := repository.ResolveExternalIdentity(ctx, "oidc:"+identity.Issuer, identity.Subject, identity.Email, identity.DisplayName, registrationEnabled)
-				return user, classifyExternalIdentityError(err)
-			},
-		},
+		accounts: newExternalAccounts(repo),
+		policy:   provisioning.AccessPolicy{AllowRegistration: allowRegistration},
 	}
 }
 
 // Login normalizes a verified OIDC identity and resolves registration policy before persistence.
 func (s *OIDC) Login(ctx context.Context, issuer, subject, username, email, displayName string) (*db.User, error) {
-	user, err := s.resolver.Login(ctx, provisioning.Identity{
-		Issuer: issuer, Subject: subject, Username: username, Email: email, DisplayName: displayName,
+	if strings.TrimSpace(issuer) == "" || strings.TrimSpace(username) == "" {
+		return nil, auth.ErrInvalidCredentials
+	}
+	user, err := s.accounts.Login(ctx, s.policy, provisioning.Identity{
+		Issuer: "oidc:" + strings.TrimSpace(issuer), Subject: subject, Username: username, Email: email, DisplayName: displayName,
 	})
 	if errors.Is(err, provisioning.ErrIncompleteIdentity) {
 		return nil, fmt.Errorf("%w: the identity provider must supply issuer, subject, and username", auth.ErrInvalidCredentials)

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	appkitauth "github.com/containeroo/appkit/auth"
+	"github.com/containeroo/appkit/auth/browser"
 	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	"github.com/gi8lino/motus/internal/db"
@@ -196,13 +197,13 @@ func (b *browserAuthenticator) configure(
 	if config.AllowUserRegistrationOverride != nil {
 		allowRegistration = *config.AllowUserRegistrationOverride
 	}
-	oidcLogin := appauth.NewOIDC(repository, config.AllowUserRegistrationOverride)
-	trustedProxyLogin := appauth.NewTrustedProxy(repository, config.AllowUserRegistrationOverride)
+	oidcLogin := appauth.NewOIDC(repository, allowRegistration)
+	trustedProxyLogin := appauth.NewTrustedProxy(repository, allowRegistration)
 	var primary Authenticator
 	var oidcAuth *OIDC
 	switch mode {
 	case ModeLocal:
-		primary = b.local
+	// Local requests use the session resolver.
 	case ModeNone:
 		primary = NewNone(repository)
 	case ModeProxy:
@@ -234,11 +235,15 @@ func (b *browserAuthenticator) configure(
 		if err != nil {
 			return configuredAuthenticator{}, err
 		}
-		primary = b.local
 	default:
 		return configuredAuthenticator{}, errors.New("unknown authentication mode")
 	}
-	return configuredAuthenticator{primary: primary, oidc: oidcAuth, mode: mode, allowRegistration: allowRegistration}, nil
+	return configuredAuthenticator{
+		primary:           primary,
+		oidc:              oidcAuth,
+		mode:              mode,
+		allowRegistration: allowRegistration,
+	}, nil
 }
 
 // current returns a consistent snapshot of browser-facing authentication state.
@@ -257,18 +262,20 @@ func (b *browserAuthenticator) Authenticate(r *http.Request) (db.User, error) {
 		return db.User{}, ErrUnauthenticated
 	}
 	b.mu.RLock()
-	mode, primary := b.mode, b.primary
-	b.mu.RUnlock()
-	if mode == ModeLocal || b.localLoginEnabled {
-		user, err := b.local.Authenticate(r)
-		if err == nil {
-			return user, nil
-		}
-		if !errors.Is(err, ErrUnauthenticated) {
-			return db.User{}, err
-		}
+	policy := browser.Policy{
+		Mode:     b.mode,
+		Recovery: b.localLoginEnabled,
 	}
-	return primary.Authenticate(r)
+	if b.oidc != nil {
+		policy.Issuer = b.oidc.issuer
+	}
+	provider := browser.Authenticator[db.User]{
+		Policy:  policy,
+		Session: b.local.sessionOrigin,
+		Primary: b.primary,
+	}
+	b.mu.RUnlock()
+	return provider.Authenticate(r)
 }
 
 func (b *browserAuthenticator) login(w http.ResponseWriter, r *http.Request) {

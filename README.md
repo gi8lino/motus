@@ -127,6 +127,8 @@ The management listener is deliberately separate from the public application lis
 
 Local authentication is the default. On an empty database, open Motus and use the first-run setup screen to create the initial administrator. The setup endpoint can create the first user exactly once; there are no startup admin flags.
 
+Browser sessions are bound to local sign-in or to a specific OIDC issuer. When upgrading from an older version that issued unscoped sessions, users must sign in once again.
+
 After setup, additional local users can register only when `--allow-user-registration` is enabled. Administrators can manage users from the application.
 
 ## Trusted-proxy mode

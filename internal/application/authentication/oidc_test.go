@@ -36,7 +36,7 @@ func TestOIDCIdentityConflictIsForbidden(t *testing.T) {
 	t.Parallel()
 	allow := true
 	repo := &oidcLoginRepository{resolveErr: db.ErrIdentityEmailInUse}
-	_, err := NewOIDC(repo, &allow).Login(context.Background(), "https://sso.example/", "subject-1", "alice", "alice@example.com", "Alice")
+	_, err := NewOIDC(repo, allow).Login(context.Background(), "https://sso.example/", "subject-1", "alice", "alice@example.com", "Alice")
 	require.ErrorIs(t, err, appkitauth.ErrForbidden)
 	require.ErrorIs(t, err, db.ErrIdentityEmailInUse)
 }
@@ -47,7 +47,7 @@ func TestOIDCInfrastructureErrorSurfaces(t *testing.T) {
 	allow := true
 	underlying := errors.New("database unavailable")
 	repo := &oidcLoginRepository{resolveErr: underlying}
-	_, err := NewOIDC(repo, &allow).Login(context.Background(), "https://sso.example/", "subject-1", "alice", "alice@example.com", "Alice")
+	_, err := NewOIDC(repo, allow).Login(context.Background(), "https://sso.example/", "subject-1", "alice", "alice@example.com", "Alice")
 	require.ErrorIs(t, err, underlying)
 	require.NotErrorIs(t, err, appkitauth.ErrForbidden)
 }

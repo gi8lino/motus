@@ -7,15 +7,17 @@ import (
 	"strings"
 	"time"
 
-	appkitauth "github.com/containeroo/appkit/auth"
+	"github.com/containeroo/appkit/auth/browser"
 	appkitlocal "github.com/containeroo/appkit/auth/local"
 	appkitsession "github.com/containeroo/appkit/auth/session"
 	"github.com/gi8lino/motus/internal/db"
 	"github.com/jackc/pgx/v5"
 )
 
-const localSessionCookie = "motus_session"
-const sessionHashPurpose = "motus-browser-session-v1"
+const (
+	localSessionCookie = "motus_session"
+	sessionHashPurpose = "motus-browser-session-v1"
+)
 
 // CookieOptions configures session-cookie routing and transport security.
 type CookieOptions struct {
@@ -94,25 +96,24 @@ func (s sessionStore) Revoke(ctx context.Context, hash string) error {
 	return s.repository.DeleteSessionHash(ctx, hash)
 }
 
-// Authenticate resolves a shared session or a valid legacy session during migration.
-func (l *Local) Authenticate(r *http.Request) (db.User, error) {
+// sessionOrigin resolves an active session and its hash-bound sign-in scope.
+func (l *Local) sessionOrigin(r *http.Request) (db.User, browser.Origin, error) {
 	cookie, err := r.Cookie(localSessionCookie)
-	if err != nil || strings.TrimSpace(cookie.Value) == "" {
-		return db.User{}, ErrUnauthenticated
+	if err != nil {
+		return db.User{}, browser.Origin{}, ErrUnauthenticated
+	}
+	scope := appkitsession.Scope(cookie.Value)
+	var origin browser.Origin
+	switch {
+	case scope == "local":
+		origin.Mode = ModeLocal
+	case strings.HasPrefix(scope, "oidc:"):
+		origin = browser.Origin{Mode: ModeOIDC, Issuer: strings.TrimPrefix(scope, "oidc:")}
+	default:
+		return db.User{}, origin, ErrUnauthenticated
 	}
 	user, err := l.sessions.Resolve(r.Context(), cookie.Value)
-	if err == nil || !errors.Is(err, ErrUnauthenticated) {
-		return user, err
-	}
-	// Existing sessions use SHA-256(raw token) rather than appkit's purpose-separated hash.
-	previous, err := l.repository.GetSessionUser(r.Context(), cookie.Value, time.Now().UTC())
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && previous == nil) {
-		return db.User{}, ErrUnauthenticated
-	}
-	if err != nil {
-		return db.User{}, err
-	}
-	return *previous, nil
+	return user, origin, err
 }
 
 // SignIn authenticates existing local credentials and starts an appkit session.
@@ -127,7 +128,7 @@ func (l *Local) SignIn(ctx context.Context, email, password string) (db.User, st
 	if err := appkitlocal.VerifyPassword(hash, password); err != nil {
 		return db.User{}, "", ErrInvalidCredentials
 	}
-	token, err := l.sessions.Start(ctx, *user)
+	token, err := l.StartSession(ctx, *user)
 	if err != nil {
 		return db.User{}, "", err
 	}
@@ -136,14 +137,11 @@ func (l *Local) SignIn(ctx context.Context, email, password string) (db.User, st
 
 // Setup atomically creates the first administrator and issues a browser session.
 func (l *Local) Setup(ctx context.Context, email, password string) (db.User, string, error) {
-	if strings.TrimSpace(password) == "" {
-		return db.User{}, "", errors.New("password is required")
+	setup := appkitlocal.Setup[*db.User]{
+		Validate: validateSetupPassword,
+		Create:   l.repository.CreateInitialAdministrator,
 	}
-	hash, err := appkitlocal.HashPassword(password)
-	if err != nil {
-		return db.User{}, "", err
-	}
-	user, err := l.repository.CreateInitialAdministrator(ctx, email, hash)
+	user, err := setup.Bootstrap(ctx, "", email, password)
 	if err != nil {
 		return db.User{}, "", err
 	}
@@ -153,16 +151,19 @@ func (l *Local) Setup(ctx context.Context, email, password string) (db.User, str
 	if l.setupCompleted != nil {
 		l.setupCompleted()
 	}
-	token, err := l.sessions.Start(ctx, *user)
+	token, err := l.StartSession(ctx, *user)
 	if err != nil {
 		return db.User{}, "", err
 	}
 	return *user, token, nil
 }
 
-// StartSession creates a session for an externally verified account.
-func (l *Local) StartSession(ctx context.Context, user db.User) (string, error) {
-	return l.sessions.Start(ctx, user)
+// validateSetupPassword checks the required initial password before hashing.
+func validateSetupPassword(_, password string) error {
+	if strings.TrimSpace(password) == "" {
+		return errors.New("password is required")
+	}
+	return nil
 }
 
 // WriteSessionCookie issues a secure browser cookie for a validated session.
@@ -170,7 +171,13 @@ func (l *Local) WriteSessionCookie(w http.ResponseWriter, r *http.Request, token
 	cfg := l.cookie
 	cfg.Secure = cfg.Secure || r.TLS != nil
 	if cfg.Path != "/" {
-		http.SetCookie(w, &http.Cookie{Name: cfg.Name, Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(w, &http.Cookie{
+			Name:     cfg.Name,
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 	http.SetCookie(w, cfg.Cookie(token, false))
 }
@@ -182,7 +189,13 @@ func (l *Local) ClearSession(w http.ResponseWriter, r *http.Request) {
 		_ = l.repository.DeleteSession(r.Context(), cookie.Value)
 	}
 	if l.cookie.Path != "/" {
-		http.SetCookie(w, &http.Cookie{Name: l.cookie.Name, Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(w, &http.Cookie{
+			Name:     l.cookie.Name,
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 	http.SetCookie(w, l.cookie.Cookie("", true))
 }
@@ -218,4 +231,7 @@ func (l *Local) ChangePassword(ctx context.Context, userID, currentPassword, new
 	return l.repository.DeleteUserSessions(ctx, userID)
 }
 
-var _ appkitauth.Authenticator[db.User] = (*Local)(nil)
+// StartSession issues a local session after password sign-in, registration, or setup.
+func (l *Local) StartSession(ctx context.Context, user db.User) (string, error) {
+	return l.sessions.StartScoped(ctx, user, "local")
+}
