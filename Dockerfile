@@ -67,7 +67,9 @@ COPY --from=prep /workspace/motus /motus
 COPY --from=prep /outfs/work /work
 COPY --from=prep /outfs/tmp /tmp
 
-ENV HOME=/tmp
+ENV HOME=/tmp \
+  MOTUS__LISTEN_ADDRESS=:8080 \
+  MOTUS__MANAGEMENT_LISTEN_ADDRESS=:8081
 
 WORKDIR /work
 

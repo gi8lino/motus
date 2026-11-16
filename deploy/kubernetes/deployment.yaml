@@ -35,10 +35,6 @@ spec:
               value: local
             - name: MOTUS__PUBLIC_URL
               value: https://motus.example.com
-            - name: MOTUS__LISTEN_ADDRESS
-              value: 0.0.0.0:8080
-            - name: MOTUS__MANAGEMENT_LISTEN_ADDRESS
-              value: 0.0.0.0:8081
           envFrom:
             - secretRef:
                 name: motus-db-url
