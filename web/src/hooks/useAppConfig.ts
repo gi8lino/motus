@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getConfig, getCurrentUser } from "../api";
+import { resolveAuthEntry } from "../utils/authEntry";
 import { MESSAGES, toErrorMessage } from "../utils/messages";
 import type { View } from "../types";
 
@@ -34,26 +35,39 @@ export function useAppConfig({
     viewRef.current = view;
   }, [view]);
 
-  useEffect(() => {
-    getConfig()
-      .then((cfg) => {
-        setConfig(cfg);
-        return getCurrentUser()
-          .then((user) => {
-            setCurrentUserId(user.id);
-            setAuthError(null);
-            if (viewRef.current === "login") setView("training");
-          })
-          .catch((err: Error) => {
-            setCurrentUserId(null);
-            if (cfg.authHeaderEnabled)
-              setAuthError(toErrorMessage(err, MESSAGES.authFailed));
-          });
-      })
-      .catch((err: Error) => {
-        setAuthError(toErrorMessage(err, MESSAGES.configFailed));
-      });
+  // Refresh after bootstrap so a stale setupRequired flag cannot keep the SPA
+  // on setup after the first administrator has been persisted.
+  const refreshConfig = useCallback(async () => {
+    const cfg = await getConfig();
+    setConfig(cfg);
+
+    if (resolveAuthEntry(cfg, null) === "setup") {
+      // Setup is public and precedes local, proxy, OIDC, or no-auth login.
+      // Avoid requesting /api/me while the backend explicitly denies it.
+      setCurrentUserId(null);
+      setAuthError(null);
+      setView("login");
+      return;
+    }
+
+    try {
+      const user = await getCurrentUser();
+      setCurrentUserId(user.id);
+      setAuthError(null);
+      if (viewRef.current === "login") setView("training");
+    } catch (err) {
+      setCurrentUserId(null);
+      setAuthError(
+        cfg.authHeaderEnabled ? toErrorMessage(err, MESSAGES.authFailed) : null,
+      );
+    }
   }, [setCurrentUserId, setView]);
 
-  return { config, authError };
+  useEffect(() => {
+    void refreshConfig().catch((err: Error) => {
+      setAuthError(toErrorMessage(err, MESSAGES.configFailed));
+    });
+  }, [refreshConfig]);
+
+  return { config, authError, refreshConfig };
 }

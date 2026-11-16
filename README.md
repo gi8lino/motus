@@ -131,6 +131,28 @@ Browser sessions are bound to local sign-in or to a specific OIDC issuer. When u
 
 After setup, additional local users can register only when `--allow-user-registration` is enabled. Administrators can manage users from the application.
 
+### First-run setup with external authentication
+
+On a fresh database, the SPA displays the first-administrator setup form **before**
+trying proxy or OIDC authentication. No authenticated `/api/me` request is made
+while setup is pending. The form creates a local administrator once; after
+completion, the app reloads the current authentication configuration.
+
+Creating this local administrator does **not** automatically link or authorize
+a proxy or OIDC identity. For a proxy deployment, the supported bootstrap
+sequence is to initialize in `local` mode and plan how external accounts will
+be provisioned and granted the appropriate privileges before switching to
+`proxy` mode. For proxy identities, `--allow-user-registration` permits new
+external accounts but does not grant them administrator rights. An identity
+with the same email as an existing, unlinked local account is rejected rather
+than silently attached to it. Starting directly in `proxy` mode makes the setup
+form reachable, but creating the local administrator does not on its own grant
+the proxy identity access after setup.
+
+`POST /api/setup` has no separate setup token and is available until the
+initial administrator is created. Restrict public access to a new deployment
+until bootstrap has completed; use an authenticated network or gateway boundary.
+
 ## Trusted-proxy mode
 
 Use `proxy` mode when an authentication gateway verifies a user's identity and forwards an identity header. For an Envoy Gateway SecurityPolicy that sets `X-Auth-Request-Email` from a verified JWT:
@@ -174,7 +196,7 @@ Set `--auth-mode=oidc` and all four OIDC flags to use a single OpenID Connect pr
 
 ## No-auth mode
 
-`--auth-mode=none` is for a genuinely single-user deployment behind an already trusted boundary. Requests run as Motus's local `admin` account, created only when this mode first handles a request. Do not expose this mode directly to the internet.
+`--auth-mode=none` is for a genuinely single-user deployment behind an already trusted boundary. Complete first-run setup before using the application; once setup is complete, requests run without browser authentication. Do not expose this mode directly to the internet.
 
 ## Core exercises YAML
 
@@ -237,5 +259,3 @@ The application never trusts `X-Forwarded-For` as evidence of an authenticated p
 
 Appkit-managed sessions use purpose-separated hashes; existing Motus session cookies
 remain valid through the legacy lookup path until they expire or are revoked.
-
-

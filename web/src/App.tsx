@@ -30,6 +30,7 @@ import { useTrainingTimer } from "./hooks/useTrainingTimer";
 import { useDialog } from "./hooks/useDialog";
 import { useViewState } from "./hooks/useViewState";
 import { useAppConfig } from "./hooks/useAppConfig";
+import { resolveAuthEntry, resolveAuthView } from "./utils/authEntry";
 import { useWorkoutsData } from "./hooks/useWorkoutsData";
 import { useUserDefaults } from "./hooks/useUserDefaults";
 
@@ -171,7 +172,7 @@ export default function App() {
     askPrompt,
   } = useDialog();
 
-  const { config, authError } = useAppConfig({
+  const { config, authError, refreshConfig } = useAppConfig({
     view,
     setView,
     setCurrentUserId,
@@ -181,13 +182,16 @@ export default function App() {
   const oidcEnabled = config?.oidcEnabled ?? false;
   const setupRequired = config?.setupRequired ?? false;
   const appVersion = config?.version || "dev";
+  const authEntry = config ? resolveAuthEntry(config, authError) : "ready";
+  const activeProxyAuth = authHeaderEnabled && authEntry !== "setup";
+  const displayView = resolveAuthView(authEntry, view);
   const {
     prefetchedViews,
     preloadView: handleViewPreload,
     setPrefetchedViews,
   } = useViewPreloader({
     preload: preloadView,
-    authenticated: Boolean(currentUserId || authHeaderEnabled),
+    authenticated: Boolean(currentUserId || activeProxyAuth),
     currentUser: null,
   });
   const {
@@ -201,8 +205,8 @@ export default function App() {
     currentUserLoader,
   } = useWorkoutsData({
     currentUserId,
-    authHeaderEnabled,
-    view,
+    authHeaderEnabled: activeProxyAuth,
+    view: displayView,
     prefetchedViews,
   });
   const exerciseCatalog = exercises.data || [];
@@ -236,16 +240,21 @@ export default function App() {
 
   // ---------- auto-redirect to training when local user logs in ----------
   useEffect(() => {
-    if (authHeaderEnabled) return;
+    if (setupRequired || authHeaderEnabled) return;
     if (currentUserId && view === "login") setView("training");
-  }, [authHeaderEnabled, currentUserId, view, setView]);
+  }, [setupRequired, authHeaderEnabled, currentUserId, view, setView]);
 
   // ---------- force login when local auth has no user ----------
   useEffect(() => {
+    if (setupRequired) {
+      if (view !== "login") setView("login");
+      return;
+    }
     if (authHeaderEnabled) return;
     if (currentUserLoader.loading) return;
     if (!currentUserId && view !== "login") setView("login");
   }, [
+    setupRequired,
     authHeaderEnabled,
     currentUserId,
     currentUserLoader.loading,
@@ -439,7 +448,7 @@ export default function App() {
     );
   }
 
-  if (authHeaderEnabled && authError) {
+  if (authEntry === "proxy-denied") {
     return (
       <div className="shell">
         <main>
@@ -462,11 +471,11 @@ export default function App() {
       <CssBaseline enableColorScheme />
 
       <AppShell
-        view={view}
+        view={displayView}
         onViewChange={setView}
         onViewPreload={handleViewPreload}
         currentUser={currentUser}
-        authHeaderEnabled={authHeaderEnabled}
+        authHeaderEnabled={activeProxyAuth}
         onLogout={
           !authHeaderEnabled && currentUserId ? handleLogout : undefined
         }
@@ -488,7 +497,7 @@ export default function App() {
         appVersion={appVersion}
       >
         <Suspense fallback={<PageFallback />}>
-          {view === "login" && !authHeaderEnabled && (
+          {displayView === "login" && !activeProxyAuth && (
             <LoginView
               data={{
                 allowRegistration,
@@ -505,12 +514,14 @@ export default function App() {
                 onCreateUser: async (email, password) => {
                   try {
                     if (setupRequired) {
-                      const user = await setupUser(email, password);
-                      onLoginSuccess(user);
+                      await setupUser(email, password);
+                      // Re-read the server's completed setup state and the effective
+                      // identity; a local setup session does not grant proxy/OIDC access.
+                      await refreshConfig();
                     } else {
                       await handleRegister(email, password);
+                      setView("training");
                     }
-                    setView("training");
                   } catch (err) {
                     await notify(toErrorMessage(err, "Unable to create user"));
                   }
@@ -520,7 +531,7 @@ export default function App() {
             />
           )}
 
-          {view === "admin" && currentUser?.isAdmin && (
+          {displayView === "admin" && currentUser?.isAdmin && (
             <AdminView
               data={{
                 users: users.data || [],
@@ -544,7 +555,7 @@ export default function App() {
             />
           )}
 
-          {view === "workouts" && (
+          {displayView === "workouts" && (
             <WorkoutsView
               workouts={activeWorkouts}
               loading={workouts.loading}
@@ -572,7 +583,7 @@ export default function App() {
             />
           )}
 
-          {view === "training" && (
+          {displayView === "training" && (
             <TrainingView
               data={{
                 workouts: activeWorkouts,
@@ -614,7 +625,7 @@ export default function App() {
             />
           )}
 
-          {view === "history" && (
+          {displayView === "history" && (
             <HistoryView
               data={{
                 items: history.data || [],
@@ -628,7 +639,7 @@ export default function App() {
             />
           )}
 
-          {view === "profile" && (
+          {displayView === "profile" && (
             <ProfileView
               data={{
                 profileTab,
@@ -668,7 +679,7 @@ export default function App() {
             />
           )}
 
-          {view === "exercises" && (
+          {displayView === "exercises" && (
             <ExercisesView
               data={{
                 exercises: exerciseCatalog,
