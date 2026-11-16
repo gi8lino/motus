@@ -3,7 +3,7 @@ module github.com/gi8lino/motus
 go 1.27.0
 
 require (
-	github.com/containeroo/appkit v0.8.0
+	github.com/containeroo/appkit v0.8.1
 	github.com/containeroo/httpkit v0.2.0
 	github.com/containeroo/tinyflags v0.12.0
 	github.com/jackc/pgx/v5 v5.13.0
@@ -21,7 +21,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 )
