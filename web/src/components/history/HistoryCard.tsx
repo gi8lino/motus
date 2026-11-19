@@ -76,7 +76,6 @@ export function HistoryList({
               ) : null}
               {item.steps
                 ?.flatMap((step) => step.exercises || [])
-                .slice(0, 3)
                 .map((exercise, index) => (
                   <div
                     className="muted small"

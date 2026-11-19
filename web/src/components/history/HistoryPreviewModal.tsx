@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import type {
   TrainingHistoryItem,
   TrainingStepLog,
@@ -7,7 +5,6 @@ import type {
 } from "../../types";
 import { formatExerciseLine, formatElapsedMillis } from "../../utils/format";
 import { buildSummary } from "../../utils/summary";
-import { expandWorkoutSteps } from "../../utils/workout";
 import { AISummary } from "./HistoryCard";
 import { Modal } from "../common/Modal";
 
@@ -19,28 +16,23 @@ type HistoryPreviewModalProps = {
   onCopySummary: () => void;
 };
 
-// mapHistoryDurations builds an elapsed duration lookup by step order.
-const mapHistoryDurations = (steps: TrainingStepLog[]) => {
-  const map: Record<string, number> = {};
-  steps.forEach((s) => {
-    const key = `order-${s.stepOrder}`;
-    map[key] = s.elapsedMillis;
-  });
-  return map;
-};
-
-// mergeWorkoutDurations merges logged timings into expanded workout steps.
-const mergeWorkoutDurations = (
-  workout: Workout,
-  durations: Record<string, number>,
-) => {
-  const expanded = expandWorkoutSteps(workout.steps || []);
-  return expanded.map((step, idx) => ({
-    ...step,
-    elapsedMillis:
-      durations[`order-${idx}`] ?? durations[step.id || `step-${idx}`] ?? 0,
+// historySteps returns the immutable completion snapshot, falling back for legacy logs.
+function historySteps(
+  preview: TrainingHistoryItem,
+  workout: Workout | null,
+): TrainingStepLog[] {
+  if (preview.steps?.length) return preview.steps;
+  return (workout?.steps || []).map((step, index) => ({
+    id: step.id || `legacy-step-${index}`,
+    trainingId: preview.trainingId || preview.id,
+    stepOrder: index,
+    type: step.type,
+    name: step.name,
+    estimatedSeconds: step.estimatedSeconds || 0,
+    elapsedMillis: 0,
+    exercises: step.exercises,
   }));
-};
+}
 
 // formatTimestamp renders an ISO timestamp into a readable string.
 const formatTimestamp = (value?: string) => {
@@ -71,17 +63,8 @@ export function HistoryPreviewModal({
   onClose,
   onCopySummary,
 }: HistoryPreviewModalProps) {
-  const previewDurations = useMemo(
-    () => (preview?.steps?.length ? mapHistoryDurations(preview.steps) : {}),
-    [preview],
-  );
-
-  const expandedSteps = useMemo(() => {
-    if (!workout) return [];
-    return mergeWorkoutDurations(workout, previewDurations);
-  }, [previewDurations, workout]);
-
   if (!preview) return null;
+  const completedSteps = historySteps(preview, workout);
 
   return (
     <Modal open onClose={onClose}>
@@ -109,9 +92,9 @@ export function HistoryPreviewModal({
         <div>
           <div className="label">Steps</div>
           {loading && <div className="muted small">Loading steps…</div>}
-          {!loading && workout && (
+          {!loading && completedSteps.length > 0 && (
             <ul className="list compact">
-              {expandedSteps.map((step, idx) => (
+              {completedSteps.map((step, idx) => (
                 <li key={step.id || idx} className="list-item">
                   <div className="list-row">
                     <div>
@@ -122,7 +105,7 @@ export function HistoryPreviewModal({
                         {step.type} •{" "}
                         {step.estimatedSeconds
                           ? `target ${step.estimatedSeconds}s`
-                          : step.duration || "open"}
+                          : "open"}
                         {step.elapsedMillis
                           ? ` • actual ${formatElapsedMillis(step.elapsedMillis)}`
                           : ""}
@@ -141,21 +124,21 @@ export function HistoryPreviewModal({
               ))}
             </ul>
           )}
-          {!loading && !workout && (
+          {!loading && completedSteps.length === 0 && (
             <div className="muted small">No step data available.</div>
           )}
         </div>
       </div>
       <AISummary
         summary={
-          workout
+          completedSteps.length
             ? buildSummary({
-                workoutName: preview.workoutName || workout.name,
+                workoutName: preview.workoutName || workout?.name,
                 workoutId: preview.workoutId,
                 userId: preview.userId,
                 startedAt: preview.startedAt,
                 completedAt: preview.completedAt,
-                steps: expandedSteps,
+                steps: completedSteps,
               })
             : ""
         }
