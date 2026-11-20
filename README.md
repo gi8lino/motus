@@ -75,12 +75,24 @@ Motus separates training timing from data storage:
 
 Each step can include multiple exercises and a sound cue. Auto-advance pauses trigger a visible countdown. Training summaries include target vs. actual time so you can paste the recap into your preferred AI and ask how the training went.
 
+## Database compatibility
+
+Motus supports PostgreSQL **14 through 19**, inclusive. PostgreSQL 14 is the
+minimum supported server version; PostgreSQL 19 is the newest version currently
+validated by the integration test suite. Use a supported minor release within
+that range. Versions below 14 and PostgreSQL major versions newer than 19 are
+not supported until they are explicitly validated.
+
+Upgrading between PostgreSQL major versions requires a PostgreSQL migration
+procedure such as `pg_upgrade` or dump/restore; do not mount an existing data
+directory directly under a newer major-version container image.
+
 ## Running locally
 
 1. Set up PostgreSQL and export the connection string. Example using Docker:
 
    ```bash
-   docker run --name motus-db -e POSTGRES_PASSWORD=motus -e POSTGRES_USER=motus -e POSTGRES_DB=motus -p 5432:5432 -d postgres:18
+   docker run --name motus-db -e POSTGRES_PASSWORD=motus -e POSTGRES_USER=motus -e POSTGRES_DB=motus -p 5432:5432 -d postgres:19
    export MOTUS__DATABASE_URL="postgres://motus:motus@localhost:5432/motus?sslmode=disable"
    ```
 
