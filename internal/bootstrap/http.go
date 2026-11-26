@@ -4,14 +4,14 @@ import (
 	"io/fs"
 	"log/slog"
 
-	"github.com/gi8lino/motus/internal/flags"
+	"github.com/gi8lino/motus/internal/cli"
 	httpserver "github.com/gi8lino/motus/internal/http/server"
 )
 
 // NewHTTPConfig constructs the passive HTTP adapter from the completed application graph.
 func NewHTTPConfig(
 	assets fs.FS,
-	cfg flags.Config,
+	cfg cli.Flags,
 	infrastructure *Infrastructure,
 	application *Application,
 	logger *slog.Logger,

@@ -10,7 +10,7 @@ import (
 
 	appauth "github.com/gi8lino/motus/internal/application/authentication"
 	appsystem "github.com/gi8lino/motus/internal/application/system"
-	"github.com/gi8lino/motus/internal/flags"
+	"github.com/gi8lino/motus/internal/cli"
 	httpauth "github.com/gi8lino/motus/internal/http/auth"
 	"github.com/gi8lino/motus/internal/service/exercises"
 	"github.com/gi8lino/motus/internal/service/sounds"
@@ -40,7 +40,7 @@ type Application struct {
 // NewApplication composes application services around initialized process infrastructure.
 func NewApplication(
 	ctx context.Context,
-	cfg flags.Config,
+	cfg cli.Flags,
 	infrastructure *Infrastructure,
 	logger *slog.Logger,
 ) (*Application, error) {
@@ -86,7 +86,7 @@ func NewApplication(
 
 // newBrowserConfig passes explicit deployment overrides to the browser-auth runtime.
 // Appkit resolves proxy header defaults against persisted settings at runtime.
-func newBrowserConfig(cfg flags.Config) httpauth.BrowserConfig {
+func newBrowserConfig(cfg cli.Flags) httpauth.BrowserConfig {
 	return httpauth.BrowserConfig{
 		ModeOverride:                  authenticationMode(cfg.Authentication.ModeOverride),
 		LocalLoginEnabled:             cfg.Authentication.LocalLogin,
@@ -116,7 +116,7 @@ func authenticationMode(override *appkitauth.Mode) httpauth.Mode {
 }
 
 // oidcGroupClaimOverride leaves the database group-claim setting authoritative unless overridden.
-func oidcGroupClaimOverride(cfg flags.Config) string {
+func oidcGroupClaimOverride(cfg cli.Flags) string {
 	if _, ok := cfg.Overrides.Values()["oidc-group-claim"]; ok {
 		return cfg.OIDC.GroupClaim
 	}

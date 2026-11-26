@@ -7,7 +7,7 @@ import (
 	appkitproxy "github.com/containeroo/appkit/auth/proxy"
 	"github.com/stretchr/testify/require"
 
-	"github.com/gi8lino/motus/internal/flags"
+	"github.com/gi8lino/motus/internal/cli"
 )
 
 func TestAuthenticationModeOverride(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAuthenticationModeOverride(t *testing.T) {
 
 // TestNewBrowserConfigDelegatesProxyDefaults ensures Motus doesn't reimplement appkit defaults.
 func TestNewBrowserConfigDelegatesProxyDefaults(t *testing.T) {
-	cfg, err := flags.Parse([]string{"--database-url", "postgres://localhost/motus", "--auth-mode", "proxy", "--trusted-proxy-cidrs", "*"}, "")
+	cfg, err := cli.Parse([]string{"--database-url", "postgres://localhost/motus", "--auth-mode", "proxy", "--trusted-proxy-cidrs", "*"}, "")
 	require.NoError(t, err)
 
 	browser := newBrowserConfig(cfg)
@@ -38,7 +38,7 @@ func TestNewBrowserConfigDelegatesProxyDefaults(t *testing.T) {
 
 // TestNewBrowserConfigRetainsExplicitHeaderOverrides checks CLI settings win over defaults.
 func TestNewBrowserConfigRetainsExplicitHeaderOverrides(t *testing.T) {
-	cfg, err := flags.Parse([]string{
+	cfg, err := cli.Parse([]string{
 		"--database-url", "postgres://localhost/motus",
 		"--trusted-proxy-cidrs", "127.0.0.1/32",
 		"--trusted-email-headers", "X-Verified-Email",

@@ -1,5 +1,5 @@
 // Package flags parses deployment-level configuration for the Motus server.
-package flags
+package cli
 
 import (
 	"time"
@@ -17,8 +17,8 @@ const (
 	sectionLoggingDiagnostics = "Logging and diagnostics"
 )
 
-// Config contains deployment-level runtime configuration for Motus.
-type Config struct {
+// Flags contains deployment-level runtime configuration for Motus.
+type Flags struct {
 	// Server contains shared HTTP listener configuration.
 	Server appkitconfig.Server
 	// Database contains shared PostgreSQL configuration.
@@ -38,9 +38,7 @@ type Config struct {
 }
 
 // Parse parses command-line arguments into application configuration.
-func Parse(args []string, version string) (Config, error) {
-	cfg := Config{}
-
+func Parse(args []string, version string) (flags Flags, err error) {
 	tf := appkitconfig.NewFlagSet("motus", "MOTUS", version)
 	tf.SectionOrder(
 		sectionServer,
@@ -52,34 +50,34 @@ func Parse(args []string, version string) (Config, error) {
 		sectionLoggingDiagnostics,
 	)
 
-	finalizeServer := appkitconfig.RegisterServer(tf, &cfg.Server, appkitconfig.ServerOptions{})
+	finalizeServer := appkitconfig.RegisterServer(tf, &flags.Server, appkitconfig.ServerOptions{})
 
-	appkitconfig.RegisterPostgres(tf, &cfg.Database, appkitconfig.PostgresOptions{})
+	appkitconfig.RegisterPostgres(tf, &flags.Database, appkitconfig.PostgresOptions{})
 	finalizeAuthentication := appkitconfig.RegisterAuthentication(
 		tf,
-		&cfg.Authentication,
+		&flags.Authentication,
 		appkitconfig.AuthenticationOptions{RegisterSessionLifetime: true, DefaultSessionLifetime: 30 * 24 * time.Hour},
 	)
 
-	appkitconfig.RegisterProxy(tf, &cfg.Proxy)
+	appkitconfig.RegisterProxy(tf, &flags.Proxy)
 
-	appkitconfig.RegisterOIDC(tf, &cfg.OIDC)
-	finalizeLogging := appkitconfig.RegisterLogging(tf, &cfg.Logging)
-	registerCatalogFlags(tf, &cfg)
+	appkitconfig.RegisterOIDC(tf, &flags.OIDC)
+	finalizeLogging := appkitconfig.RegisterLogging(tf, &flags.Logging)
+	registerCatalogFlags(tf, &flags)
 
 	if err := tf.Parse(args); err != nil {
-		return Config{}, err
+		return Flags{}, err
 	}
 
 	finalizeServer()
 	finalizeAuthentication()
 	finalizeLogging()
-	cfg.Overrides = tf.Overrides()
-	return cfg, nil
+	flags.Overrides = tf.Overrides()
+	return flags, nil
 }
 
 // registerCatalogFlags registers exercise-catalog deployment overrides.
-func registerCatalogFlags(tf *tinyflags.FlagSet, cfg *Config) {
+func registerCatalogFlags(tf *tinyflags.FlagSet, cfg *Flags) {
 	tf.StringVar(&cfg.CoreExercisesFile, "core-exercises-file", "", "YAML file overriding the embedded core exercise catalog").
 		Section(sectionCatalog).
 		Placeholder("FILE").
