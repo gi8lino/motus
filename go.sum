@@ -2,8 +2,8 @@ github.com/containeroo/appkit v0.8.1 h1:jxkUy+1WKbGFvUnroE77OZDXQFk6G3om0eapL6H+
 github.com/containeroo/appkit v0.8.1/go.mod h1:zWPe1aG6moPuqLuV4KjSZJ6Wl4Fg3jIeyhYmU9mPgYc=
 github.com/containeroo/httpkit v0.2.0 h1:fu8FCosh6yhUIxz4ZZIxf6GY7mXn2endzpincKNdVnI=
 github.com/containeroo/httpkit v0.2.0/go.mod h1:Bls6WhCGipr/1GfPq/pNNfTVyBTaKM76c6/nqR0ep+4=
-github.com/containeroo/tinyflags v0.12.0 h1:GaZXpsp8E3HBSrHAjYOGpTAWDRpc7oRLNZa/CGvQgDo=
-github.com/containeroo/tinyflags v0.12.0/go.mod h1:60uDGGWAChKE4VkKGpxSaFtxoJR/tRk28HdB6OvyR0Q=
+github.com/containeroo/tinyflags v0.13.0 h1:F/r2Mr5FX+pAp/SIRMef8EVyfN0QXg0NBDETjyfDMe0=
+github.com/containeroo/tinyflags v0.13.0/go.mod h1:60uDGGWAChKE4VkKGpxSaFtxoJR/tRk28HdB6OvyR0Q=
 github.com/coreos/go-oidc/v3 v3.21.0 h1:wZo4Q9Pum8dYEj0eMUPrqR+kvuGkeUplbLpNCkBqoWM=
 github.com/coreos/go-oidc/v3 v3.21.0/go.mod h1:DYCf24+ncYi+XkIH97GY1+dqoRlbaSI26KVTCI9SrY4=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
